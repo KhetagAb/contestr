@@ -1,6 +1,7 @@
 package config
 
 import (
+	"strings"
 	"time"
 
 	"github.com/spf13/viper"
@@ -8,45 +9,48 @@ import (
 
 type (
 	Config struct {
-		App        AppConfig
-		HTTP       HTTPConfig
-		MongoDB    MongoDBConfig
-		Telegram   TelegramConfig
-		Codeforces CodeforcesConfig
+		App        AppConfig        `mapstructure:"app"`
+		HTTP       HTTPConfig       `mapstructure:"http"`
+		MongoDB    MongoDBConfig    `mapstructure:"mongodb"`
+		Telegram   TelegramConfig   `mapstructure:"telegram"`
+		Codeforces CodeforcesConfig `mapstructure:"codeforces"`
 	}
 
 	AppConfig struct {
-		Name    string
-		Version string
+		Name    string `mapstructure:"name"`
+		Version string `mapstructure:"version"`
 	}
 
 	HTTPConfig struct {
-		Port            string
-		ReadTimeout     time.Duration
-		WriteTimeout    time.Duration
-		ShutdownTimeout time.Duration
+		Port            string        `mapstructure:"port"`
+		ReadTimeout     time.Duration `mapstructure:"read_timeout"`
+		WriteTimeout    time.Duration `mapstructure:"write_timeout"`
+		ShutdownTimeout time.Duration `mapstructure:"shutdown_timeout"`
 	}
 
 	MongoDBConfig struct {
-		URI         string
-		Database    string
-		MaxPoolSize uint64
-		MinPoolSize uint64
-		MaxIdleTime time.Duration
+		URI         string `mapstructure:"uri"`
+		Database    string `mapstructure:"database"`
+		MaxPoolSize uint64 `mapstructure:"max_pool_size"`
+		MinPoolSize uint64 `mapstructure:"min_pool_size"`
 	}
 
 	TelegramConfig struct {
-		Token string
+		Token string `mapstructure:"token"`
 	}
 
 	CodeforcesConfig struct {
-		APIKey    string
-		APISecret string
+		APIKey    string `mapstructure:"api_key"`
+		APISecret string `mapstructure:"api_secret"`
 	}
 )
 
 func LoadConfig(path string) (*Config, error) {
 	viper.SetConfigFile(path)
+
+	viper.SetEnvPrefix("APP")
+	viper.AutomaticEnv()
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 
 	if err := viper.ReadInConfig(); err != nil {
 		return nil, err
