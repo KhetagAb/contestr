@@ -22,3 +22,9 @@ vendor/
 
 # OS specific files
 .DS_Store
+
+# secrets
+*.env
+
+# generated sources
+*.gen.go

@@ -1,23 +1,24 @@
-package telegram
+package delivery
 
 import (
 	"contestr/pkg/logger"
 	"context"
 
 	"contestr/internal/config"
-	"contestr/internal/transport/telegram/handlers"
+	"contestr/internal/handlers/tgbot"
 	"github.com/go-telegram/bot"
 )
 
 type Bot struct {
 	bot      *bot.Bot
 	cfg      *config.Config
-	handlers *handlers.Handlers
+	handlers *tgbot.Handlers
 }
 
-func NewBot(cfg *config.Config, handlers *handlers.Handlers) (*Bot, error) {
+func NewBot(cfg *config.Config, handlers *tgbot.Handlers) (*Bot, error) {
 	opts := []bot.Option{
 		bot.WithDefaultHandler(handlers.HandleUnknownCommand),
+		bot.WithDebug(),
 	}
 
 	b, err := bot.New(cfg.Telegram.Token, opts...)

@@ -1,6 +1,7 @@
 package config
 
 import (
+	"github.com/joho/godotenv"
 	"strings"
 	"time"
 
@@ -46,6 +47,8 @@ type (
 )
 
 func LoadConfig(path string) (*Config, error) {
+	_ = godotenv.Load()
+
 	viper.SetConfigFile(path)
 
 	viper.SetEnvPrefix("APP")

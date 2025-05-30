@@ -1,22 +1,22 @@
-package server
+package delivery
 
 import (
 	"log"
 	"net/http"
 )
 
-type Server struct {
+type HTTPServer struct {
 	httpServer *http.Server
 }
 
-func NewServer(port string) *Server {
+func NewHTTPServer() *HTTPServer {
 	mux := http.NewServeMux()
 
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("Hello, World!"))
 	})
 
-	return &Server{
+	return &HTTPServer{
 		httpServer: &http.Server{
 			Addr:    ":8080",
 			Handler: mux,
@@ -24,7 +24,11 @@ func NewServer(port string) *Server {
 	}
 }
 
-func (s *Server) Start() error {
-	log.Printf("Server starting on port 8080")
+func (s *HTTPServer) Start() error {
+	log.Printf("HTTPServer starting on port 8080")
 	return s.httpServer.ListenAndServe()
+}
+
+func (s *HTTPServer) Stop() error {
+	return s.httpServer.Close()
 }

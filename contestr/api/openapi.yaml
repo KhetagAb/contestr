@@ -1,0 +1,52 @@
+openapi: 3.0.0
+info:
+  title: Contests API
+  description: Ручки для получения данных о контестах
+  version: 1.0.0
+servers:
+  - url: /api/v1
+paths:
+  /hello:
+    get:
+      operationId: getHello
+      parameters:
+        - name: name
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: hello handle
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HelloResponse'
+        '500':
+          description: Внутренняя ошибка сервера
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+components:
+  schemas:
+    HelloResponse:
+      type: object
+      required:
+        - message
+      properties:
+        message:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+    Error:
+      type: object
+      required:
+        - code
+        - message
+      properties:
+        code:
+          type: integer
+          format: int32
+        message:
+          type: string
