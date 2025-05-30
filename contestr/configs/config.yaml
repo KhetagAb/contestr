@@ -1,0 +1,54 @@
+app:
+  name: "contestr"
+  version: "1.0.0"
+  environment: "development"
+
+http:
+  port: "8080"
+  read_timeout_seconds: 10
+  write_timeout_seconds: 10
+  idle_timeout_seconds: 120
+  shutdown_timeout_seconds: 5
+  cors:
+    allowed_origins:
+      - "http://localhost:3000"
+      - "https://yourdomain.com"
+    allowed_methods:
+      - "GET"
+      - "POST"
+      - "PUT"
+      - "DELETE"
+      - "OPTIONS"
+    allowed_headers:
+      - "Authorization"
+      - "Content-Type"
+    allow_credentials: true
+    max_age_seconds: 300
+
+mongodb:
+  uri: "mongodb://localhost:27017"
+  database: "codeforces_service"
+  max_pool_size: 100
+  min_pool_size: 10
+  max_idle_time_seconds: 60
+  timeout_seconds: 10
+  retry:
+    enabled: true
+    max_retries: 3
+    retry_interval_ms: 500
+    max_retry_interval_ms: 3000
+    multiplier: 2
+
+telegram:
+  token: "YOUR_TELEGRAM_BOT_TOKEN"
+  admins:
+    -
+
+codeforces:
+  api_key: "YOUR_CODEFORCES_API_KEY"
+  api_secret: "YOUR_CODEFORCES_API_SECRET"
+  request_timeout_seconds: 10
+  retry:
+    enabled: true
+    max_retries: 3
+    retry_interval_ms: 1000
