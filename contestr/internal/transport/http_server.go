@@ -1,12 +1,11 @@
 package transport
 
 import (
-	"contestr/internal/config"
+	"contestr/internal/configs"
 	"contestr/internal/generated/server"
 	httphandlers "contestr/internal/handlers/http"
 	"contestr/pkg/logger"
 	"context"
-	"errors"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	"net/http"
@@ -14,11 +13,11 @@ import (
 
 type Server struct {
 	echo       *echo.Echo
-	cfg        *config.Config
+	cfg        *configs.Config
 	httpServer *http.Server
 }
 
-func NewHTTPServer(ctx context.Context, cfg *config.Config) *Server {
+func NewHTTPServer(ctx context.Context, cfg *configs.Config) *Server {
 	e := echo.New()
 
 	e.HideBanner = true
@@ -44,12 +43,11 @@ func NewHTTPServer(ctx context.Context, cfg *config.Config) *Server {
 	}
 }
 
-func (s *Server) RegisterHandlers() {
+func (s *Server) RegisterHandlers(handlers *httphandlers.Handlers) {
 	s.echo.GET("/", func(c echo.Context) error {
 		return c.String(http.StatusOK, "Server is running")
 	})
 
-	handlers := httphandlers.NewHandlers()
 	server.RegisterHandlers(s.echo, handlers)
 
 	routes := s.echo.Routes()
@@ -59,15 +57,8 @@ func (s *Server) RegisterHandlers() {
 	logger.Info(context.Background(), "handlers registered")
 }
 
-func (s *Server) Start(ctx context.Context) error {
-	go func() {
-		logger.Infof(ctx, "http server started")
-		if err := s.httpServer.ListenAndServe(); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			logger.Fatalf(ctx, "failed to start http server: %v", err)
-		}
-	}()
-
-	return nil
+func (s *Server) Start(_ context.Context) error {
+	return s.httpServer.ListenAndServe()
 }
 
 func (s *Server) Stop(ctx context.Context) error {

@@ -1,10 +1,11 @@
 package main
 
 import (
-	"contestr/internal/config"
+	"contestr/internal/configs"
 	"contestr/internal/handlers/tgbot"
 	"contestr/internal/transport"
 	"contestr/internal/usecases"
+	"contestr/pkg/config"
 	"contestr/pkg/logger"
 	"context"
 	"errors"
@@ -16,15 +17,9 @@ import (
 )
 
 func main() {
-	cfg, err := config.LoadConfig("./configs/config.yaml")
-	if err != nil {
-		panic(fmt.Sprintf("failed to load configuration: %v", err))
-	}
+	cfg, ctx := config.InitConfigAndContext()
 
-	logger.Init("contestr", "info")
-	ctx := context.Background()
-
-	bot := createBot(err, cfg)
+	bot := createBot(cfg)
 	logger.Info(ctx, "starting telegram bot...")
 	go func() {
 		if err := bot.Start(ctx); err != nil && !errors.Is(err, context.Canceled) {
@@ -36,7 +31,7 @@ func main() {
 	awaitShutdown(ctx, bot)
 }
 
-func createBot(err error, cfg *config.Config) *transport.Bot {
+func createBot(cfg *configs.Config) *transport.Bot {
 	botUseCase := usecases.NewBotUseCase()
 
 	botHandlers := tgbot.NewHandlers(botUseCase)

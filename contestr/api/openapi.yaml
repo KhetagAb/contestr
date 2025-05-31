@@ -4,6 +4,17 @@ info:
   description: Ручки для получения данных о контестах
   version: 1.0.0
 paths:
+  /contest/{contest_id}:
+    get:
+      operationId: getContest
+      parameters:
+        - name: contest_id
+          in: path
+          schema:
+            type: integer
+      responses:
+        200:
+          $ref: '#/components/responses/GetContestResponse'
   /hello:
     get:
       operationId: getHello
@@ -13,21 +24,39 @@ paths:
           schema:
             type: string
       responses:
-        '200':
+        200:
           description: hello handle
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/HelloResponse'
-        '500':
-          description: Внутренняя ошибка сервера
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
+                $ref: '#/components/schemas/Hello'
 components:
+  responses:
+    GetContestResponse:
+      description: Информацию о результатах контеста
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Contest'
+
+    ErrorResponse:
+      description: Внутренняя ошибка сервера
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
   schemas:
-    HelloResponse:
+    Contest:
+      type: object
+      required:
+        - id
+        - name
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+    Hello:
       type: object
       required:
         - message
@@ -40,11 +69,7 @@ components:
     Error:
       type: object
       required:
-        - code
         - message
       properties:
-        code:
-          type: integer
-          format: int32
         message:
           type: string

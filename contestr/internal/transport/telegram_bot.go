@@ -4,18 +4,18 @@ import (
 	"contestr/pkg/logger"
 	"context"
 
-	"contestr/internal/config"
+	"contestr/internal/configs"
 	"contestr/internal/handlers/tgbot"
 	"github.com/go-telegram/bot"
 )
 
 type Bot struct {
 	bot      *bot.Bot
-	cfg      *config.Config
+	cfg      *configs.Config
 	handlers *tgbot.Handlers
 }
 
-func NewBot(cfg *config.Config, handlers *tgbot.Handlers) (*Bot, error) {
+func NewBot(cfg *configs.Config, handlers *tgbot.Handlers) (*Bot, error) {
 	opts := []bot.Option{
 		bot.WithDefaultHandler(handlers.HandleUnknownCommand),
 		bot.WithDebug(),
