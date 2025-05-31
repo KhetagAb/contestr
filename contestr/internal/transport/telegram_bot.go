@@ -34,6 +34,7 @@ func NewBot(cfg *configs.Config, handlers *tgbot.Handlers) (*Bot, error) {
 }
 
 func (b *Bot) Start(ctx context.Context) error {
+	logger.Info(ctx, "starting telegram bot...")
 	b.bot.Start(ctx)
 	return nil
 }

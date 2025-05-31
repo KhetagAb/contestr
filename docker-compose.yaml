@@ -1,27 +1,16 @@
 version: '3.8'
 
 services:
-  api:
+  server:
     build:
       context: ./contestr
-      dockerfile: deployments/docker/Dockerfile.api
     restart: unless-stopped
     ports:
       - "8080:8080"
     depends_on:
       - mongodb
-    environment:
-      - CONFIG_PATH=/app/configs/config.yaml
-
-  bot:
-    build:
-      context: ../..
-      dockerfile: deployments/docker/Dockerfile.bot
-    restart: unless-stopped
-    depends_on:
-      - mongodb
-    environment:
-      - CONFIG_PATH=/app/configs/config.yaml
+    env_file:
+      - ./contestr/.env
 
   mongodb:
     image: mongo:latest
