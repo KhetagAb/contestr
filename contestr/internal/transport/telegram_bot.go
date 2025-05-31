@@ -1,4 +1,4 @@
-package delivery
+package transport
 
 import (
 	"contestr/pkg/logger"
@@ -34,9 +34,6 @@ func NewBot(cfg *config.Config, handlers *tgbot.Handlers) (*Bot, error) {
 }
 
 func (b *Bot) Start(ctx context.Context) error {
-	b.registerHandlers()
-
-	logger.Info(ctx, "starting Telegram bot...")
 	b.bot.Start(ctx)
 	return nil
 }
@@ -45,7 +42,7 @@ func (b *Bot) Stop(ctx context.Context) {
 	logger.Info(ctx, "telegram bot stopped")
 }
 
-func (b *Bot) registerHandlers() {
+func (b *Bot) RegisterHandlers() {
 	b.bot.RegisterHandler(bot.HandlerTypeMessageText, "start", bot.MatchTypeCommand, b.handlers.HandleStart)
 	b.bot.RegisterHandler(bot.HandlerTypeMessageText, "help", bot.MatchTypeCommand, b.handlers.HandleHelp)
 	b.bot.RegisterHandler(bot.HandlerTypeMessageText, "register", bot.MatchTypeCommand, b.handlers.HandleRegister)

@@ -4,7 +4,7 @@ set -e
 echo "Using oapi-codegen version:"
 oapi-codegen --version || echo "unknown"
 
-mkdir -p internal/generated
+ mkdir -p internal/generated/server
 
 echo "Generating code from OpenAPI specification..."
 oapi-codegen -config api/config.yaml api/openapi.yaml
