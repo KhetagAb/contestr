@@ -3,6 +3,8 @@ set -e
 
 # Цвета
 GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
 RED='\033[0;31m'
 NC='\033[0m' # нет цвета
 
@@ -13,9 +15,8 @@ print_status() {
   printf "%-30s: %b%s%b\n" "$msg" "$color" "$status" "$NC"
 }
 
-echo -n "oapi-codegen version: "
-version=$(oapi-codegen --version 2>/dev/null || echo "unknown")
-echo "$version"
+version=$(oapi-codegen --version 2>/dev/null | tail -n1 || echo "unknown")
+print_status "Oapi-codegen version" "$version" "$BLUE"
 
 if oapi-codegen -config api/config.yaml api/openapi.yaml; then
   print_status "Generating OpenAPI code" "OK" "$GREEN"
@@ -24,7 +25,7 @@ else
   exit 1
 fi
 
-if (cd internal/generated/app && wire); then
+if (cd internal/generated/app && wire 2> /dev/null); then
   print_status "Generating Wire code" "OK" "$GREEN"
 else
   print_status "Generating Wire code" "FAILED" "$RED"
