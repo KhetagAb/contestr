@@ -1,12 +1,10 @@
 .PHONY: build test run-api run-bot docker-build docker-run lint clean
 
-build-api:
-	go build -o bin/api cmd/api/main.go
+code-gen:
+	./scripts/codegen.sh
 
-build-bot:
-	go build -o bin/bot cmd/bot/main.go
-
-build: build-api build-bot
+build: code-gen
+	go build -o bin/app cmd/app/main.go
 
 test:
 	go test -v ./...

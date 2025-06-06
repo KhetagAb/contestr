@@ -8,8 +8,18 @@ import (
 	"github.com/go-telegram/bot/models"
 )
 
+type HelpHandle struct{}
+
+func NewHelpHandle() *HelpHandle {
+	return &HelpHandle{}
+}
+
+func (h *HelpHandle) Register() (bot.HandlerType, string, bot.MatchType, bot.HandlerFunc) {
+	return bot.HandlerTypeMessageText, "help", bot.MatchTypeCommand, h.HandleHelp
+}
+
 // HandleHelp обрабатывает команду /help
-func (h *Handlers) HandleHelp(ctx context.Context, b *bot.Bot, update *models.Update) {
+func (h *HelpHandle) HandleHelp(ctx context.Context, b *bot.Bot, update *models.Update) {
 	chatID := update.Message.Chat.ID
 	userID := fmt.Sprint(update.Message.From.ID)
 

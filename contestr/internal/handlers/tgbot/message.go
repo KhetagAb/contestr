@@ -7,7 +7,17 @@ import (
 	"github.com/go-telegram/bot/models"
 )
 
-func (h *Handlers) HandleMessage(ctx context.Context, b *bot.Bot, update *models.Update) {
+type MessageHandle struct{}
+
+func NewMessageHandle() *MessageHandle {
+	return &MessageHandle{}
+}
+
+func (h *MessageHandle) Register() (bot.HandlerType, string, bot.MatchType, bot.HandlerFunc) {
+	return bot.HandlerTypeMessageText, "", bot.MatchTypeCommand, h.HandleMessage
+}
+
+func (h *MessageHandle) HandleMessage(ctx context.Context, b *bot.Bot, update *models.Update) {
 	if update.Message == nil {
 		return
 	}

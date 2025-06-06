@@ -8,8 +8,18 @@ import (
 	"github.com/go-telegram/bot/models"
 )
 
-// HandleStart обрабатывает команду /start
-func (h *Handlers) HandleStart(ctx context.Context, b *bot.Bot, update *models.Update) {
+type StartHandle struct{}
+
+func NewStartHandle() *StartHandle {
+	return &StartHandle{}
+}
+
+func (h *StartHandle) Register() (bot.HandlerType, string, bot.MatchType, bot.HandlerFunc) {
+	return bot.HandlerTypeMessageText, "start", bot.MatchTypeCommand, h.Handle
+}
+
+// Handle обрабатывает команду /start
+func (h *StartHandle) Handle(ctx context.Context, b *bot.Bot, update *models.Update) {
 	chatID := update.Message.Chat.ID
 	userID := fmt.Sprint(update.Message.From.ID)
 

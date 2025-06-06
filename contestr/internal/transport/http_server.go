@@ -3,7 +3,7 @@ package transport
 import (
 	"contestr/internal/configs"
 	"contestr/internal/generated/server"
-	httphandlers "contestr/internal/handlers/http"
+	httpw "contestr/internal/handlers/http"
 	"contestr/pkg/logger"
 	"context"
 	"github.com/labstack/echo/v4"
@@ -11,21 +11,17 @@ import (
 	"net/http"
 )
 
-type Server struct {
+type HTTPServer struct {
 	echo       *echo.Echo
 	cfg        *configs.Config
 	httpServer *http.Server
 }
 
-func NewHTTPServer(ctx context.Context, cfg *configs.Config) *Server {
-	e := echo.New()
+func NewHTTPServer(ctx context.Context, handlers *httpw.Handlers, cfg *configs.Config) *HTTPServer {
+	logger.Infof(ctx, "server configuration: address=%s, read_timeout=%v, write_timeout=%v",
+		cfg.HTTP.Port, cfg.HTTP.ReadTimeout, cfg.HTTP.WriteTimeout)
 
-	e.HideBanner = true
-	e.HidePort = true
-
-	e.Use(middleware.Recover())
-	e.Use(middleware.Logger())
-
+	e := newEcho()
 	httpServer := &http.Server{
 		Handler:      e,
 		Addr:         ":" + cfg.HTTP.Port,
@@ -33,19 +29,31 @@ func NewHTTPServer(ctx context.Context, cfg *configs.Config) *Server {
 		WriteTimeout: cfg.HTTP.WriteTimeout,
 	}
 
-	logger.Infof(ctx, "server configuration: address=%s, read_timeout=%v, write_timeout=%v",
-		cfg.HTTP.Port, cfg.HTTP.ReadTimeout, cfg.HTTP.WriteTimeout)
-
-	return &Server{
+	httpServerWrapper := &HTTPServer{
 		echo:       e,
 		cfg:        cfg,
 		httpServer: httpServer,
 	}
+
+	httpServerWrapper.RegisterHandlers(handlers)
+
+	return httpServerWrapper
 }
 
-func (s *Server) RegisterHandlers(handlers *httphandlers.Handlers) {
+func newEcho() *echo.Echo {
+	e := echo.New()
+
+	e.HideBanner = true
+	e.HidePort = true
+
+	e.Use(middleware.Recover())
+	e.Use(middleware.Logger())
+	return e
+}
+
+func (s *HTTPServer) RegisterHandlers(handlers *httpw.Handlers) {
 	s.echo.GET("/", func(c echo.Context) error {
-		return c.String(http.StatusOK, "Server is running")
+		return c.String(http.StatusOK, "HTTPServer is running")
 	})
 
 	server.RegisterHandlers(s.echo, handlers)
@@ -57,11 +65,11 @@ func (s *Server) RegisterHandlers(handlers *httphandlers.Handlers) {
 	logger.Info(context.Background(), "handlers registered")
 }
 
-func (s *Server) Start(_ context.Context) error {
+func (s *HTTPServer) Start(_ context.Context) error {
 	return s.httpServer.ListenAndServe()
 }
 
-func (s *Server) Stop(ctx context.Context) error {
+func (s *HTTPServer) Stop(ctx context.Context) error {
 	logger.Info(ctx, "shutting down http server")
 	return s.echo.Shutdown(ctx)
 }

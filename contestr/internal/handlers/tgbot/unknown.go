@@ -7,7 +7,7 @@ import (
 	"github.com/go-telegram/bot/models"
 )
 
-func (h *Handlers) HandleUnknownCommand(ctx context.Context, b *bot.Bot, update *models.Update) {
+func (h *Handlers) DefaultHandle(ctx context.Context, b *bot.Bot, update *models.Update) {
 	if update.Message == nil {
 		return
 	}

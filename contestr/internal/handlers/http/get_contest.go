@@ -13,19 +13,19 @@ type CodeforcesService interface {
 	GetContest(ctx context.Context, contestID int) (*goforces.Standings, error)
 }
 
-type contestHandle struct {
+type ContestHandle struct {
 	cfService CodeforcesService
 }
 
-func newContestHandle(
+func NewContestHandle(
 	cfService CodeforcesService,
-) *contestHandle {
-	return &contestHandle{
+) *ContestHandle {
+	return &ContestHandle{
 		cfService: cfService,
 	}
 }
 
-func (s *contestHandle) GetContest(ectx echo.Context, contestId int) error {
+func (s *ContestHandle) GetContest(ectx echo.Context, contestId int) error {
 	ctx := ectx.Request().Context()
 	standings, err := s.cfService.GetContest(ctx, contestId)
 	if err != nil {

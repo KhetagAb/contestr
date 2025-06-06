@@ -8,15 +8,15 @@ import (
 	"time"
 )
 
-type helloHandle struct {
+type HelloHandle struct {
 }
 
-func newHelloHandle() *helloHandle {
-	return &helloHandle{}
+func NewHelloHandle() *HelloHandle {
+	return &HelloHandle{}
 }
 
 // GetHello реализует обработчик для ручки /hello
-func (s *helloHandle) GetHello(ctx echo.Context, params server.GetHelloParams) error {
+func (s *HelloHandle) GetHello(ctx echo.Context, params server.GetHelloParams) error {
 	name := "World"
 	if params.Name != nil && *params.Name != "" {
 		name = *params.Name

@@ -1,23 +1,22 @@
 package transport
 
 import (
-	"contestr/pkg/logger"
-	"context"
-
 	"contestr/internal/configs"
 	"contestr/internal/handlers/tgbot"
+	"contestr/pkg/logger"
+	"context"
 	"github.com/go-telegram/bot"
 )
 
-type Bot struct {
+type TgBot struct {
 	bot      *bot.Bot
 	cfg      *configs.Config
 	handlers *tgbot.Handlers
 }
 
-func NewBot(cfg *configs.Config, handlers *tgbot.Handlers) (*Bot, error) {
+func NewBot(cfg *configs.Config, handlers *tgbot.Handlers) (*TgBot, error) {
 	opts := []bot.Option{
-		bot.WithDefaultHandler(handlers.HandleUnknownCommand),
+		bot.WithDefaultHandler(handlers.DefaultHandle),
 		bot.WithDebug(),
 	}
 
@@ -26,26 +25,23 @@ func NewBot(cfg *configs.Config, handlers *tgbot.Handlers) (*Bot, error) {
 		return nil, err
 	}
 
-	return &Bot{
+	tgBot := TgBot{
 		bot:      b,
 		cfg:      cfg,
 		handlers: handlers,
-	}, nil
+	}
+
+	handlers.Register(b)
+
+	return &tgBot, nil
 }
 
-func (b *Bot) Start(ctx context.Context) error {
+func (b *TgBot) Start(ctx context.Context) error {
 	logger.Info(ctx, "starting telegram bot...")
 	b.bot.Start(ctx)
 	return nil
 }
 
-func (b *Bot) Stop(ctx context.Context) {
+func (b *TgBot) Stop(ctx context.Context) {
 	logger.Info(ctx, "telegram bot stopped")
-}
-
-func (b *Bot) RegisterHandlers() {
-	b.bot.RegisterHandler(bot.HandlerTypeMessageText, "start", bot.MatchTypeCommand, b.handlers.HandleStart)
-	b.bot.RegisterHandler(bot.HandlerTypeMessageText, "help", bot.MatchTypeCommand, b.handlers.HandleHelp)
-	b.bot.RegisterHandler(bot.HandlerTypeMessageText, "register", bot.MatchTypeCommand, b.handlers.HandleRegister)
-	b.bot.RegisterHandler(bot.HandlerTypeMessageText, "", bot.MatchTypeCommand, b.handlers.HandleMessage)
 }

@@ -6,24 +6,24 @@ import (
 )
 
 type Handlers struct {
-	hello   *helloHandle
-	contest *contestHandle
-}
-
-func (h *Handlers) GetContest(ctx echo.Context, contestId int) error {
-	return h.contest.GetContest(ctx, contestId)
-}
-
-func (h *Handlers) GetHello(ctx echo.Context, params server.GetHelloParams) error {
-	return h.hello.GetHello(ctx, params)
+	helloHandle   *HelloHandle
+	contestHandle *ContestHandle
 }
 
 func NewHandlers(
-	cfService CodeforcesService,
+	helloHandle *HelloHandle,
+	contestHandle *ContestHandle,
 ) *Handlers {
-	// TODO
 	return &Handlers{
-		hello:   newHelloHandle(),
-		contest: newContestHandle(cfService),
+		helloHandle:   helloHandle,
+		contestHandle: contestHandle,
 	}
+}
+
+func (h *Handlers) GetContest(ctx echo.Context, contestId int) error {
+	return h.contestHandle.GetContest(ctx, contestId)
+}
+
+func (h *Handlers) GetHello(ctx echo.Context, params server.GetHelloParams) error {
+	return h.helloHandle.GetHello(ctx, params)
 }

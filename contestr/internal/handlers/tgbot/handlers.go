@@ -1,19 +1,32 @@
 package tgbot
 
 import (
-	"contestr/internal/usecases"
 	"contestr/pkg/logger"
 	"context"
 	"github.com/go-telegram/bot"
 )
 
-type Handlers struct {
-	botUseCase *usecases.BotUseCase
+type Handler interface {
+	Register() (bot.HandlerType, string, bot.MatchType, bot.HandlerFunc)
 }
 
-func NewHandlers(botUseCase *usecases.BotUseCase) *Handlers {
+type Handlers struct {
+	handlers []Handler
+}
+
+func (h *Handlers) Register(b *bot.Bot) {
+	for _, handler := range h.handlers {
+		b.RegisterHandler(handler.Register())
+	}
+}
+
+func NewHandlers(
+	start *StartHandle,
+	help *HelpHandle,
+	message *MessageHandle,
+) *Handlers {
 	return &Handlers{
-		botUseCase: botUseCase,
+		handlers: []Handler{start, help, message},
 	}
 }
 
