@@ -1,6 +1,7 @@
-import { Home, User, Settings, LogOut } from 'lucide-react'
+import {Home, User, Settings, LogOut, Book} from 'lucide-react'
 
-export const Sidebar = () => {
+
+export const Sidebar = (index) => {
     return (
         <aside className="sidebar-hover">
             <div className="icon-wrap">
@@ -14,6 +15,10 @@ export const Sidebar = () => {
                 <div className="icon-box">
                     <Home size={24} />
                     <span className="tooltip">Главная</span>
+                </div>
+                <div className="icon-box">
+                    <Book size={24} />
+                    <span className="tooltip">Контесты</span>
                 </div>
                 <div className="icon-box">
                     <User size={24} />
@@ -31,3 +36,5 @@ export const Sidebar = () => {
         </aside>
     )
 }
+
+export const PageContest = () => Sidebar(1);

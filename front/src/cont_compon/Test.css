@@ -142,38 +142,39 @@ body {
     background: linear-gradient(135deg, rgba(157, 229, 137, 0.38), rgba(229, 137, 149, 0.32)), rgba(255, 221, 2, 0.29);
     z-index: 0 !important;
 
-    mask-image: url('/public/circles2.svg');
+    mask-image: url("./public/circles.svg");
+    /*./public/circles2.svg*/
     mask-repeat: no-repeat;
     mask-position: center;
     mask-size: cover;
 
-    -webkit-mask-image: url('/public/circles2.svg');
+    -webkit-mask-image: url('./public/circles.svg');
     -webkit-mask-repeat: no-repeat;
     -webkit-mask-position: center;
     -webkit-mask-size: cover;
 
 }
 
-.masked-dg-2{
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(135deg, rgba(178, 237, 176, 0.24), rgba(251, 89, 109, 0.3));
-    z-index: 0 !important;
+/*.masked-dg-2{*/
+/*    position: absolute;*/
+/*    inset: 0;*/
+/*    background: linear-gradient(135deg, rgba(158, 234, 233, 0.49), rgba(251, 89, 109, 0.3));*/
+/*    z-index: 0 !important;*/
 
-    mask-image: url('/public/Kresty4.svg');
-    mask-repeat: no-repeat;
-    mask-position: center;
-    /*mask-size: contain;*/
-    mask-size: cover;
+/*    mask-image: url('./public/Kresty.svg');*/
+/*    mask-repeat: no-repeat;*/
+/*    mask-position: center;*/
+/*    !*mask-size: contain;*!*/
+/*    mask-size: cover;*/
 
 
-    -webkit-mask-image: url('/public/Kresty4.svg');
-    -webkit-mask-repeat: no-repeat;
-    -webkit-mask-position: center;
-    /*mask-size: contain;*/
+/*    -webkit-mask-image: url('./public/Kresty.svg');*/
+/*    -webkit-mask-repeat: no-repeat;*/
+/*    -webkit-mask-position: center;*/
+/*    !*mask-size: contain;*!*/
 
-    -webkit-mask-size: cover;
-}
+/*    -webkit-mask-size: cover;*/
+/*}*/
 
 #MyDiv {
     display: grid;
@@ -265,7 +266,7 @@ body {
     box-shadow: -4px 6px 20px rgba(107, 106, 104, 0.55);
     width: fit-content;
     height: fit-content;
-    font-size: var(--fs-p);
+    font-size: var(--fs-p) !important;
     overflow: hidden;
     padding: 0 var(--space-m) 0 var(--space-xs);
     /*margin-left: 17rem;*/
@@ -278,17 +279,19 @@ body {
     flex-direction: column;
     /*gap: var(--space-s);*/
     background-color: white;
-    border-radius: 45px;
-    border-top-left-radius: 0;
+    border-radius: 0 45px 45px 45px;
     box-shadow: -4px 6px 20px rgba(107, 106, 104, 0.55);
     justify-content: center;
     align-items: center;
     text-align: center;
     overflow: hidden;
-    padding: var(--space-5xl) var(--space-2xl) var(--space-5xl) var(--space-2xl);
+    padding: var(--space-5xl) var(--space-2xl);
     /*width: 100vh;*/
     /*height: 100vh;*/
+
+
 }
+
 .register form {
 
     display: grid;
@@ -503,6 +506,7 @@ ul {
     display: flex;
     flex-direction: column;
     gap: 30px;
+    padding-bottom: var(--space-xl);
 }
 
 .icon-box {

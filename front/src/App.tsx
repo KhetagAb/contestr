@@ -1,28 +1,27 @@
-// import {AdaptiveLay} from "./cont_compon/AdaptiveLay.tsx";
 import './cont_compon/Test.css';
-import {MainPart} from "./cont_compon/MainPart.tsx";
-import Register from "./cont_compon/Registration.tsx";
-// import LogPart_st2 from "./cont_compon/LogPart_st2.tsx";
+// import {MainPart} from "./cont_compon/MainPart.tsx";
+// import Register from "./cont_compon/Registration.tsx";
 import {Sidebar} from "./cont_compon/SideBar.tsx";
-// import LogPart_st3 from "./cont_compon/LogPart_st3.tsx";
-// import {MainWrapper} from "./cont_compon/Wrapper.tsx";
+import ResultsTable from "./cont_compon/tables.tsx";
+// import LogPart_st2 from "./cont_compon/LogPart_st2.tsx";
+// import {LogPart_st1} from "./cont_compon/LogPart_st1.tsx";
 
-export default function App() {
+export function App() {
+
     return (
         <>
-            {/*<AdaptiveLay/>*/}
             <Sidebar/>
-            <MainPart/>
-            {/*<LogPart_st3 onRetry={function(): void {*/}
-            {/*    throw new Error('Function not implemented.');*/}
-            {/*} }/>*/}
-            <Register/>
+            <ResultsTable />
+            {/*<MainPart/>*/}
+            {/*/!*<Register/>*!/*/}
+            {/*/!*<LogPart_st1 onNext={function(): void {*!/*/}
+            {/*/!*    throw new Error('Function not implemented.');*!/*/}
+            {/*/!*} }/>*!/*/}
             {/*<LogPart_st2 onNext={function(): void {*/}
             {/*    throw new Error('Function not implemented.');*/}
             {/*} } onError={function(): void {*/}
             {/*    throw new Error('Function not implemented.');*/}
             {/*} }/>*/}
-            {/*<MainWrapper/>*/}
         </>
     )
 }
