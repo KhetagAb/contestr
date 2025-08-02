@@ -1,0 +1,137 @@
+[
+  {
+    "id": 1,
+    "name": "Иван Петров",
+    "total-score": 145,
+    "resolved": 12,
+    "*A": 8,
+    "*B": 4,
+    "last-active": "2023-05-15T10:30:00Z"
+  },
+  {
+    "id": 2,
+    "name": "Елена Смирнова",
+    "total-score": 210,
+    "resolved": 18,
+    "*A": 12,
+    "*B": 6,
+    "last-active": "2023-05-16T14:45:00Z"
+  },
+  {
+    "id": 3,
+    "name": "Алексей Козлов",
+    "total-score": 98,
+    "resolved": 9,
+    "*A": 5,
+    "*B": 4,
+    "last-active": "2023-05-14T09:15:00Z"
+  },
+  {
+    "id": 4,
+    "name": "Ольга Новикова",
+    "total-score": 176,
+    "resolved": 15,
+    "*A": 10,
+    "*B": 5,
+    "last-active": "2023-05-16T11:20:00Z"
+  },
+  {
+    "id": 5,
+    "name": "Дмитрий Васнецов",
+    "total-score": 231,
+    "resolved": 20,
+    "*A": 14,
+    "*B": 6,
+    "last-active": "2023-05-17T16:10:00Z"
+  },
+  {
+    "id": 6,
+    "name": "Анна Кузнецова",
+    "total-score": 120,
+    "resolved": 11,
+    "*A": 7,
+    "*B": 4,
+    "last-active": "2023-05-15T13:25:00Z"
+  },
+  {
+    "id": 7,
+    "name": "Михаил Белов",
+    "total-score": 187,
+    "resolved": 16,
+    "*A": 11,
+    "*B": 5,
+    "last-active": "2023-05-16T15:30:00Z"
+  },
+  {
+    "id": 8,
+    "name": "Татьяна Морозова",
+    "total-score": 165,
+    "resolved": 14,
+    "*A": 9,
+    "*B": 5,
+    "last-active": "2023-05-14T17:40:00Z"
+  },
+  {
+    "id": 9,
+    "name": "Сергей Иванов",
+    "total-score": 199,
+    "resolved": 17,
+    "*A": 12,
+    "*B": 5,
+    "last-active": "2023-05-17T10:15:00Z"
+  },
+  {
+    "id": 10,
+    "name": "Наталья Соколова",
+    "total-score": 142,
+    "resolved": 13,
+    "*A": 8,
+    "*B": 5,
+    "last-active": "2023-05-15T08:50:00Z"
+  },
+  {
+    "id": 11,
+    "name": "Павел Волков",
+    "total-score": 221,
+    "resolved": 19,
+    "*A": 13,
+    "*B": 6,
+    "last-active": "2023-05-17T14:05:00Z"
+  },
+  {
+    "id": 12,
+    "name": "Юлия Федорова",
+    "total-score": 110,
+    "resolved": 10,
+    "*A": 6,
+    "*B": 4,
+    "last-active": "2023-05-14T12:35:00Z"
+  },
+  {
+    "id": 13,
+    "name": "Артем Жуков",
+    "total-score": 154,
+    "resolved": 14,
+    "*A": 9,
+    "*B": 5,
+    "last-active": "2023-05-16T09:10:00Z"
+  },
+  {
+    "id": 14,
+    "name": "Екатерина Павлова",
+    "total-score": 178,
+    "resolved": 15,
+    "*A": 10,
+    "*B": 5,
+    "last-active": "2023-05-15T16:55:00Z"
+  },
+  {
+    "id": 15,
+    "name": "Виктор Макаров",
+    "total-score": 201,
+    "resolved": 17,
+    "*A": 12,
+    "*B": 5,
+    "last-active": "2023-05-17T11:30:00Z"
+  }
+]
