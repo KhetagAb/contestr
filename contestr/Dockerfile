@@ -1,8 +1,8 @@
 FROM golang:1.23-alpine AS builder
 
-RUN apk add --no-cache bash git curl make gcc musl-dev && \
-    go install github.com/google/wire/cmd/wire@v0.6.0 && \
-    go install github.com/deepmap/oapi-codegen/cmd/oapi-codegen@v2.4.0 \
+RUN apk add --no-cache bash git curl make gcc musl-dev
+RUN go install github.com/google/wire/cmd/wire@v0.6.0
+RUN go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@v2.4.1
 
 WORKDIR /app
 
