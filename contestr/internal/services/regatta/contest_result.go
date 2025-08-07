@@ -52,7 +52,6 @@ func (s *Regatta) GetContestResult(ctx context.Context, contestID int) (regatta.
 			contestRows = append(contestRows, regatta.ContestRow{
 				DisplayName: displayNameByParticipant[participant.ID],
 				UserID:      participant.ID,
-				TeamNumber:  69,
 			})
 		}
 		return regatta.ContestStandings{
