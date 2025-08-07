@@ -17,7 +17,7 @@ type TourConfig struct {
 func TourFromConfig(tc TourConfig) Tour {
 	return Tour{
 		Name:      tc.Name,
-		StartTime: util.ParseTime(tc.StartTime),
+		StartTime: util.ParseTimeOrPanic(tc.StartTime),
 		Duration:  time.Duration(tc.Duration) * time.Minute,
 		Groups:    nil,
 		Problems: util.Transform(tc.Problems, func(problemID int) Problem {
