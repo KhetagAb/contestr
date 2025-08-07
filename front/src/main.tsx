@@ -1,6 +1,6 @@
 import {createRoot} from "react-dom/client";
 import App from "./App";
-import './cont_compon/Test.css';
+// import './cont_compon/Test.css';
 
 
 const container = document.getElementById("root");
@@ -12,8 +12,8 @@ root.render(
         <div id="MyDiv">
             <App/>
         </div>
-        <div className="masked-bg"></div>
-        <div className="masked-dg-2"></div>
+        {/* <div className="masked-bg"></div>
+        <div className="masked-dg-2"></div> */}
     </>
 )
 ;
