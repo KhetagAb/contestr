@@ -42,7 +42,7 @@ func (r *Regatta) GetContestResult(ctx context.Context, contestID int) (regatta.
 		return regatta.ContestStandings{}, fmt.Errorf("failed to find tours for contest %d: %w", contestID, err)
 	}
 
-	var contestRows []regatta.ContestRow
+	contestRows := []regatta.ContestRow{}
 	contestStandingsByParticipants := make(ResultsByParticipant)
 	participantTotal := make(map[Participant]int)
 	for _, tour := range tours {
@@ -74,7 +74,7 @@ func (r *Regatta) GetContestResult(ctx context.Context, contestID int) (regatta.
 	contestStandings := regatta.ContestStandings{
 		ContestId:   contestID, // TODO parse int
 		ContestName: parsedContest.Name,
-		Rows:        []regatta.ContestRow{},
+		Rows:        contestRows,
 	}
 
 	return contestStandings, nil
