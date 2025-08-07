@@ -10,9 +10,10 @@ http:
 
 mongodb:
   uri: "mongodb://localhost:27017"
-  database: "codeforces_service"
+  database: "contestr"
   max_pool_size: 100
   min_pool_size: 10
+  tour_collection: "tours"
 
 telegram:
   token: "YOUR_TELEGRAM_BOT_TOKEN"

@@ -27,11 +27,11 @@ type User struct {
 }
 
 type Problems struct {
-	XMLName  xml.Name  `xml:"problems"`
-	Problems []Problem `xml:"problem"`
+	XMLName  xml.Name     `xml:"problems"`
+	Problems []XMLProblem `xml:"problem"`
 }
 
-type Problem struct {
+type XMLProblem struct {
 	XMLName   xml.Name `xml:"problem"`
 	ID        string   `xml:"id,attr"`
 	ShortName string   `xml:"short_name,attr"`
@@ -68,11 +68,11 @@ type Runs struct {
 type Run struct {
 	XMLName    xml.Name `xml:"run"`
 	RunID      string   `xml:"run_id,attr"`
-	Time       string   `xml:"time,attr"`
+	Time       int      `xml:"time,attr"`
 	RunUUID    string   `xml:"run_uuid,attr"`
 	Status     string   `xml:"status,attr"`
-	UserID     string   `xml:"user_id,attr"`
-	ProbID     string   `xml:"prob_id,attr"`
+	UserID     int      `xml:"user_id,attr"`
+	ProbID     int      `xml:"prob_id,attr"`
 	LangID     string   `xml:"lang_id,attr"`
 	Test       string   `xml:"test,attr"`
 	Nsec       string   `xml:"nsec,attr"`

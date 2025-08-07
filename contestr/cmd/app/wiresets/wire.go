@@ -7,6 +7,7 @@ import (
 	"contestr/internal/handlers/tgbot"
 	"contestr/internal/integrations/codeforces"
 	"contestr/internal/integrations/ejudge"
+	"contestr/internal/repository"
 	"contestr/internal/transport"
 	"contestr/pkg/config"
 	"context"
@@ -37,4 +38,7 @@ var All = wire.NewSet(
 
 	ejudge.NewContestXMLFetcher,
 	regatta.NewContestHandle,
+
+	repository.NewMongoClient,
+	repository.NewMongoTourRepository,
 )

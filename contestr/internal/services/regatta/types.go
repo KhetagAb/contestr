@@ -1,42 +1,32 @@
 package regatta
 
 import (
-	"contestr/internal/lib/ejudge"
+	"contestr/pkg/regatta"
 	"time"
 )
 
 const (
-	OVERTAKE_POINTS      = 5
-	SOLVE_POINTS         = 5
-	SOLVE_IN_TIME_POINTS = 5
+	OvertakePoints    = 5
+	SolvePoints       = 5
+	SolveInTimePoints = 5
 )
 
 const (
 	SubmissionStatusOK string = "OK"
 )
 
-// Problem int ejudge ID
 type Problem = int
 
-// Participant int ejudge ID
 type Participant = int
 
-// ContestResult problem -> submission_time
-type ContestResult = map[Problem]int
+type SubmissionTime = int
 
-// Group participant group
+type ContestResult = map[Problem]SubmissionTime
+
 type Group = []Participant
 
-// Tour regatta tour
-type Tour struct {
-	Name            string                        `json:"name"`
-	Index           int                           `json:"index"`
-	StartTime       time.Time                     `json:"start_time"`
-	Duration        time.Duration                 `json:"duration"`
-	Groups          map[Participant]Group         `json:"groups"` // participant -> group
-	GroupSize       int                           `json:"group_size"`
-	Problems        []Problem                     `json:"problems"`
-	ContestID       int                           `json:"contest_id"`
+type TourResult struct {
+	regatta.Tour
 	Results         map[Participant]ContestResult `json:"-"` // participant -> result
 	ProblemsMapping map[Problem]string            `json:"-"`
 }
@@ -47,7 +37,7 @@ type ParticipantResult = map[ProblemCode]int
 
 type Table = map[Participant]ParticipantResult
 
-func (t *Tour) CalcSubmissions(submissions []ejudge.Submission) map[Participant]ContestResult {
+func (t *TourResult) CalcSubmissions(submissions []regatta.Run) map[Participant]ContestResult {
 	results := make(map[Participant]ContestResult)
 
 	for _, submission := range submissions {
@@ -73,8 +63,7 @@ func (t *Tour) CalcSubmissions(submissions []ejudge.Submission) map[Participant]
 	return results
 }
 
-// ParticipantScore problemCode -> score
-func (t *Tour) ParticipantScore(participant Participant) ParticipantResult {
+func (t *TourResult) ParticipantScore(participant Participant) ParticipantResult {
 	group := t.Groups[participant]
 	score := 0
 	participantResults := t.Results[participant]
@@ -85,9 +74,9 @@ func (t *Tour) ParticipantScore(participant Participant) ParticipantResult {
 
 		participantSolveTime, participantSolved := participantResults[problem]
 		if participantSolved {
-			score += SOLVE_POINTS
+			score += SolvePoints
 			if time.Duration(participantSolveTime)*time.Second < t.Duration {
-				score += SOLVE_IN_TIME_POINTS
+				score += SolveInTimePoints
 			}
 		}
 
@@ -100,7 +89,7 @@ func (t *Tour) ParticipantScore(participant Participant) ParticipantResult {
 
 			if participantSolved {
 				if !opponentSolved || participantSolveTime < opponentSolveTime {
-					score += OVERTAKE_POINTS
+					score += OvertakePoints
 				}
 			}
 		}
@@ -111,7 +100,7 @@ func (t *Tour) ParticipantScore(participant Participant) ParticipantResult {
 	return result
 }
 
-func (t *Tour) Export() Table {
+func (t *TourResult) Export() Table {
 	result := make(Table)
 
 	for _, group := range t.Groups {

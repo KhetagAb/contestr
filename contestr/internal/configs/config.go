@@ -32,9 +32,11 @@ type (
 
 	MongoDBConfig struct {
 		URI         string `mapstructure:"uri"`
-		Database    string `mapstructure:"database"`
 		MaxPoolSize uint64 `mapstructure:"max_pool_size"`
 		MinPoolSize uint64 `mapstructure:"min_pool_size"`
+
+		Database       string `mapstructure:"database"`
+		TourCollection string `mapstructure:"tour_collection"`
 	}
 
 	TelegramConfig struct {
