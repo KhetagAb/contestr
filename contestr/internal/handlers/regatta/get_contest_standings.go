@@ -1,6 +1,7 @@
 package regatta
 
 import (
+	"contestr/pkg/logger"
 	"contestr/pkg/regatta"
 	"context"
 	"github.com/labstack/echo/v4"
@@ -28,6 +29,7 @@ func (s *ContestHandle) GetContest(ectx echo.Context, contestId int) error {
 
 	result, err := s.regatta.GetContestResult(ctx, contestId)
 	if err != nil {
+		logger.Errorf(ctx, "error while getting contest result: %v", err)
 		return ectx.JSON(http.StatusInternalServerError, err.Error())
 	}
 

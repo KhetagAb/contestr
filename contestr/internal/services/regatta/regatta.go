@@ -39,7 +39,7 @@ func (r *Regatta) GetContestResult(ctx context.Context, contestID int) (regatta.
 
 	tours, err := r.tourRepository.FindByContestID(ctx, contestID)
 	if err != nil {
-		return regatta.ContestStandings{}, err
+		return regatta.ContestStandings{}, fmt.Errorf("failed to find tours for contest %d: %w", contestID, err)
 	}
 
 	var contestRows []regatta.ContestRow

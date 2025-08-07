@@ -12,10 +12,8 @@ services:
         condition: service_healthy
         required: true
     environment:
-      MONGO_USER: "${MONGO_USER}"
-      MONGO_PASSWORD: "${MONGO_PASSWORD}"
-      MONGO_DATABASE: "${MONGO_DATABASE}"
-      ADMIN_TOKEN: "${ADMIN_TOKEN}"
+      APP_MONGODB_URI: "mongodb://mongodb:27017"
+      APP_MONGODB_DATABASE: "${MONGO_DATABASE}"
     env_file:
       - ./contestr/.env
 
@@ -23,7 +21,7 @@ services:
     image: mongo:latest
     restart: unless-stopped
     ports:
-      - "127.0.0.1:27017:27017"
+      - "15432:27017"
     healthcheck:
       test: [ "CMD", "mongosh", "--eval", "'db.runCommand({ping:1})'" ]
       interval: 5s
@@ -31,8 +29,6 @@ services:
       retries: 3
       start_period: 5s
     environment:
-      MONGO_INITDB_ROOT_USERNAME: "${MONGO_USER}"
-      MONGO_INITDB_ROOT_PASSWORD: "${MONGO_PASSWORD}"
       MONGO_INITDB_DATABASE: "${MONGO_DATABASE}"
     volumes:
       - mongodb_data:/data/db
