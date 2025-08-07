@@ -4,16 +4,10 @@ import (
 	"contestr/internal/configs"
 	"contestr/pkg/regatta"
 	"context"
-	"errors"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 )
-
-type TourRepository interface {
-	Create(ctx context.Context, tour *regatta.Tour) (primitive.ObjectID, error)
-	FindAll(ctx context.Context) ([]*regatta.Tour, error)
-}
 
 type MongoTourRepository struct {
 	collection *mongo.Collection
@@ -39,16 +33,18 @@ func (r *MongoTourRepository) Create(ctx context.Context, tour *regatta.Tour) (p
 	return result.InsertedID.(primitive.ObjectID), nil
 }
 
-func (r *MongoTourRepository) FindByContestID(ctx context.Context, contestID int) (*regatta.Tour, error) {
-	var tour regatta.Tour
-	err := r.collection.FindOne(ctx, bson.M{"contest_id": contestID}).Decode(&tour)
+func (r *MongoTourRepository) FindByContestID(ctx context.Context, contestID int) ([]regatta.Tour, error) {
+	cursor, err := r.collection.Find(ctx, bson.M{"contest_id": contestID})
 	if err != nil {
-		if errors.Is(err, mongo.ErrNoDocuments) {
-			return nil, nil
-		}
 		return nil, err
 	}
-	return &tour, nil
+	defer cursor.Close(ctx)
+
+	var tours []regatta.Tour
+	if err = cursor.All(ctx, &tours); err != nil {
+		return nil, err
+	}
+	return tours, nil
 }
 
 func (r *MongoTourRepository) FindAll(ctx context.Context) ([]regatta.Tour, error) {

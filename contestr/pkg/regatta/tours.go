@@ -33,3 +33,21 @@ func (t *Tour) ProblemsIDsToNameMapping(problems []Problem) map[Problem]string {
 
 	return mapping
 }
+
+type ContestStandings struct {
+	ContestId   int          `json:"contest_id,omitempty"`
+	ContestName string       `json:"contest_name,omitempty"`
+	Rows        []ContestRow `json:"rows,omitempty"`
+}
+
+type ProblemIdx = string
+
+type Score = int
+
+type ContestRow struct {
+	DisplayName    string               `json:"display_name"`
+	ProblemResults map[ProblemIdx]Score `json:"problem_results"`
+	SolvedProblems int                  `json:"solved_problems"`
+	TeamNumber     int                  `json:"team_number"`
+	TotalScore     Score                `json:"total_score"`
+}

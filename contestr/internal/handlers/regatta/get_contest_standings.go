@@ -1,38 +1,37 @@
 package regatta
 
 import (
-	"contestr/internal/generated/server"
-	"contestr/internal/integrations/ejudge"
+	"contestr/pkg/regatta"
+	"context"
 	"github.com/labstack/echo/v4"
 	"net/http"
 )
 
+type Regatta interface {
+	GetContestResult(ctx context.Context, contestID int) (regatta.ContestStandings, error)
+}
+
 type ContestHandle struct {
-	// TODO переделать на абстракцию
-	ejudgeXmlParser *ejudge.ContestXMLFetcher
+	regatta Regatta
 }
 
 func NewContestHandle(
-	ejudgeXmlParser *ejudge.ContestXMLFetcher,
+	regatta Regatta,
 ) *ContestHandle {
 	return &ContestHandle{
-		ejudgeXmlParser: ejudgeXmlParser,
+		regatta: regatta,
 	}
 }
 
 func (s *ContestHandle) GetContest(ectx echo.Context, contestId int) error {
 	ctx := ectx.Request().Context()
 
-	runLog, err := s.ejudgeXmlParser.FetchAndParseXML(ctx, contestId)
+	result, err := s.regatta.GetContestResult(ctx, contestId)
 	if err != nil {
 		return ectx.JSON(http.StatusInternalServerError, err.Error())
 	}
 
-	response := server.RegattaContestStandings{
-		ContestId:   &contestId,
-		ContestName: &runLog.Name,
-		Rows:        &[]server.RegattaContestRow{},
-	}
+	// TODO mapping
 
-	return ectx.JSON(http.StatusOK, response)
+	return ectx.JSON(http.StatusOK, result)
 }

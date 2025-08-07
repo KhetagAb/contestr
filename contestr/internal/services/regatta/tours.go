@@ -35,33 +35,7 @@ type ProblemCode = string
 
 type ParticipantResult = map[ProblemCode]int
 
-type Table = map[Participant]ParticipantResult
-
-func (t *TourResult) CalcSubmissions(submissions []regatta.Run) map[Participant]ContestResult {
-	results := make(map[Participant]ContestResult)
-
-	for _, submission := range submissions {
-		if submission.Status != SubmissionStatusOK {
-			continue
-		}
-
-		participant := submission.UserID
-		problem := submission.ProbID
-
-		participantResults, ok := results[participant]
-		if !ok {
-			results[participant] = map[Problem]int{
-				problem: submission.Time,
-			}
-		} else {
-			if _, alreadySolved := participantResults[problem]; !alreadySolved {
-				results[participant][problem] = submission.Time
-			}
-		}
-	}
-
-	return results
-}
+type ResultsByParticipant = map[Participant]ParticipantResult
 
 func (t *TourResult) ParticipantScore(participant Participant) ParticipantResult {
 	group := t.Groups[participant]
@@ -100,8 +74,8 @@ func (t *TourResult) ParticipantScore(participant Participant) ParticipantResult
 	return result
 }
 
-func (t *TourResult) Export() Table {
-	result := make(Table)
+func (t *TourResult) Export() ResultsByParticipant {
+	result := make(ResultsByParticipant)
 
 	for _, group := range t.Groups {
 		for _, participant := range group {
@@ -112,10 +86,36 @@ func (t *TourResult) Export() Table {
 	return result
 }
 
-func EmptyResultFromTour(tc regatta.Tour) TourResult {
-	return TourResult{
+func CalculateResult(tc regatta.Tour, runs []regatta.Run) *TourResult {
+	return &TourResult{
 		Tour:            tc,
-		Results:         make(map[Participant]ContestResult),
+		Results:         calcSubmissions(runs),
 		ProblemsMapping: tc.ProblemsIDsToNameMapping(tc.Problems),
 	}
+}
+
+func calcSubmissions(submissions []regatta.Run) map[Participant]ContestResult {
+	results := make(map[Participant]ContestResult)
+
+	for _, submission := range submissions {
+		if submission.Status != SubmissionStatusOK {
+			continue
+		}
+
+		participant := submission.UserID
+		problem := submission.ProbID
+
+		participantResults, ok := results[participant]
+		if !ok {
+			results[participant] = map[Problem]int{
+				problem: submission.Time,
+			}
+		} else {
+			if _, alreadySolved := participantResults[problem]; !alreadySolved {
+				results[participant][problem] = submission.Time
+			}
+		}
+	}
+
+	return results
 }

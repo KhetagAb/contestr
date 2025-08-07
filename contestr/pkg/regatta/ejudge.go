@@ -22,7 +22,7 @@ type Users struct {
 
 type User struct {
 	XMLName xml.Name `xml:"user"`
-	ID      string   `xml:"id,attr"`
+	ID      int      `xml:"id,attr"`
 	Name    string   `xml:"name,attr"`
 }
 

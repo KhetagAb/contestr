@@ -3,11 +3,12 @@ package wiresets
 import (
 	"contestr/internal/handlers"
 	cfhandlers "contestr/internal/handlers/codeforces"
-	"contestr/internal/handlers/regatta"
+	regattahandlers "contestr/internal/handlers/regatta"
 	"contestr/internal/handlers/tgbot"
 	"contestr/internal/integrations/codeforces"
 	"contestr/internal/integrations/ejudge"
 	"contestr/internal/repository"
+	"contestr/internal/services/regatta"
 	"contestr/internal/transport"
 	"contestr/pkg/config"
 	"context"
@@ -36,9 +37,14 @@ var All = wire.NewSet(
 	tgbot.NewHandlers,
 	transport.NewBot,
 
-	ejudge.NewContestXMLFetcher,
-	regatta.NewContestHandle,
-
 	repository.NewMongoClient,
 	repository.NewMongoTourRepository,
+
+	ejudge.NewContestXMLFetcher,
+	wire.Bind(new(regatta.EjudgeParser), new(*ejudge.ContestXMLFetcher)),
+	wire.Bind(new(regatta.TourRepository), new(*repository.MongoTourRepository)),
+	regatta.NewRegatta,
+
+	wire.Bind(new(regattahandlers.Regatta), new(*regatta.Regatta)),
+	regattahandlers.NewContestHandle,
 )
