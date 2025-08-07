@@ -1,31 +1,28 @@
-import { useQuery } from "@tanstack/react-query";
 import styles from "./tables.module.css";
 import {
   createColumnHelper,
   flexRender,
   getCoreRowModel,
+  getFacetedMinMaxValues,
   getFilteredRowModel,
-  getPaginationRowModel,
   getSortedRowModel,
   useReactTable,
-  // type ColumnDef,
-  type PaginationState,
   // type RowData,
 } from "@tanstack/react-table";
-import React, { useMemo } from "react";
+import { useMemo } from "react";
 // import { Filter } from "./filter";
 // import 'react-tabulator/css/tabulator.min.css';
-import { SlArrowDown, SlArrowUp, SlArrowRightCircle, SlArrowLeftCircle} from "react-icons/sl";
-import { getRegattaContestStandingsOptions } from "../client/@tanstack/react-query.gen";
-import type { RegattaContestRow } from "../client";
-import { useSearchParam } from "react-use";
+import { SlArrowDown, SlArrowUp} from "react-icons/sl";
+import type { GetRegattaContestStandingsResponses, RegattaContestRow } from "../client";
+import Color from "colorjs.io";
+// import { useSearchParam } from "react-use";
 
 
 const columnHelper = createColumnHelper<RegattaContestRow>();
 
 const columns = [
   columnHelper.accessor("team_number", {
-    cell: (info) => info.getValue() + "",
+    cell: (info) => info.getValue(),
     header: () => "Команда",
   }),
   columnHelper.accessor("display_name", {
@@ -50,6 +47,18 @@ const teamColors = [
   "#fabed4",
   '#FFEAEA'
 ];
+function scoreToGreenColor(score: number) {
+  if (score <= 0) return "transparent";
+  const clamped = Math.min(1, Math.max(0, score));
+  const vividGreen = new Color("lch(75% 100 136)");
+  vividGreen.lch.c *= clamped;
+  vividGreen.alpha = clamped;
+  return vividGreen.to("srgb").toString({ format: "rgba" });
+}
+
+const getScores = () => {
+  return Object.fromEntries([..."ABCDFGHIJKLMNOPQRSTUV"].map((name) => [name, Math.round(Math.random() * 100)]))
+}
 
 const ResultsTable = () => {
   // const [pagination, setPagination] = React.useState<PaginationState>({
@@ -57,17 +66,49 @@ const ResultsTable = () => {
   //   pageSize: 100,
   // });
 
-  const contestId = parseInt(useSearchParam("contestId") || "")
+  // const contestId = parseInt(useSearchParam("contestId") || "")
 
-  const {data, isSuccess} = useQuery({
-    ...getRegattaContestStandingsOptions({
-      path: {
-        contest_id: contestId
-      }
-    })
-  });
+  // const {data, isSuccess} = useQuery({
+  //   ...getRegattaContestStandingsOptions({
+  //     path: {
+  //       contest_id: contestId
+  //     }
+  //   })
+  // });
+  const {data, isSuccess} = useMemo(() => ({
+    data: {
+        contest_name: "Название контеста",
+        contest_id: 0,
+        rows: [
+          
+  { "display_name": "Иван Петров", "team_number": 1, "total_score": 24, "solved_problems": 2, "problem_results": getScores()},
+  { "display_name": "Алексей Смирнов", "team_number": 2, "total_score": 18, "solved_problems": 2, "problem_results": getScores()},
+  { "display_name": "Елена Ковалева", "team_number": 3, "total_score": 30, "solved_problems": 2, "problem_results": getScores()},
+  { "display_name": "Иван Петров", "team_number": 1, "total_score": 22, "solved_problems": 2, "problem_results": getScores()},
+  { "display_name": "Дмитрий Волков", "team_number": 4, "total_score": 16, "solved_problems": 2, "problem_results": getScores()},
+  { "display_name": "Ольга Соколова", "team_number": 5, "total_score": 28, "solved_problems": 2, "problem_results": getScores()},
+  { "display_name": "Алексей Смирнов", "team_number": 2, "total_score": 20, "solved_problems": 2, "problem_results": getScores()},
+  { "display_name": "Артем Лебедев", "team_number": 6, "total_score": 12, "solved_problems": 1, "problem_results": getScores()},
+  { "display_name": "Елена Ковалева", "team_number": 3, "total_score": 32, "solved_problems": 2, "problem_results": getScores()},
+  { "display_name": "Наталья Морозова", "team_number": 7, "total_score": 18, "solved_problems": 2, "problem_results": getScores()},
+  { "display_name": "Сергей Павлов", "team_number": 8, "total_score": 24, "solved_problems": 2, "problem_results": getScores()},
+  { "display_name": "Дмитрий Волков", "team_number": 4, "total_score": 14, "solved_problems": 1, "problem_results": getScores()},
+  { "display_name": "Иван Петров", "team_number": 1, "total_score": 26, "solved_problems": 2, "problem_results": getScores()},
+  { "display_name": "Ольга Соколова", "team_number": 5, "total_score": 22, "solved_problems": 2, "problem_results": getScores()},
+  { "display_name": "Алексей Смирнов", "team_number": 2, "total_score": 16, "solved_problems": 2, "problem_results": getScores()},
+  { "display_name": "Елена Ковалева", "team_number": 3, "total_score": 28, "solved_problems": 2, "problem_results": getScores()},
+  { "display_name": "Артем Лебедев", "team_number": 6, "total_score": 10, "solved_problems": 1, "problem_results": getScores()},
+  { "display_name": "Анна Новикова", "team_number": 9, "total_score": 20, "solved_problems": 2, "problem_results": getScores()},
+  { "display_name": "Дмитрий Волков", "team_number": 4, "total_score": 18, "solved_problems": 2, "problem_results": getScores()},
+  { "display_name": "Михаил Федоров", "team_number": 10, "total_score": 8, "solved_problems": 1, "problem_results": getScores()}
+
+        ]
+    } satisfies GetRegattaContestStandingsResponses[200],
+    isSuccess: true
+  }), []);
+
   const tasks = useMemo(() => 
-    (isSuccess && data.rows) ? Object.keys(data.rows[0].solved_problems) : undefined, [data, isSuccess]); // TODO: fixme.
+    (isSuccess && data.rows) ? Object.keys(data.rows[0].problem_results) : undefined, [data, isSuccess]); // TODO: fixme.
 
   const table = useReactTable({
     columns: [
@@ -78,7 +119,10 @@ const ResultsTable = () => {
         columns: tasks.map((taskName) =>
           columnHelper.accessor(`problem_results.${taskName}`, {
             header: taskName,
-            cell: (props) => <>{props.row.original.problem_results[taskName]}</>,
+            cell: (props) =>  <div>
+                {props.row.original.problem_results[taskName]}
+                <div className={styles.taskTime}>time</div>
+            </div>,
           })
         ),
       })] : []),
@@ -88,7 +132,9 @@ const ResultsTable = () => {
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
+      getFacetedMinMaxValues: getFacetedMinMaxValues(), //if you need min/max values
+
+    // getPaginationRowModel: getPaginationRowModel(),
     // onPaginationChange: setPagination,
     //no need to pass pageCount or rowCount with client-side pagination as it is calculated automatically
     // state: {
@@ -114,7 +160,6 @@ const ResultsTable = () => {
                 let rowSpan = 1;
                 if (header.isPlaceholder) {
                   const leafs = header.getLeafHeaders();
-                  // rowSpan = leafs[leafs.length - 1].depth - header.depth;
                   rowSpan = leafs[leafs.length - 1].depth - header.depth;
                 }
                 return (
@@ -155,10 +200,19 @@ const ResultsTable = () => {
         <tbody>
           {table.getRowModel().rows.map((row) => {
             return (
-              <tr key={row.id} style={{backgroundColor: teamColors[(row.original.team_number - 1) % teamColors.length]}}>
+              <tr key={row.id}>
                 {row.getVisibleCells().map((cell) => {
+                  let col;
+                  if (cell.column.id.startsWith("problem_results_")) {
+                    const minmaxValues = table.getColumn(cell.column.id)?.getFacetedMinMaxValues() as [number, number];
+                    col = scoreToGreenColor(cell.getValue() as number / minmaxValues[1])
+                  }
                   return (
-                    <td key={cell.id}>
+                    <td key={cell.id} style={{
+                      backgroundColor: ["team_number", "display_name"].indexOf(cell.column.id) !== -1 ?
+                        teamColors[(cell.row.original.team_number - 1) % teamColors.length] : 
+                        col
+                      }}>
                       {flexRender(
                         cell.column.columnDef.cell,
                         cell.getContext()

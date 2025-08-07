@@ -8,7 +8,7 @@ export type RegattaContestRow = {
     /**
      * Номер команды
      */
-    team_number: string;
+    team_number: number;
     /**
      * Общий счёт в баллах
      */

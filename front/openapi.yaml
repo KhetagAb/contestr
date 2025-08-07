@@ -91,7 +91,7 @@ components:
           description: Имя и фамилия студента одной строкой
           example: "Иван Иванов"
         team_number:
-          type: string
+          type: number
           description: Номер команды
           example: "fe3"
         total_score:
