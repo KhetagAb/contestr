@@ -5,26 +5,85 @@ import (
 	"time"
 )
 
+const (
+	OVERTAKE_POINTS = 5
+	SOLVE_POINTS    = 5
+)
+
+const (
+	SubmissionStatusOK string = "OK"
+)
+
+// Problem int ejudge ID
+type Problem int
+
+// Participant int ejudge ID
+type Participant int
+
 // ContestResult problem -> submission_time
-type ContestResult map[string]int
+type ContestResult map[Problem]int
 
 // Group participant group
-type Group []string
+type Group []Participant
 
+// Tour regata tour
 type Tour struct {
-	Name      string                   `json:"name"`
-	StartTime time.Time                `json:"start_time"`
-	Duration  time.Duration            `json:"duration"`
-	Groups    map[string]Group         `json:"groups"` // participant -> group
-	Problems  []string                 `json:"problems"`
-	ContestID int                      `json:"contest_id"`
-	Results   map[string]ContestResult `json:"results"`
+	Name      string                        `json:"name"`
+	StartTime time.Time                     `json:"start_time"`
+	Duration  time.Duration                 `json:"duration"`
+	Groups    map[Participant]Group         `json:"groups"` // participant -> group
+	Problems  []Problem                     `json:"problems"`
+	ContestID int                           `json:"contest_id"`
+	Results   map[Participant]ContestResult `json:"results"` // participant -> result
 }
 
-func (t *Tour) CalcSubmissions(submissions []ejudge.Submission) map[string]ContestResult {
-	return make(map[string]ContestResult)
+func (t *Tour) CalcSubmissions(submissions []ejudge.Submission) map[Participant]ContestResult {
+	results := make(map[Participant]ContestResult)
+
+	for _, submission := range submissions {
+		if submission.Status != SubmissionStatusOK {
+			continue
+		}
+
+		participant := Participant(submission.UserID)
+		problem := Problem(submission.ProbID)
+
+		_, ok := results[participant]
+		if !ok {
+			results[participant] = map[Problem]int{
+				problem: submission.Time,
+			}
+		} else {
+			results[participant][problem] = submission.Time
+		}
+	}
+
+	return results
 }
 
-func (t *Tour) ParticipantScore(participant string) int {
-	return 0
+func (t *Tour) ParticipantScore(participant Participant) int {
+	group := t.Groups[participant]
+	score := 0
+
+	for _, opponent := range group {
+		if participant == opponent {
+			continue
+		}
+		participantResults := t.Results[participant]
+		opponentResults := t.Results[opponent]
+
+		for _, problem := range t.Problems {
+			participantProblemResult, participantSolved := participantResults[problem]
+			opponentProblemResult, opponentSolved := opponentResults[problem]
+
+			if participantSolved {
+				score += SOLVE_POINTS
+				if !opponentSolved || participantProblemResult < opponentProblemResult {
+					score += OVERTAKE_POINTS
+				}
+			}
+		}
+	}
+
+	return score
 }
