@@ -15,19 +15,19 @@ export const Sidebar = () => {
                     <Home size={24} />
                     <span className="tooltip">Главная</span>
                 </div>
-                <div className="icon-box">
-                    <User size={24} />
-                    <span className="tooltip">Профиль</span>
+                {/*<div className="icon-box">*/}
+                {/*    <User size={24} />*/}
+                {/*    <span className="tooltip">Профиль</span>*/}
+                {/*</div>*/}
+                {/*<div className="icon-box">*/}
+                {/*    <Settings size={24} />*/}
+                {/*    <span className="tooltip">Настройки</span>*/}
+                {/*</div>*/}
+                {/*<div className="icon-box">*/}
+                {/*    <LogOut size={24} />*/}
+                {/*    <span className="tooltip">Выход</span>*/}
                 </div>
-                <div className="icon-box">
-                    <Settings size={24} />
-                    <span className="tooltip">Настройки</span>
-                </div>
-                <div className="icon-box">
-                    <LogOut size={24} />
-                    <span className="tooltip">Выход</span>
-                </div>
-            </div>
+            {/*</div>*/}
         </aside>
     )
 }

@@ -32,6 +32,7 @@
     --grid-min: clamp(15rem, 40vw, 30rem);
     --card-min: clamp(20rem, 40vw, 50rem);
     --container-margin-left: clamp(1rem, 5vw, 8rem);
+    --container-login: clamp(--step--2);
 
     --bp-mobile: 600px;
     --bp-tablet: 900px;
@@ -152,6 +153,7 @@ body {
     -webkit-mask-position: center;
     -webkit-mask-size: cover;
 
+    pointer-events: none;
 }
 
 .masked-dg-2{
@@ -173,6 +175,7 @@ body {
     /*mask-size: contain;*/
 
     -webkit-mask-size: cover;
+    pointer-events: none;
 }
 
 #MyDiv {
@@ -263,8 +266,8 @@ body {
     border-top-left-radius: 1.3em;
     border-top-right-radius: 1.3em;
     box-shadow: -4px 6px 20px rgba(107, 106, 104, 0.55);
-    width: fit-content;
-    height: fit-content;
+    /*width: fit-content;*/
+    /*height: fit-content;*/
     font-size: var(--fs-p);
     overflow: hidden;
     padding: 0 var(--space-m) 0 var(--space-xs);
@@ -381,10 +384,10 @@ button {
 }
 
 input {
-    border-radius: 47px;
-    border-color: #e7e7e7;
-    height: 2em;
-    width: 30em;
+    /*border-radius: 47px;*/
+    /*border-color: #e7e7e7;*/
+    /*height: 2em;*/
+    /*width: 30em;*/
     background-color: #e7e7e7;
     font-size: var(--fs-button);
     margin-bottom: var(--space-xs);
@@ -474,6 +477,7 @@ ul {
     flex-direction: column;
     justify-content: space-between;
     padding: 20px 0;
+    padding-bottom: 2em;
     box-shadow: 2px 0 10px rgba(0, 0, 0, 0.2);
 }
 
@@ -497,6 +501,7 @@ ul {
     justify-content: space-between;
     padding: 20px 10px;
     box-shadow: 2px 0 10px rgba(0, 0, 0, 0.2);
+    box-sizing: border-box;
 }
 
 .icon-wrap {
@@ -522,7 +527,7 @@ ul {
 
 .tooltip {
     position: absolute;
-    left: 60px;
+    left: 80px;
     background: #f0eee1;
     color: #3a3a3a;
     padding: 1em 5em;

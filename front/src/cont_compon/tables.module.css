@@ -1,0 +1,29 @@
+.table, .table th, .table td{
+    border: 1px solid black;
+    border-collapse: collapse;
+    width: fit-content;
+}
+
+.tableHeader {
+    background-color: #DCDCDC;
+    height: 35px;
+    user-select: none;
+      -webkit-user-select: none; /* Safari */
+
+}
+
+.canSort {
+    cursor: pointer;
+}
+
+.headerColumn {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 0 10px;
+    gap: 10px;
+}x
+
+.select-page {
+    border-radius: 40px;
+}
