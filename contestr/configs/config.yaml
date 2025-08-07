@@ -16,6 +16,8 @@ mongodb:
 
 telegram:
   token: "YOUR_TELEGRAM_BOT_TOKEN"
+  admins_tg_id:
+    - 447498304 # khet
 
 codeforces:
   api_key: "YOUR_CODEFORCES_API_KEY"

@@ -38,7 +38,8 @@ type (
 	}
 
 	TelegramConfig struct {
-		Token string `mapstructure:"token"`
+		Token  string `mapstructure:"token"`
+		Admins []int  `mapstructure:"admins_tg_id"`
 	}
 
 	CodeforcesConfig struct {

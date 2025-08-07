@@ -42,9 +42,7 @@ func (h *HelpHandle) HandleHelp(ctx context.Context, b *bot.Bot, update *models.
 
 func handleHelpCommand(_ context.Context, _ string) (string, error) {
 	return "Доступные команды:\n" +
-			"/start - Начать работу с ботом\n" +
 			"/help - Показать это сообщение\n" +
-			"/register <handle> - Зарегистрировать Codeforces аккаунт" +
 			"",
 		nil
 }

@@ -35,7 +35,7 @@ func (s *ContestXMLFetcher) FetchAndParseXML(ctx context.Context, contestId int)
 
 	if resp.StatusCode != http.StatusOK {
 		logger.Errorf(ctx, "not 200 status: %v", resp.StatusCode)
-		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+		return nil, fmt.Errorf("cannot fetch ejudge contest=%v: unexpected status code=%d", contestId, resp.StatusCode)
 	}
 
 	bodyBytes, err := ioutil.ReadAll(resp.Body)
