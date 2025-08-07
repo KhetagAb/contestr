@@ -49,13 +49,15 @@ func (t *Tour) CalcSubmissions(submissions []ejudge.Submission) map[Participant]
 		participant := Participant(submission.UserID)
 		problem := Problem(submission.ProbID)
 
-		_, ok := results[participant]
+		participantResults, ok := results[participant]
 		if !ok {
 			results[participant] = map[Problem]int{
 				problem: submission.Time,
 			}
 		} else {
-			results[participant][problem] = submission.Time
+			if _, alreadySolved := participantResults[problem]; !alreadySolved {
+				results[participant][problem] = submission.Time
+			}
 		}
 	}
 
@@ -65,12 +67,12 @@ func (t *Tour) CalcSubmissions(submissions []ejudge.Submission) map[Participant]
 func (t *Tour) ParticipantScore(participant Participant) int {
 	group := t.Groups[participant]
 	score := 0
+	participantResults := t.Results[participant]
 
 	for _, opponent := range group {
 		if participant == opponent {
 			continue
 		}
-		participantResults := t.Results[participant]
 		opponentResults := t.Results[opponent]
 
 		for _, problem := range t.Problems {
