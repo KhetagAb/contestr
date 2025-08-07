@@ -6,8 +6,9 @@ import (
 )
 
 const (
-	OVERTAKE_POINTS = 5
-	SOLVE_POINTS    = 5
+	OVERTAKE_POINTS      = 5
+	SOLVE_POINTS         = 5
+	SOLVE_IN_TIME_POINTS = 5
 )
 
 const (
@@ -73,13 +74,16 @@ func (t *Tour) ParticipantScore(participant Participant) int {
 		opponentResults := t.Results[opponent]
 
 		for _, problem := range t.Problems {
-			participantProblemResult, participantSolved := participantResults[problem]
-			opponentProblemResult, opponentSolved := opponentResults[problem]
+			participantSolveTime, participantSolved := participantResults[problem]
+			opponentSolveTime, opponentSolved := opponentResults[problem]
 
 			if participantSolved {
 				score += SOLVE_POINTS
-				if !opponentSolved || participantProblemResult < opponentProblemResult {
+				if !opponentSolved || participantSolveTime < opponentSolveTime {
 					score += OVERTAKE_POINTS
+				}
+				if time.Duration(participantSolveTime)*time.Second < t.Duration {
+					score += SOLVE_IN_TIME_POINTS
 				}
 			}
 		}
