@@ -3,7 +3,7 @@ package transport
 import (
 	"contestr/internal/configs"
 	"contestr/internal/generated/server"
-	httpw "contestr/internal/handlers/http"
+	"contestr/internal/handlers"
 	"contestr/pkg/logger"
 	"context"
 	"github.com/labstack/echo/v4"
@@ -17,7 +17,7 @@ type HTTPServer struct {
 	httpServer *http.Server
 }
 
-func NewHTTPServer(ctx context.Context, handlers *httpw.Handlers, cfg *configs.Config) *HTTPServer {
+func NewHTTPServer(ctx context.Context, handlers *handlers.Handlers, cfg *configs.Config) *HTTPServer {
 	logger.Infof(ctx, "server configuration: address=%s, read_timeout=%v, write_timeout=%v",
 		cfg.HTTP.Port, cfg.HTTP.ReadTimeout, cfg.HTTP.WriteTimeout)
 
@@ -51,7 +51,7 @@ func newEcho() *echo.Echo {
 	return e
 }
 
-func (s *HTTPServer) RegisterHandlers(handlers *httpw.Handlers) {
+func (s *HTTPServer) RegisterHandlers(handlers *handlers.Handlers) {
 	s.echo.GET("/", func(c echo.Context) error {
 		return c.String(http.StatusOK, "HTTPServer is running")
 	})

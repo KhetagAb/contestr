@@ -20,3 +20,7 @@ telegram:
 codeforces:
   api_key: "YOUR_CODEFORCES_API_KEY"
   api_secret: "YOUR_CODEFORCES_API_SECRET"
+
+ejudge:
+  xml_url: https://ejudge.lksh.ru/ejudge-external
+  request_timeout: 10s

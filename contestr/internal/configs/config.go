@@ -15,6 +15,7 @@ type (
 		MongoDB    MongoDBConfig    `mapstructure:"mongodb"`
 		Telegram   TelegramConfig   `mapstructure:"telegram"`
 		Codeforces CodeforcesConfig `mapstructure:"codeforces"`
+		Ejudge     EjudgeConfig     `mapstructure:"ejudge"`
 	}
 
 	AppConfig struct {
@@ -43,6 +44,11 @@ type (
 	CodeforcesConfig struct {
 		APIKey    string `mapstructure:"api_key"`
 		APISecret string `mapstructure:"api_secret"`
+	}
+
+	EjudgeConfig struct {
+		XMLUrl         string        `mapstructure:"xml_url"`
+		RequestTimeout time.Duration `mapstructure:"request_timeout"`
 	}
 )
 

@@ -29,6 +29,7 @@ if (cd internal/generated/app && wire 2> /dev/null); then
   print_status "Generating Wire code" "OK" "$GREEN"
 else
   print_status "Generating Wire code" "FAILED" "$RED"
+  (cd internal/generated/app && wire)
   exit 1
 fi
 
