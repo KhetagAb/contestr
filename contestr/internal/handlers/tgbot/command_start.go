@@ -41,7 +41,7 @@ func (h *StartHandle) Handle(ctx context.Context, b *bot.Bot, update *models.Upd
 }
 
 func handleStartCommand(_ context.Context, _ string) (string, error) {
-	return "Привет! Я бот для работы с Codeforces.\n" +
+	return "Привет! Я бот для работы с Contestr.\n" +
 			"Используйте /help для получения списка команд.",
 		nil
 }

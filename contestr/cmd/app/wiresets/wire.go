@@ -32,6 +32,8 @@ var All = wire.NewSet(
 	transport.NewHTTPServer,
 
 	tgbot.NewStartHandle,
+	wire.Bind(new(tgbot.Regatta), new(*regatta.Regatta)),
+	tgbot.NewRegattaStartTourHandle,
 	tgbot.NewHelpHandle,
 	tgbot.NewMessageHandle,
 	tgbot.NewHandlers,

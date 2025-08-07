@@ -43,6 +43,7 @@ func (h *HelpHandle) HandleHelp(ctx context.Context, b *bot.Bot, update *models.
 func handleHelpCommand(_ context.Context, _ string) (string, error) {
 	return "Доступные команды:\n" +
 			"/help - Показать это сообщение\n" +
+			"/start_tour - Начать тур в регате\n" +
 			"",
 		nil
 }

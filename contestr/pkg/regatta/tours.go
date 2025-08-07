@@ -50,4 +50,7 @@ type ContestRow struct {
 	SolvedProblems int                  `json:"solved_problems"`
 	TeamNumber     int                  `json:"team_number"`
 	TotalScore     Score                `json:"total_score"`
+
+	// TODO совместимость с кфом
+	UserID Participant
 }

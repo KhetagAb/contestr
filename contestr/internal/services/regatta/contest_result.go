@@ -4,10 +4,12 @@ import (
 	"contestr/pkg/regatta"
 	"context"
 	"fmt"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 	"slices"
 )
 
 type TourRepository interface {
+	Create(ctx context.Context, tour *regatta.Tour) (primitive.ObjectID, error)
 	FindByContestID(ctx context.Context, contestID int) ([]regatta.Tour, error)
 }
 
@@ -30,20 +32,37 @@ func NewRegatta(
 	}
 }
 
-func (r *Regatta) GetContestResult(ctx context.Context, contestID int) (regatta.ContestStandings, error) {
-	parsedContest, err := r.ejudgeParser.FetchAndParseXML(ctx, contestID)
+// TODO рефакторинг
+func (s *Regatta) GetContestResult(ctx context.Context, contestID int) (regatta.ContestStandings, error) {
+	parsedContest, err := s.ejudgeParser.FetchAndParseXML(ctx, contestID)
 	if err != nil {
 		return regatta.ContestStandings{}, fmt.Errorf("failed to parse contest %d: %w", contestID, err)
 	}
 
 	displayNameByParticipant := getDisplayNameByParticipant(parsedContest.Users)
 
-	tours, err := r.tourRepository.FindByContestID(ctx, contestID)
+	tours, err := s.tourRepository.FindByContestID(ctx, contestID)
 	if err != nil {
 		return regatta.ContestStandings{}, fmt.Errorf("failed to find tours for contest %d: %w", contestID, err)
 	}
 
-	contestRows := []regatta.ContestRow{}
+	if len(tours) == 0 {
+		contestRows := []regatta.ContestRow{}
+		for _, participant := range parsedContest.Users.Users {
+			contestRows = append(contestRows, regatta.ContestRow{
+				DisplayName: displayNameByParticipant[participant.ID],
+				UserID:      participant.ID,
+				TeamNumber:  69,
+			})
+		}
+		return regatta.ContestStandings{
+			ContestId:   contestID, // TODO parse int
+			ContestName: parsedContest.Name,
+			Rows:        contestRows,
+		}, nil
+	}
+
+	var contestRows []regatta.ContestRow
 	contestStandingsByParticipants := make(ResultsByParticipant)
 	participantTotal := make(map[Participant]int)
 	groupNumbers := make(map[Participant]int)
@@ -62,13 +81,15 @@ func (r *Regatta) GetContestResult(ctx context.Context, contestID int) (regatta.
 				participantTotal[participant] += score
 			}
 		}
+	}
 
-		groupNumbers = make(map[Participant]int)
-		for number, group := range tour.Groups {
-			for _, participant := range group {
-				groupNumbers[participant] = number + 1
-			}
+	groupNumbers = make(map[Participant]int)
+	idx := 1
+	for _, group := range tours[len(tours)-1].Groups {
+		for _, participant := range group {
+			groupNumbers[participant] = idx
 		}
+		idx += 1
 	}
 
 	for participant, participantResult := range contestStandingsByParticipants {
@@ -78,6 +99,7 @@ func (r *Regatta) GetContestResult(ctx context.Context, contestID int) (regatta.
 			SolvedProblems: len(participantResult),
 			TeamNumber:     groupNumbers[participant],
 			TotalScore:     participantTotal[participant],
+			UserID:         participant,
 		})
 	}
 
