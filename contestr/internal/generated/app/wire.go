@@ -21,9 +21,7 @@ type App struct {
 
 func InitializeService() (*App, error) {
 	wire.Build(
-		wiresets.CommonSet,
-		wiresets.HTTPSet,
-		wiresets.TgBotSet,
+		wiresets.All,
 
 		wire.Struct(new(App), "*"),
 	)

@@ -4,7 +4,20 @@ info:
   description: Ручки для получения данных о контестах
   version: 1.0.0
 paths:
-  /contest/{contest_id}:
+  /regatta/contests/{contest_id}:
+    get:
+      operationId: getRegattaContestStandings
+      parameters:
+        - name: contest_id
+          in: path
+          schema:
+            type: integer
+      responses:
+        200:
+          $ref: '#/components/responses/RegattaContestStandings'
+
+  # TODO
+  /cfcontest/{contest_id}:
     get:
       operationId: getContest
       parameters:
@@ -32,6 +45,24 @@ paths:
                 $ref: '#/components/schemas/Hello'
 components:
   responses:
+    RegattaContestStandings:
+      description: Список студентов с результатами контеста
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              contest_name:
+                type: string
+                description: Название контеста
+              contest_id:
+                type: integer
+                description: Идентификатор контеста
+              rows:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RegattaContestRow'
+
     GetContestResponse:
       description: Информацию о результатах контеста
       content:
@@ -46,6 +77,40 @@ components:
           schema:
             $ref: '#/components/schemas/Error'
   schemas:
+    RegattaContestRow:
+      type: object
+      required:
+        - display_name
+        - team_number
+        - total_score
+        - solved_problems
+        - problem_results
+      properties:
+        display_name:
+          type: string
+          description: Имя и фамилия студента одной строкой
+          example: "Иван Иванов"
+        team_number:
+          type: integer
+          description: Номер команды
+        total_score:
+          type: number
+          description: Общий счёт в баллах
+          example: 350
+        solved_problems:
+          type: integer
+          description: Количество решенных задач
+          example: 7
+        problem_results:
+          type: object
+          description: Результаты по задачам в формате "идентификатор задачи -> баллы", либо <0 за неудачную попытку
+          additionalProperties:
+            type: number
+          example:
+            "A": 100
+            "B": 75
+            "C": 100
+            "D": 0
     Contest:
       type: object
       required:

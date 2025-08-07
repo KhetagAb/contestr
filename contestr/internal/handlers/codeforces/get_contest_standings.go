@@ -1,4 +1,4 @@
-package http
+package codeforces
 
 import (
 	"contestr/internal/generated/server"
@@ -9,16 +9,16 @@ import (
 	"strconv"
 )
 
-type CodeforcesService interface {
+type Service interface {
 	GetContest(ctx context.Context, contestID int) (*goforces.Standings, error)
 }
 
 type ContestHandle struct {
-	cfService CodeforcesService
+	cfService Service
 }
 
 func NewContestHandle(
-	cfService CodeforcesService,
+	cfService Service,
 ) *ContestHandle {
 	return &ContestHandle{
 		cfService: cfService,
