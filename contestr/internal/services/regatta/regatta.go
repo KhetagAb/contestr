@@ -4,6 +4,7 @@ import (
 	"contestr/pkg/regatta"
 	"context"
 	"fmt"
+	"slices"
 )
 
 type TourRepository interface {
@@ -45,6 +46,8 @@ func (r *Regatta) GetContestResult(ctx context.Context, contestID int) (regatta.
 	contestRows := []regatta.ContestRow{}
 	contestStandingsByParticipants := make(ResultsByParticipant)
 	participantTotal := make(map[Participant]int)
+	groupNumbers := make(map[Participant]int)
+
 	for _, tour := range tours {
 		result := CalculateResult(tour, parsedContest.Runs.Runs).Export()
 
@@ -59,6 +62,13 @@ func (r *Regatta) GetContestResult(ctx context.Context, contestID int) (regatta.
 				participantTotal[participant] += score
 			}
 		}
+
+		groupNumbers = make(map[Participant]int)
+		for number, group := range tour.Groups {
+			for _, participant := range group {
+				groupNumbers[participant] = number + 1
+			}
+		}
 	}
 
 	for participant, participantResult := range contestStandingsByParticipants {
@@ -66,10 +76,14 @@ func (r *Regatta) GetContestResult(ctx context.Context, contestID int) (regatta.
 			DisplayName:    displayNameByParticipant[participant],
 			ProblemResults: participantResult,
 			SolvedProblems: len(participantResult),
-			TeamNumber:     0, // TODO
+			TeamNumber:     groupNumbers[participant],
 			TotalScore:     participantTotal[participant],
 		})
 	}
+
+	slices.SortFunc(contestRows, func(row1, row2 regatta.ContestRow) int {
+		return row1.TotalScore - row2.TotalScore
+	})
 
 	contestStandings := regatta.ContestStandings{
 		ContestId:   contestID, // TODO parse int
