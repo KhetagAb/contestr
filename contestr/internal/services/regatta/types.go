@@ -111,3 +111,11 @@ func (t *TourResult) Export() Table {
 
 	return result
 }
+
+func EmptyResultFromTour(tc regatta.Tour) TourResult {
+	return TourResult{
+		Tour:            tc,
+		Results:         make(map[Participant]ContestResult),
+		ProblemsMapping: tc.ProblemsIDsToNameMapping(tc.Problems),
+	}
+}
