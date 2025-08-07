@@ -9,11 +9,11 @@ const root = createRoot(container!);
 
 root.render(
     <>
-        <div className="masked-bg"></div>
-        <div className="masked-dg-2"></div>
         <div id="MyDiv">
             <App/>
         </div>
+        <div className="masked-bg"></div>
+        <div className="masked-dg-2"></div>
     </>
 )
 ;

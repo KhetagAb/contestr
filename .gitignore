@@ -30,3 +30,4 @@ vendor/
 *.gen.go
 *_gen.go
 /contestr/secrets/
+node_modules

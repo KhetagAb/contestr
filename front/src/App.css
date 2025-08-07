@@ -388,6 +388,7 @@ ul {
     justify-content: space-between;
     padding: 20px 10px;
     box-shadow: 2px 0 10px rgba(0, 0, 0, 0.2);
+    box-sizing: border-box;
 }
 
 .icon-wrap {
