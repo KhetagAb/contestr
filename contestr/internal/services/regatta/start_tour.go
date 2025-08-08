@@ -32,15 +32,18 @@ func (s *Regatta) StartTour(ctx context.Context, contestId int, duration time.Du
 
 	groups := util.FormGroups(ratedParticipants, GroupSize)
 	tourIdx := len(tours) + 1
+	convertedGroups := ConvertGroups(groups)
+
 	tour := regatta.Tour{
-		Name:      fmt.Sprintf("Tour №%v of contest %v", tourIdx, contestId),
-		Index:     tourIdx,
-		StartTime: time.Now(),
-		Duration:  duration,
-		Groups:    ConvertGroups(groups),
-		GroupSize: GroupSize,
-		Problems:  []int{2*tourIdx - 1, 2 * tourIdx},
-		ContestID: contestId,
+		Name:         fmt.Sprintf("Tour №%v of contest %v", tourIdx, contestId),
+		Index:        tourIdx,
+		StartTime:    time.Now(),
+		Duration:     duration,
+		Groups:       convertedGroups,
+		GroupSize:    GroupSize,
+		Problems:     []int{2*tourIdx - 1, 2 * tourIdx},
+		ContestID:    contestId,
+		GroupNumbers: regatta.ParticipantsToGroupNumbersMapping(convertedGroups),
 	}
 
 	create, err := s.tourRepository.Create(ctx, &tour)
