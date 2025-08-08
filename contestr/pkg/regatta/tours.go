@@ -35,17 +35,17 @@ func (t *Tour) ProblemsIDsToNameMapping(problems []Problem) map[Problem]string {
 	return mapping
 }
 
-func ParticipantsToGroupNumbersMapping(groups map[Participant]Group) map[Participant]int {
-	groupNumbers := make(map[Participant]int)
-	idx := 1
-	for _, group := range groups {
-		for _, participant := range group {
-			groupNumbers[participant] = idx
+func ParticipantsToGroupNumbersMapping(groups [][]int) map[Participant]int {
+	result := make(map[Participant]int)
+
+	for idx, group := range groups {
+		for _, participantID := range group {
+			result[participantID] = idx + 1
 		}
 		idx += 1
 	}
 
-	return groupNumbers
+	return result
 }
 
 type ContestStandings struct {
