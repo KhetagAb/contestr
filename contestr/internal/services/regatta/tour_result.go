@@ -14,7 +14,8 @@ const (
 const (
 	SubmissionStatusOK string = "OK"
 
-	GiveBonusOnlyForFirstSubmission bool = true
+	GiveBonusOnlyForFirstSubmission  bool = true
+	GiveBonusOnlyForInTimeSubmission bool = false
 )
 
 type Problem = int
@@ -72,7 +73,13 @@ func (t *TourResult) ParticipantScore(participant Participant) ParticipantResult
 
 			if participantSolved {
 				if !opponentSolved || participantSolveTime < opponentSolveTime {
-					overtookCount++
+					if !GiveBonusOnlyForInTimeSubmission {
+						overtookCount++
+					} else {
+						if time.Duration(participantSolveTime)*time.Second < t.Duration {
+							overtookCount++
+						}
+					}
 				}
 			}
 		}
