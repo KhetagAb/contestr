@@ -57,16 +57,18 @@ type ContestStandings struct {
 	Rows                 []ContestRow  `json:"rows,omitempty"`
 }
 
-type ProblemIdx = string
-
-type Score = int
+type ProblemResult struct {
+	ProblemCode        string    `json:"problem_code"`
+	Score              int       `json:"score"`
+	LastSubmissionTime time.Time `json:"last_submission_time"`
+}
 
 type ContestRow struct {
-	DisplayName    string               `json:"display_name"`
-	ProblemResults map[ProblemIdx]Score `json:"problem_results"`
-	SolvedProblems int                  `json:"solved_problems"`
-	TeamNumber     int                  `json:"team_number"`
-	TotalScore     Score                `json:"total_score"`
+	DisplayName    string          `json:"display_name"`
+	ProblemResults []ProblemResult `json:"problem_results"`
+	SolvedProblems int             `json:"solved_problems"`
+	TeamNumber     int             `json:"team_number"`
+	TotalScore     int             `json:"total_score"`
 
 	// TODO совместимость с кфом
 	UserID Participant `json:"user_id"`

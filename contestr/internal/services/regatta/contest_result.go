@@ -8,6 +8,7 @@ import (
 	"math"
 	"slices"
 	"strings"
+	"time"
 )
 
 type TourRepository interface {
@@ -77,9 +78,9 @@ func (s *Regatta) GetContestResult(ctx context.Context, contestID int) (regatta.
 				contestStandingsByParticipants[participant] = make(ParticipantResult)
 			}
 
-			for problem, score := range participantResult {
-				contestStandingsByParticipants[participant][problem] = score
-				participantTotal[participant] += score
+			for problem, problemResult := range participantResult {
+				contestStandingsByParticipants[participant][problem] = problemResult
+				participantTotal[participant] += problemResult.score
 			}
 		}
 	}
@@ -87,7 +88,7 @@ func (s *Regatta) GetContestResult(ctx context.Context, contestID int) (regatta.
 	for participant, participantResult := range contestStandingsByParticipants {
 		contestRows = append(contestRows, regatta.ContestRow{
 			DisplayName:    displayNameByParticipant[participant],
-			ProblemResults: participantResult,
+			ProblemResults: getProblemResults(participantResult),
 			SolvedProblems: getSolvedProblemsCount(participantResult),
 			TeamNumber:     tours[len(tours)-1].GroupNumbers[participant],
 			TotalScore:     participantTotal[participant],
@@ -113,10 +114,25 @@ func (s *Regatta) GetContestResult(ctx context.Context, contestID int) (regatta.
 	return contestStandings, nil
 }
 
+func getProblemResults(result ParticipantResult) []regatta.ProblemResult {
+	var results []regatta.ProblemResult
+	for _, problemResult := range result {
+		results = append(results, regatta.ProblemResult{
+			ProblemCode:        problemResult.problemCode,
+			Score:              problemResult.score,
+			LastSubmissionTime: time.Unix(int64(problemResult.lastSubmissionTime), 0),
+		})
+	}
+	slices.SortFunc(results, func(result1, result2 regatta.ProblemResult) int {
+		return strings.Compare(result1.ProblemCode, result2.ProblemCode)
+	})
+	return results
+}
+
 func getSolvedProblemsCount(result ParticipantResult) int {
 	count := 0
-	for _, score := range result {
-		if score > 0 {
+	for _, problemResult := range result {
+		if problemResult.score > 0 {
 			count++
 		}
 	}

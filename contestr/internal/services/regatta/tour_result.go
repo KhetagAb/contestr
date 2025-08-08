@@ -33,9 +33,15 @@ type TourResult struct {
 	ProblemsMapping map[Problem]string            `json:"-"`
 }
 
+type ProblemResult struct {
+	problemCode        string
+	score              int
+	lastSubmissionTime SubmissionTime
+}
+
 type ProblemCode = string
 
-type ParticipantResult = map[ProblemCode]int
+type ParticipantResult = map[ProblemCode]ProblemResult
 
 type ResultsByParticipant = map[Participant]ParticipantResult
 
@@ -79,7 +85,11 @@ func (t *TourResult) ParticipantScore(participant Participant) ParticipantResult
 			score += OvertakePoints * overtookCount
 		}
 
-		result[problemCode] = score
+		result[problemCode] = ProblemResult{
+			problemCode:        problemCode,
+			score:              score,
+			lastSubmissionTime: participantSolveTime,
+		}
 	}
 
 	return result

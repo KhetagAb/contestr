@@ -115,18 +115,26 @@ components:
           description: Количество решенных задач
           example: 7
         problem_results:
-          type: object
+          type: array
           description: Результаты по задачам в формате "идентификатор задачи -> баллы", либо <0 за неудачную попытку
-          additionalProperties:
-            type: number
-          example:
-            "A": 100
-            "B": 75
-            "C": 100
-            "D": 0
+          items:
+            $ref: '#/components/schemas/ProblemResult'
         user_id:
           type: string
           description: Идентификатор студента
+    ProblemResult:
+      type: object
+      required:
+        - problem_code
+        - score
+      description: Результаты по задаче, c буквой задачи, счётом и временем последней попытки. Если score < 0, то попытка неудачна. Время последней посылки отправляется только для удачных посылок
+      properties:
+        problem_code:
+          type: string
+        score:
+          type: integer
+        last_submission_time:
+          type: integer
     Contest:
       type: object
       required:
