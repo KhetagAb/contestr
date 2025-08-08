@@ -51,6 +51,12 @@ components:
         application/json:
           schema:
             type: object
+            required:
+              - contest_name
+              - contest_id
+              - current_tour_start_time
+              - current_tour_duration
+              - rows
             properties:
               contest_name:
                 type: string
@@ -58,6 +64,12 @@ components:
               contest_id:
                 type: integer
                 description: Идентификатор контеста
+              current_tour_start_time:
+                type: integer
+                description: Время начала последнего тура
+              current_tour_duration:
+                type: integer
+                description: Длительность последнего тура в минутах
               rows:
                 type: array
                 items:

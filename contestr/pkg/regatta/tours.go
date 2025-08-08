@@ -35,9 +35,12 @@ func (t *Tour) ProblemsIDsToNameMapping(problems []Problem) map[Problem]string {
 }
 
 type ContestStandings struct {
-	ContestId   int          `json:"contest_id,omitempty"`
-	ContestName string       `json:"contest_name,omitempty"`
-	Rows        []ContestRow `json:"rows,omitempty"`
+	ContestId   int    `json:"contest_id,omitempty"`
+	ContestName string `json:"contest_name,omitempty"`
+	// todo perepisat
+	CurrentTourStartTime time.Time     `json:"current_tour_start_time,omitempty"`
+	CurrentTourDuration  time.Duration `json:"current_tour_duration,omitempty"`
+	Rows                 []ContestRow  `json:"rows,omitempty"`
 }
 
 type ProblemIdx = string

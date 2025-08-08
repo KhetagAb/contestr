@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"math"
 	"slices"
 )
 
@@ -55,9 +56,10 @@ func (s *Regatta) GetContestResult(ctx context.Context, contestID int) (regatta.
 			})
 		}
 		return regatta.ContestStandings{
-			ContestId:   contestID, // TODO parse int
-			ContestName: parsedContest.Name,
-			Rows:        contestRows,
+			ContestId:           contestID, // TODO parse int
+			ContestName:         parsedContest.Name,
+			CurrentTourDuration: math.MaxInt,
+			Rows:                contestRows,
 		}, nil
 	}
 
@@ -107,9 +109,11 @@ func (s *Regatta) GetContestResult(ctx context.Context, contestID int) (regatta.
 	})
 
 	contestStandings := regatta.ContestStandings{
-		ContestId:   contestID, // TODO parse int
-		ContestName: parsedContest.Name,
-		Rows:        contestRows,
+		ContestId:            contestID, // TODO parse int
+		ContestName:          parsedContest.Name,
+		Rows:                 contestRows,
+		CurrentTourStartTime: tours[len(tours)-1].StartTime,
+		CurrentTourDuration:  tours[len(tours)-1].Duration,
 	}
 
 	return contestStandings, nil
