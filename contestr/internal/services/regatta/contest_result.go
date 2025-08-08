@@ -7,6 +7,7 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"math"
 	"slices"
+	"strings"
 )
 
 type TourRepository interface {
@@ -105,6 +106,9 @@ func (s *Regatta) GetContestResult(ctx context.Context, contestID int) (regatta.
 	}
 
 	slices.SortFunc(contestRows, func(row1, row2 regatta.ContestRow) int {
+		if row1.TotalScore == row2.TotalScore {
+			return strings.Compare(row1.DisplayName, row2.DisplayName)
+		}
 		return row1.TotalScore - row2.TotalScore
 	})
 
