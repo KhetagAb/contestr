@@ -1,5 +1,6 @@
 import { PiBalloonThin } from "react-icons/pi";
 import { TfiCup } from "react-icons/tfi";
+import { CONTEST_IDS } from "../consts";
 // import Time_cont from './Time_cont.tsx'
 
 
@@ -15,13 +16,13 @@ export const Sidebar = () => {
 
             <div className="icon-wrap">
                 <div className="icon-box" onClick={() => {
-                    window.location.href = "/?contestId=48098"
+                    window.location.href = "/?contestId=" + CONTEST_IDS[0]
                 }}>
                     <PiBalloonThin size={45} />
                     <span className="tooltip">Младшие параллели</span>
                 </div>
                 <div className="icon-box" onClick={() => {
-                    window.location.href = "/?contestId=48099"
+                    window.location.href = "/?contestId=" + CONTEST_IDS[1]
                 }}>
                    <TfiCup size={30} />
                    
