@@ -77,10 +77,8 @@ func (t *TourResult) ParticipantScore(participant Participant) ParticipantResult
 func (t *TourResult) Export() ResultsByParticipant {
 	result := make(ResultsByParticipant)
 
-	for _, group := range t.Groups {
-		for _, participant := range group {
-			result[participant] = t.ParticipantScore(participant)
-		}
+	for participant := range t.Groups {
+		result[participant] = t.ParticipantScore(participant)
 	}
 
 	return result
