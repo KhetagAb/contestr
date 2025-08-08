@@ -5,7 +5,6 @@ import (
 	"context"
 	"fmt"
 	"go.mongodb.org/mongo-driver/bson/primitive"
-	"math"
 	"slices"
 	"strings"
 	"time"
@@ -42,6 +41,11 @@ func (s *Regatta) GetContestResult(ctx context.Context, contestID int) (regatta.
 		return regatta.ContestStandings{}, fmt.Errorf("failed to parse contest %d: %w", contestID, err)
 	}
 
+	startTime, err := time.Parse("2025-08-07 10:31:20", parsedContest.StartTime)
+	if err != nil {
+		return regatta.ContestStandings{}, fmt.Errorf("failed to parse contest time %d: %w", contestID, err)
+	}
+
 	displayNameByParticipant := getDisplayNameByParticipant(parsedContest.Users)
 
 	tours, err := s.tourRepository.FindByContestID(ctx, contestID)
@@ -58,10 +62,10 @@ func (s *Regatta) GetContestResult(ctx context.Context, contestID int) (regatta.
 			})
 		}
 		return regatta.ContestStandings{
-			ContestId:           contestID, // TODO parse int
-			ContestName:         parsedContest.Name,
-			CurrentTourDuration: math.MaxInt,
-			Rows:                contestRows,
+			ContestId:        contestID, // TODO parse int
+			ContestName:      parsedContest.Name,
+			ContestStartTime: startTime,
+			Rows:             contestRows,
 		}, nil
 	}
 
@@ -104,11 +108,9 @@ func (s *Regatta) GetContestResult(ctx context.Context, contestID int) (regatta.
 	})
 
 	contestStandings := regatta.ContestStandings{
-		ContestId:            contestID, // TODO parse int
-		ContestName:          parsedContest.Name,
-		Rows:                 contestRows,
-		CurrentTourStartTime: tours[len(tours)-1].StartTime,
-		CurrentTourDuration:  tours[len(tours)-1].Duration,
+		ContestId:   contestID, // TODO parse int
+		ContestName: parsedContest.Name,
+		Rows:        contestRows,
 	}
 
 	return contestStandings, nil

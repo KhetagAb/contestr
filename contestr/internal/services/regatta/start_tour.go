@@ -33,11 +33,11 @@ func (s *Regatta) StartTour(ctx context.Context, contestId int, duration time.Du
 	groups := util.FormGroups(ratedParticipants, GroupSize)
 	tourIdx := len(tours) + 1
 
+	endTourInSecondsFromStart := int((time.Now().Sub(contestStandings.ContestStartTime) + duration).Seconds())
 	tour := regatta.Tour{
 		Name:         fmt.Sprintf("Tour №%v of contest %v", tourIdx, contestId),
 		Index:        tourIdx,
-		StartTime:    time.Now(),
-		Duration:     duration,
+		EndTime:      endTourInSecondsFromStart,
 		Groups:       ConvertGroups(groups),
 		GroupSize:    GroupSize,
 		Problems:     []int{2*tourIdx - 1, 2 * tourIdx},

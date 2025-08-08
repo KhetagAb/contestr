@@ -15,8 +15,7 @@ type Group = []Participant
 type Tour struct {
 	Name         string                `bson:"name"`
 	Index        int                   `bson:"index"`
-	StartTime    time.Time             `bson:"start_time"`
-	Duration     time.Duration         `bson:"duration"`
+	EndTime      int                   `bson:"end_time"`
 	Groups       map[Participant]Group `bson:"groups"`
 	GroupSize    int                   `bson:"group_size"`
 	Problems     []Problem             `bson:"problems"`
@@ -49,12 +48,10 @@ func ParticipantsToGroupNumbersMapping(groups [][]int) map[Participant]int {
 }
 
 type ContestStandings struct {
-	ContestId   int    `json:"contest_id,omitempty"`
-	ContestName string `json:"contest_name,omitempty"`
-	// todo perepisat
-	CurrentTourStartTime time.Time     `json:"current_tour_start_time,omitempty"`
-	CurrentTourDuration  time.Duration `json:"current_tour_duration,omitempty"`
-	Rows                 []ContestRow  `json:"rows,omitempty"`
+	ContestId        int          `json:"contest_id,omitempty"`
+	ContestName      string       `json:"contest_name,omitempty"`
+	Rows             []ContestRow `json:"rows,omitempty"`
+	ContestStartTime time.Time    `json:"contest_start_time,omitempty"`
 }
 
 type ProblemResult struct {

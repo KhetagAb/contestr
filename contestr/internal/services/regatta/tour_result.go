@@ -2,7 +2,6 @@ package regatta
 
 import (
 	"contestr/pkg/regatta"
-	"time"
 )
 
 const (
@@ -14,8 +13,7 @@ const (
 const (
 	SubmissionStatusOK string = "OK"
 
-	GiveBonusOnlyForFirstSubmission  bool = true
-	GiveBonusOnlyForInTimeSubmission bool = false
+	GiveBonusOnlyForFirstSubmission = true
 )
 
 type Problem = int
@@ -56,11 +54,13 @@ func (t *TourResult) ParticipantScore(participant Participant) ParticipantResult
 		problemCode := t.ProblemsMapping[problem]
 
 		participantSolveTime, participantSolved := participantResults[problem]
-		if participantSolved {
-			score += SolvePoints
-			if time.Duration(participantSolveTime)*time.Second < t.Duration {
-				score += SolveInTimePoints
-			}
+		if !participantSolved {
+			continue
+		}
+
+		score += SolvePoints
+		if participantSolveTime <= t.EndTime {
+			score += SolveInTimePoints
 		}
 
 		overtookCount := 0
@@ -70,20 +70,11 @@ func (t *TourResult) ParticipantScore(participant Participant) ParticipantResult
 			}
 			opponentResults := t.Results[opponent]
 			opponentSolveTime, opponentSolved := opponentResults[problem]
-
-			if participantSolved {
-				if !opponentSolved || participantSolveTime < opponentSolveTime {
-					if !GiveBonusOnlyForInTimeSubmission {
-						overtookCount++
-					} else {
-						if time.Duration(participantSolveTime)*time.Second < t.Duration {
-							overtookCount++
-						}
-					}
-				}
+			if !opponentSolved || participantSolveTime < opponentSolveTime {
+				// FIXME GiveBonusOnlyForInTimeSubmission - регулировать
+				overtookCount++
 			}
 		}
-
 		if GiveBonusOnlyForFirstSubmission {
 			if overtookCount == len(group)-1 {
 				score += OvertakePoints
