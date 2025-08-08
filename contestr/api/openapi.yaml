@@ -97,6 +97,7 @@ components:
         - total_score
         - solved_problems
         - problem_results
+        - user_id
       properties:
         display_name:
           type: string
@@ -123,6 +124,9 @@ components:
             "B": 75
             "C": 100
             "D": 0
+        user_id:
+          type: string
+          description: Идентификатор студента
     Contest:
       type: object
       required:

@@ -55,5 +55,5 @@ type ContestRow struct {
 	TotalScore     Score                `json:"total_score"`
 
 	// TODO совместимость с кфом
-	UserID Participant
+	UserID Participant `json:"user_id"`
 }
