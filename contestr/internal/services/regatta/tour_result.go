@@ -47,7 +47,7 @@ type ParticipantResult = map[ProblemCode]ProblemResult
 type ResultsByParticipant = map[Participant]ParticipantResult
 
 func (t *TourResult) ParticipantScore(participant Participant) ParticipantResult {
-	logger.Infof(context.Background(), "Calculating participant score for participant %v", participant)
+	logger.Infof(context.Background(), "Calculating participant score for participant %v in %v", participant, t.Name)
 
 	group := t.Groups[participant]
 	score := 0
@@ -68,10 +68,10 @@ func (t *TourResult) ParticipantScore(participant Participant) ParticipantResult
 		}
 
 		score += SolvePoints
-		logger.Infof(context.Background(), "Participant %v solved problem %v in %v seconds: +5 points", participant, problem, participantSolveTime)
+		logger.Infof(context.Background(), "Participant %v solved problem %v: +5 points", participant, problem)
 		if participantSolveTime <= t.EndTime {
 			score += SolveInTimePoints
-			logger.Infof(context.Background(), "Participant %v solved problem %v in time: +5 points", participant, problem)
+			logger.Infof(context.Background(), "Participant %v solved problem %v in time (%v <= %v): +5 points", participant, problem, participantSolveTime, t.EndTime)
 		}
 
 		overtookCount := 0
@@ -89,11 +89,11 @@ func (t *TourResult) ParticipantScore(participant Participant) ParticipantResult
 		if GiveBonusOnlyForFirstSubmission {
 			if overtookCount == len(group)-1 {
 				score += OvertakePoints
-				logger.Infof(context.Background(), "Participant %v overtook all other participants: +5 points", participant)
+				logger.Infof(context.Background(), "Participant %v first-solve: +5 points", participant)
 			}
 		} else {
 			score += OvertakePoints * overtookCount
-			logger.Infof(context.Background(), "Participant %v overtook %v other participants: +%v points", participant, overtookCount, OvertakePoints*overtookCount)
+			logger.Infof(context.Background(), "Participant %v overtook %v other %v participants: +%v points", participant, overtookCount, overtookCount, OvertakePoints*overtookCount)
 		}
 
 		result[problemCode] = ProblemResult{

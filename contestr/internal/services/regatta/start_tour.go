@@ -12,6 +12,8 @@ import (
 const GroupSize = 3
 
 func (s *Regatta) StartTour(ctx context.Context, contestId int, duration time.Duration) (string, error) {
+	logger.Infof(context.Background(), "Starting tour on %v duration=%v", contestId, duration)
+
 	tours, err := s.tourRepository.FindByContestID(ctx, contestId)
 	if err != nil {
 		return "", fmt.Errorf("failed to find tours for contest %d: %w", contestId, err)
@@ -33,8 +35,10 @@ func (s *Regatta) StartTour(ctx context.Context, contestId int, duration time.Du
 	groups := util.FormGroups(ratedParticipants, GroupSize)
 	tourIdx := len(tours) + 1
 
+	logger.Infof(context.Background(), "Current time: %v, contest start time: %v", contestStandings.CurrentTime, contestStandings.ContestStartTime)
 	startTourInSecondsFromStart := int(contestStandings.CurrentTime.Sub(contestStandings.ContestStartTime).Seconds())
 	endTourInSecondsFromStart := int((contestStandings.CurrentTime.Sub(contestStandings.ContestStartTime) + duration).Seconds())
+	logger.Infof(context.Background(), "Tour from start starts: %v, ends: %v", startTourInSecondsFromStart, endTourInSecondsFromStart)
 	tour := regatta.Tour{
 		Name:              fmt.Sprintf("Tour №%v of contest %v", tourIdx, contestId),
 		Index:             tourIdx,
