@@ -51,6 +51,12 @@ components:
         application/json:
           schema:
             type: object
+            required:
+              - contest_name
+              - contest_id
+              - current_tour_start_time
+              - current_tour_duration
+              - rows
             properties:
               contest_name:
                 type: string
@@ -58,6 +64,12 @@ components:
               contest_id:
                 type: integer
                 description: Идентификатор контеста
+              current_tour_start_time:
+                type: integer
+                description: Время начала последнего тура
+              current_tour_duration:
+                type: integer
+                description: Длительность последнего тура в минутах
               rows:
                 type: array
                 items:
@@ -85,15 +97,15 @@ components:
         - total_score
         - solved_problems
         - problem_results
+        - user_id
       properties:
         display_name:
           type: string
           description: Имя и фамилия студента одной строкой
           example: "Иван Иванов"
         team_number:
-          type: number
+          type: integer
           description: Номер команды
-          example: "fe3"
         total_score:
           type: number
           description: Общий счёт в баллах
@@ -103,15 +115,26 @@ components:
           description: Количество решенных задач
           example: 7
         problem_results:
-          type: object
+          type: array
           description: Результаты по задачам в формате "идентификатор задачи -> баллы", либо <0 за неудачную попытку
-          additionalProperties:
-            type: number
-          example:
-            "A": 100
-            "B": 75
-            "C": 100
-            "D": 0
+          items:
+            $ref: '#/components/schemas/ProblemResult'
+        user_id:
+          type: number
+          description: Идентификатор студента
+    ProblemResult:
+      type: object
+      required:
+        - problem_code
+        - score
+      description: Результаты по задаче, c буквой задачи, счётом и временем последней попытки. Если score < 0, то попытка неудачна. Время последней посылки отправляется только для удачных посылок
+      properties:
+        problem_code:
+          type: string
+        score:
+          type: integer
+        last_submission_time:
+          type: integer
     Contest:
       type: object
       required:

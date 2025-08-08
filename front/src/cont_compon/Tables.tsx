@@ -22,7 +22,13 @@ import { useSearchParam } from "react-use";
 
 const columnHelper = createColumnHelper<RegattaContestRow>();
 
+const hightlighted_user_id = 20792; 
+
 const columns = [
+  columnHelper.accessor("user_id", {
+    cell: (info) => info.getValue(),
+    header: () => "id",
+  }),
   columnHelper.accessor("team_number", {
     cell: (info) => info.getValue(),
     header: () => "Команда",
@@ -42,12 +48,28 @@ const columns = [
 ];
 
 const teamColors = [
-  "#9ECAD6",
-  "#C0C9EE",
-  "#A2AADB",
-  "#F5CBCB",
-  "#fabed4",
-  '#FFEAEA'
+  "#b1d0d9dd", // оригинальный
+  "#c7ceeadd", // оригинальный
+  "#A2AADBdd",   // оригинальный
+  "#F5CBCBdd",   // оригинальный
+  "#fabed4dd",   // оригинальный
+  "#FFEAEAdd",   // оригинальный
+  "#D4E6F1dd",   // светло-голубой
+  "#E8F5E9dd",   // мятно-зеленый
+  "#FFF3E0dd",   // теплый бежевый
+  "#FCE4ECdd",   // розоватый
+  "#E0F7FAdd",   // бирюзовый
+  "#F1F8E9dd",   // салатовый
+  "#FFE0B2dd",   // персиковый
+  "#D7CCC8dd",   // светло-коричневый
+  "#E1BEE7dd",   // лавандовый
+  "#C5CAE9dd",   // сиреневый
+  "#B2DFDBdd",   // морской волны
+  "#FFCCBCdd",   // коралловый
+  "#DCEDC8dd",   // светло-зеленый
+  "#F8BBD0dd",   // розовый
+  "#BBDEFBdd",   // васильковый
+  "#CFD8DCdd"    // серо-голубой
 ];
 function scoreToGreenColor(score: number) {
   if (score <= 0) return "transparent";
@@ -56,6 +78,23 @@ function scoreToGreenColor(score: number) {
   vividGreen.lch.c *= clamped;
   vividGreen.alpha = clamped;
   return vividGreen.to("srgb").toString({ format: "rgba" });
+}
+
+function colorTeam(row: RegattaContestRow, hightlighted_user_team_number: number | undefined) {
+  if (row.user_id === hightlighted_user_id) {
+      return {
+        backgroundColor: "#ff7700ff",
+        border: '2px solid #d9481fff',
+      }
+  } else if (hightlighted_user_team_number && row.team_number == hightlighted_user_team_number) {
+      return {
+        backgroundColor: "#ff7700ff",
+        // border: '1px solid #ee9900',
+      }
+  }
+  return {
+    backgroundColor: teamColors[(row.team_number - 1) % teamColors.length]
+  };
 }
 
 // const getScores = () => {
@@ -78,23 +117,40 @@ const ResultsTable = () => {
     })
   });
   const tasks = useMemo(() => 
-    (isSuccess && data.rows) ? Object.keys(data.rows[0].problem_results ?? {}) : undefined, [data, isSuccess]); // TODO: fixme.
+    (isSuccess && data.rows) ? data.rows[0].problem_results.map(r => r.problem_code) : undefined, [data, isSuccess]); // TODO: fixme.
+  console.log("tasks: ", tasks);
+  const hightlighted_user_team_number = useMemo(() => 
+    (isSuccess && data.rows) && data.rows.find(r => r.user_id === hightlighted_user_id)?.    team_number || undefined,
+  [data, isSuccess]); // TODO: fixme.
+
 
   const table = useReactTable({
     columns: [
       ...columns,
-      ...(tasks ? [columnHelper.group({
-        id: "tasks",
-        header: () => "Задачи",
-        columns: tasks.map((taskName) =>
-          columnHelper.accessor(`problem_results.${taskName}`, {
-            header: taskName,
-            cell: (props) =>  <div>
-                {props.row.original.problem_results[taskName]}
-                <div className={styles.taskTime}>time</div>
-            </div>,
-          })
-        ),
+      ...(tasks ? [
+        columnHelper.group({
+          id: "tasks",
+          header: () => "Задачи",
+          columns: tasks.map((taskName, i) =>
+            columnHelper.accessor(`problem_results`, {  // Доступ ко всему массиву
+              id: `task_${taskName}`, // Уникальный id для колонки
+              header: taskName,
+              cell: (props) => {
+                const problem = props.row.original.problem_results[i];
+                return (
+                  <div>
+                    {problem ? problem.score : "—"}
+                    {problem?.last_submission_time && (
+                      <i></i>
+                    // <div className={styles.taskTime}>
+                      //   {problem.last_submission_time}
+                      // </div>
+                    )}
+                  </div>
+                );
+              }
+            })
+          ),
       })] : []),
     ],
     data: data?.rows || [],
@@ -169,6 +225,7 @@ const ResultsTable = () => {
         </thead>
         <tbody>
           {table.getRowModel().rows.map((row) => {
+            const rowHightlight = colorTeam(row.original, hightlighted_user_team_number)
             return (
               <tr key={row.id}>
                 {row.getVisibleCells().map((cell) => {
@@ -180,8 +237,10 @@ const ResultsTable = () => {
                   return (
                     <td key={cell.id} style={{
                       backgroundColor: ["team_number", "display_name"].indexOf(cell.column.id) !== -1 ?
-                        teamColors[(cell.row.original.team_number - 1) % teamColors.length] : 
-                        col
+                        rowHightlight.backgroundColor : 
+                        col,
+                      borderTop: rowHightlight.border,
+                      borderBottom: rowHightlight.border,
                       }}>
                       {flexRender(
                         cell.column.columnDef.cell,

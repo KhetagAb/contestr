@@ -20,9 +20,20 @@ export type RegattaContestRow = {
     /**
      * Результаты по задачам в формате "идентификатор задачи -> баллы", либо <0 за неудачную попытку
      */
-    problem_results: {
-        [key: string]: number;
-    };
+    problem_results: Array<ProblemResult>;
+    /**
+     * Идентификатор студента
+     */
+    user_id: number;
+};
+
+/**
+ * Результаты по задаче, c буквой задачи, счётом и временем последней попытки. Если score < 0, то попытка неудачна. Время последней посылки отправляется только для удачных посылок
+ */
+export type ProblemResult = {
+    problem_code: string;
+    score: number;
+    last_submission_time?: number;
 };
 
 export type Contest = {
@@ -56,12 +67,20 @@ export type GetRegattaContestStandingsResponses = {
         /**
          * Название контеста
          */
-        contest_name?: string;
+        contest_name: string;
         /**
          * Идентификатор контеста
          */
-        contest_id?: number;
-        rows?: Array<RegattaContestRow>;
+        contest_id: number;
+        /**
+         * Время начала последнего тура
+         */
+        current_tour_start_time: number;
+        /**
+         * Длительность последнего тура в минутах
+         */
+        current_tour_duration: number;
+        rows: Array<RegattaContestRow>;
     };
 };
 
