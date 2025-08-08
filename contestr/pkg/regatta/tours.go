@@ -56,6 +56,7 @@ type ContestStandings struct {
 	ContestName      string       `json:"contest_name,omitempty"`
 	Rows             []ContestRow `json:"rows,omitempty"`
 	ContestStartTime time.Time    `json:"contest_start_time,omitempty"`
+	CurrentTime      time.Time    `json:"current_time,omitempty"`
 }
 
 type ProblemResult struct {

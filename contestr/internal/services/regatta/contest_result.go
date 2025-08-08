@@ -46,6 +46,11 @@ func (s *Regatta) GetContestResult(ctx context.Context, contestID int) (regatta.
 		return regatta.ContestStandings{}, fmt.Errorf("failed to parse contest time %d: %w", contestID, err)
 	}
 
+	currentTime, err := time.Parse("2006-01-02 15:04:05", parsedContest.CurrentTime)
+	if err != nil {
+		return regatta.ContestStandings{}, fmt.Errorf("failed to parse contest time %d: %w", contestID, err)
+	}
+
 	displayNameByParticipant := getDisplayNameByParticipant(parsedContest.Users)
 
 	tours, err := s.tourRepository.FindByContestID(ctx, contestID)
@@ -56,6 +61,7 @@ func (s *Regatta) GetContestResult(ctx context.Context, contestID int) (regatta.
 	standings := regatta.ContestStandings{
 		ContestId:        contestID, // TODO parse int
 		ContestName:      parsedContest.Name,
+		CurrentTime:      currentTime,
 		ContestStartTime: startTime,
 		Rows:             []regatta.ContestRow{},
 	}
