@@ -7,7 +7,7 @@ import { client } from './client/client.gen.ts';
 const queryClient = new QueryClient()
 
 client.setConfig({
-    baseUrl: "http://contestr.d.lksh.ru:8080"
+    // baseUrl: "http://contestr.d.lksh.ru:8080"
 })
 
 
