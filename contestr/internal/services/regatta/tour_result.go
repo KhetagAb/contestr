@@ -13,6 +13,8 @@ const (
 
 const (
 	SubmissionStatusOK string = "OK"
+
+	GiveBonusOnlyForFirstSubmission bool = true
 )
 
 type Problem = int
@@ -54,6 +56,7 @@ func (t *TourResult) ParticipantScore(participant Participant) ParticipantResult
 			}
 		}
 
+		overtookCount := 0
 		for _, opponent := range group {
 			if participant == opponent {
 				continue
@@ -63,9 +66,17 @@ func (t *TourResult) ParticipantScore(participant Participant) ParticipantResult
 
 			if participantSolved {
 				if !opponentSolved || participantSolveTime < opponentSolveTime {
-					score += OvertakePoints
+					overtookCount++
 				}
 			}
+		}
+
+		if GiveBonusOnlyForFirstSubmission {
+			if overtookCount == len(group)-1 {
+				score += OvertakePoints
+			}
+		} else {
+			score += OvertakePoints * overtookCount
 		}
 
 		result[problemCode] = score
