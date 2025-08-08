@@ -1,7 +1,9 @@
 package regatta
 
 import (
+	"contestr/pkg/logger"
 	"contestr/pkg/regatta"
+	"context"
 )
 
 const (
@@ -45,6 +47,8 @@ type ParticipantResult = map[ProblemCode]ProblemResult
 type ResultsByParticipant = map[Participant]ParticipantResult
 
 func (t *TourResult) ParticipantScore(participant Participant) ParticipantResult {
+	logger.Infof(context.Background(), "Calculating participant score for participant %v", participant)
+
 	group := t.Groups[participant]
 	score := 0
 	participantResults := t.Results[participant]
@@ -55,6 +59,7 @@ func (t *TourResult) ParticipantScore(participant Participant) ParticipantResult
 
 		participantSolveTime, participantSolved := participantResults[problem]
 		if !participantSolved {
+			logger.Infof(context.Background(), "Participant %v did not solve problem %v", participant, problem)
 			result[problemCode] = ProblemResult{
 				problemCode: problemCode,
 				score:       0,
@@ -63,8 +68,10 @@ func (t *TourResult) ParticipantScore(participant Participant) ParticipantResult
 		}
 
 		score += SolvePoints
+		logger.Infof(context.Background(), "Participant %v solved problem %v in %v seconds: +5 points", participant, problem, participantSolveTime)
 		if participantSolveTime <= t.EndTime {
 			score += SolveInTimePoints
+			logger.Infof(context.Background(), "Participant %v solved problem %v in time: +5 points", participant, problem)
 		}
 
 		overtookCount := 0
@@ -82,9 +89,11 @@ func (t *TourResult) ParticipantScore(participant Participant) ParticipantResult
 		if GiveBonusOnlyForFirstSubmission {
 			if overtookCount == len(group)-1 {
 				score += OvertakePoints
+				logger.Infof(context.Background(), "Participant %v overtook all other participants: +5 points", participant)
 			}
 		} else {
 			score += OvertakePoints * overtookCount
+			logger.Infof(context.Background(), "Participant %v overtook %v other participants: +%v points", participant, overtookCount, OvertakePoints*overtookCount)
 		}
 
 		result[problemCode] = ProblemResult{
@@ -122,6 +131,8 @@ func calcSubmissions(submissions []regatta.Run) map[Participant]ContestResult {
 		if submission.Status != SubmissionStatusOK {
 			continue
 		}
+
+		logger.Infof(context.Background(), "OK! UserID: %v, ProbID: %v, Time: %v", submission.UserID, submission.ProbID, submission.Time)
 
 		participant := submission.UserID
 		problem := submission.ProbID
