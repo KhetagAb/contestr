@@ -25,10 +25,10 @@ const columnHelper = createColumnHelper<RegattaContestRow>();
 const hightlighted_user_id = 0;
 
 const columns = [
-  columnHelper.accessor("user_id", {
-    cell: (info) => info.getValue(),
-    header: () => "id",
-  }),
+  // columnHelper.accessor("user_id", {
+  //   cell: (info) => info.getValue(),
+  //   header: () => "id",
+  // }),
   columnHelper.accessor("team_number", {
     cell: (info) => info.getValue(),
     header: () => "Команда",
