@@ -88,7 +88,7 @@ func (s *Regatta) GetContestResult(ctx context.Context, contestID int) (regatta.
 		contestRows = append(contestRows, regatta.ContestRow{
 			DisplayName:    displayNameByParticipant[participant],
 			ProblemResults: participantResult,
-			SolvedProblems: len(participantResult),
+			SolvedProblems: getSolvedProblemsCount(participantResult),
 			TeamNumber:     tours[len(tours)-1].GroupNumbers[participant],
 			TotalScore:     participantTotal[participant],
 			UserID:         participant,
@@ -111,6 +111,16 @@ func (s *Regatta) GetContestResult(ctx context.Context, contestID int) (regatta.
 	}
 
 	return contestStandings, nil
+}
+
+func getSolvedProblemsCount(result ParticipantResult) int {
+	count := 0
+	for _, score := range result {
+		if score > 0 {
+			count++
+		}
+	}
+	return count
 }
 
 func getDisplayNameByParticipant(users regatta.Users) map[Participant]string {
