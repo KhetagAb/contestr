@@ -41,7 +41,7 @@ func (s *Regatta) GetContestResult(ctx context.Context, contestID int) (regatta.
 		return regatta.ContestStandings{}, fmt.Errorf("failed to parse contest %d: %w", contestID, err)
 	}
 
-	startTime, err := time.Parse("2025-08-07 10:31:20", parsedContest.StartTime)
+	startTime, err := time.Parse("2006-01-02 15:04:05", parsedContest.StartTime)
 	if err != nil {
 		return regatta.ContestStandings{}, fmt.Errorf("failed to parse contest time %d: %w", contestID, err)
 	}
