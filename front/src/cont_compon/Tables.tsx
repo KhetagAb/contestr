@@ -258,7 +258,7 @@ const ResultsTable = () => {
                     ?.getFacetedRowModel()
                     .rows.map((row) => {
                       const problemResults = row.original.problem_results;
-                      const problem = problemResults.find(
+                      const problem = problemResults?.find(
                         (p) => p.problem_code === taskId
                       );
                       return problem?.score ?? 0;
