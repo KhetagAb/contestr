@@ -50,11 +50,11 @@ func (t *TourResult) ParticipantScore(participant Participant) ParticipantResult
 	logger.Infof(context.Background(), "Calculating participant score for participant %v in %v", participant, t.Name)
 
 	group := t.Groups[participant]
-	score := 0
 	participantResults := t.Results[participant]
 	result := make(ParticipantResult, len(t.Problems))
 
 	for _, problem := range t.Problems {
+		score := 0
 		problemCode := t.ProblemsMapping[problem]
 
 		participantSolveTime, participantSolved := participantResults[problem]
@@ -89,7 +89,7 @@ func (t *TourResult) ParticipantScore(participant Participant) ParticipantResult
 		if GiveBonusOnlyForFirstSubmission {
 			if overtookCount == len(group)-1 {
 				score += OvertakePoints
-				logger.Infof(context.Background(), "Participant %v first-solve: +5 points", participant)
+				logger.Infof(context.Background(), "Participant %v first-solve problem %v: +5 points", participant, problem)
 			}
 		} else {
 			score += OvertakePoints * overtookCount
