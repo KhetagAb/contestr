@@ -103,11 +103,20 @@ func (s *Regatta) GetContestResult(ctx context.Context, contestID int) (regatta.
 		})
 	}
 
+	// func sumTimes(row: regatta.ContestRow) {
+	// 	// for _, r := range row.ProblemResults {
+	// 	// 	max(time1, time2)
+
+	// 	// }
+	// }
+
 	slices.SortFunc(contestRows, func(row1, row2 regatta.ContestRow) int {
-		if row1.TotalScore == row2.TotalScore {
-			return strings.Compare(row1.DisplayName, row2.DisplayName)
+		if row1.TotalScore != row2.TotalScore {
+			return row2.TotalScore - row1.TotalScore
+		} else {
+			// TODO: take sum of times or time of last sumbit
 		}
-		return row1.TotalScore - row2.TotalScore
+		return strings.Compare(row1.DisplayName, row2.DisplayName)
 	})
 	standings.Rows = contestRows
 
