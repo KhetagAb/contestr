@@ -21,7 +21,13 @@ func FormGroups(ratedParticipants []int, groupSize int) [][]int {
 		if intervalEnd > n {
 			intervalEnd = n
 		}
-		result = append(result, ratedParticipants[i:intervalEnd])
+
+		if intervalEnd == n-1 {
+			result = append(result, ratedParticipants[i:intervalEnd-1])
+			result = append(result, ratedParticipants[intervalEnd-1:n])
+		} else {
+			result = append(result, ratedParticipants[i:intervalEnd])
+		}
 	}
 
 	return result
