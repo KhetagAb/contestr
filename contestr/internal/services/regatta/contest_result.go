@@ -67,7 +67,6 @@ func (s *Regatta) GetContestResult(ctx context.Context, contestID int) (regatta.
 	var contestRows []regatta.ContestRow
 	contestStandingsByParticipants := make(ResultsByParticipant)
 	participantTotal := make(map[Participant]int)
-	groupNumbers := make(map[Participant]int)
 
 	for _, tour := range tours {
 		result := CalculateResult(tour, parsedContest.Runs.Runs).Export()
@@ -85,21 +84,12 @@ func (s *Regatta) GetContestResult(ctx context.Context, contestID int) (regatta.
 		}
 	}
 
-	groupNumbers = make(map[Participant]int)
-	idx := 1
-	for _, group := range tours[len(tours)-1].Groups {
-		for _, participant := range group {
-			groupNumbers[participant] = idx
-		}
-		idx += 1
-	}
-
 	for participant, participantResult := range contestStandingsByParticipants {
 		contestRows = append(contestRows, regatta.ContestRow{
 			DisplayName:    displayNameByParticipant[participant],
 			ProblemResults: participantResult,
 			SolvedProblems: len(participantResult),
-			TeamNumber:     groupNumbers[participant],
+			TeamNumber:     tours[len(tours)-1].GroupNumbers[participant],
 			TotalScore:     participantTotal[participant],
 			UserID:         participant,
 		})

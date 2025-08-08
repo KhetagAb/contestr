@@ -13,14 +13,15 @@ type Problem = int
 type Group = []Participant
 
 type Tour struct {
-	Name      string                `bson:"name"`
-	Index     int                   `bson:"index"`
-	StartTime time.Time             `bson:"start_time"`
-	Duration  time.Duration         `bson:"duration"`
-	Groups    map[Participant]Group `bson:"groups"`
-	GroupSize int                   `bson:"group_size"`
-	Problems  []Problem             `bson:"problems"`
-	ContestID int                   `bson:"contest_id"`
+	Name         string                `bson:"name"`
+	Index        int                   `bson:"index"`
+	StartTime    time.Time             `bson:"start_time"`
+	Duration     time.Duration         `bson:"duration"`
+	Groups       map[Participant]Group `bson:"groups"`
+	GroupSize    int                   `bson:"group_size"`
+	Problems     []Problem             `bson:"problems"`
+	ContestID    int                   `bson:"contest_id"`
+	GroupNumbers map[Participant]int   `bson:"group_numbers"`
 }
 
 func (t *Tour) ProblemsIDsToNameMapping(problems []Problem) map[Problem]string {
@@ -32,6 +33,19 @@ func (t *Tour) ProblemsIDsToNameMapping(problems []Problem) map[Problem]string {
 	}
 
 	return mapping
+}
+
+func ParticipantsToGroupNumbersMapping(groups map[Participant]Group) map[Participant]int {
+	groupNumbers := make(map[Participant]int)
+	idx := 1
+	for _, group := range groups {
+		for _, participant := range group {
+			groupNumbers[participant] = idx
+		}
+		idx += 1
+	}
+
+	return groupNumbers
 }
 
 type ContestStandings struct {
