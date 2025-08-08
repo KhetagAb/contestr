@@ -55,6 +55,10 @@ func (t *TourResult) ParticipantScore(participant Participant) ParticipantResult
 
 		participantSolveTime, participantSolved := participantResults[problem]
 		if !participantSolved {
+			result[problemCode] = ProblemResult{
+				problemCode: problemCode,
+				score:       0,
+			}
 			continue
 		}
 
