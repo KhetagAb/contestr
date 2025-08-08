@@ -1,6 +1,8 @@
 package util
 
-import "math/rand"
+import (
+	"math/rand"
+)
 
 const (
 	SWAP_BORDER_PROBABILITY = 0.4
@@ -22,11 +24,15 @@ func FormGroups(ratedParticipants []int, groupSize int) [][]int {
 			intervalEnd = n
 		}
 
-		if intervalEnd == n-1 {
-			result = append(result, ratedParticipants[i:intervalEnd-1])
-			result = append(result, ratedParticipants[intervalEnd-1:n])
-		} else {
-			result = append(result, ratedParticipants[i:intervalEnd])
+		result = append(result, ratedParticipants[i:intervalEnd])
+	}
+
+	if len(result[len(result)-1]) == 1 {
+		result[len(result)-1] = []int{
+			result[len(result)-2][2], result[len(result)-1][0],
+		}
+		result[len(result)-2] = []int{
+			result[len(result)-2][0], result[len(result)-2][1],
 		}
 	}
 
