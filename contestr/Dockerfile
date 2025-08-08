@@ -1,13 +1,11 @@
 FROM golang:1.23-alpine AS builder
 
-# RUN apk add --no-cache bash git curl make gcc musl-dev
-RUN go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@v2.4.1
-
 WORKDIR /app
 
 COPY go.mod go.sum ./
 RUN go mod download
 
+RUN go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@v2.4.1
 RUN go install github.com/google/wire/cmd/wire@v0.6.0
 
 COPY . .
