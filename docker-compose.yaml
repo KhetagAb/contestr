@@ -1,6 +1,18 @@
-version: '3.8'
-
 services:
+  nginx:
+    build:
+      context: ./front
+    restart: unless-stopped
+    depends_on:
+      - server
+    ports:
+      - 10888:80
+    environment:
+      VIRTUAL_HOST: contestr.d.lksh.ru
+    networks:
+      - proxy
+      - default
+
   server:
     build:
       context: ./contestr
@@ -13,7 +25,7 @@ services:
         required: true
     environment:
       APP_MONGODB_URI: "mongodb://mongodb:27017"
-      APP_MONGODB_DATABASE: "${MONGO_DATABASE}"
+      APP_MONGODB_DATABASE: "contestr"
     env_file:
       - ./contestr/.env
 
@@ -23,16 +35,19 @@ services:
     ports:
       - "15432:27017"
     healthcheck:
-      test: [ "CMD", "mongosh", "--eval", "'db.runCommand({ping:1})'" ]
+      test: ["CMD", "mongosh", "--eval", "'db.runCommand({ping:1})'"]
       interval: 5s
       timeout: 5s
       retries: 3
       start_period: 5s
     environment:
-      MONGO_INITDB_DATABASE: "${MONGO_DATABASE}"
+      MONGO_INITDB_DATABASE: "contestr"
     volumes:
       - mongodb_data:/data/db
       - ./mongodb/mongo-init-scripts:/docker-entrypoint-initdb.d
 
 volumes:
   mongodb_data:
+networks:
+  proxy:
+    external: true

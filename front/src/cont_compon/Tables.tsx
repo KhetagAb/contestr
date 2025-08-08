@@ -9,13 +9,15 @@ import {
   useReactTable,
   // type RowData,
 } from "@tanstack/react-table";
+import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 // import { Filter } from "./filter";
 // import 'react-tabulator/css/tabulator.min.css';
 import { SlArrowDown, SlArrowUp} from "react-icons/sl";
-import type { GetRegattaContestStandingsResponses, RegattaContestRow } from "../client";
+import type { RegattaContestRow } from "../client";
 import Color from "colorjs.io";
-// import { useSearchParam } from "react-use";
+import { getRegattaContestStandingsOptions } from "../client/@tanstack/react-query.gen";
+import { useSearchParam } from "react-use";
 
 
 const columnHelper = createColumnHelper<RegattaContestRow>();
@@ -56,59 +58,27 @@ function scoreToGreenColor(score: number) {
   return vividGreen.to("srgb").toString({ format: "rgba" });
 }
 
-const getScores = () => {
-  return Object.fromEntries([..."ABCDFGHIJKLMNOPQRSTUV"].map((name) => [name, Math.round(Math.random() * 100)]))
-}
+// const getScores = () => {
+//   return Object.fromEntries([..."ABCDFGHIJKLMNOPQRSTUV"].map((name) => [name, Math.round(Math.random() * 100)]))
+// }
 
 const ResultsTable = () => {
   // const [pagination, setPagination] = React.useState<PaginationState>({
   //   pageIndex: 0,
   //   pageSize: 100,
   // });
+  const contestId = parseInt(useSearchParam("contestId") || "")
+  console.log(contestId)
 
-  // const contestId = parseInt(useSearchParam("contestId") || "")
-
-  // const {data, isSuccess} = useQuery({
-  //   ...getRegattaContestStandingsOptions({
-  //     path: {
-  //       contest_id: contestId
-  //     }
-  //   })
-  // });
-  const {data, isSuccess} = useMemo(() => ({
-    data: {
-        contest_name: "Название контеста",
-        contest_id: 0,
-        rows: [
-          
-  { "display_name": "Иван Петров", "team_number": 1, "total_score": 24, "solved_problems": 2, "problem_results": getScores()},
-  { "display_name": "Алексей Смирнов", "team_number": 2, "total_score": 18, "solved_problems": 2, "problem_results": getScores()},
-  { "display_name": "Елена Ковалева", "team_number": 3, "total_score": 30, "solved_problems": 2, "problem_results": getScores()},
-  { "display_name": "Иван Петров", "team_number": 1, "total_score": 22, "solved_problems": 2, "problem_results": getScores()},
-  { "display_name": "Дмитрий Волков", "team_number": 4, "total_score": 16, "solved_problems": 2, "problem_results": getScores()},
-  { "display_name": "Ольга Соколова", "team_number": 5, "total_score": 28, "solved_problems": 2, "problem_results": getScores()},
-  { "display_name": "Алексей Смирнов", "team_number": 2, "total_score": 20, "solved_problems": 2, "problem_results": getScores()},
-  { "display_name": "Артем Лебедев", "team_number": 6, "total_score": 12, "solved_problems": 1, "problem_results": getScores()},
-  { "display_name": "Елена Ковалева", "team_number": 3, "total_score": 32, "solved_problems": 2, "problem_results": getScores()},
-  { "display_name": "Наталья Морозова", "team_number": 7, "total_score": 18, "solved_problems": 2, "problem_results": getScores()},
-  { "display_name": "Сергей Павлов", "team_number": 8, "total_score": 24, "solved_problems": 2, "problem_results": getScores()},
-  { "display_name": "Дмитрий Волков", "team_number": 4, "total_score": 14, "solved_problems": 1, "problem_results": getScores()},
-  { "display_name": "Иван Петров", "team_number": 1, "total_score": 26, "solved_problems": 2, "problem_results": getScores()},
-  { "display_name": "Ольга Соколова", "team_number": 5, "total_score": 22, "solved_problems": 2, "problem_results": getScores()},
-  { "display_name": "Алексей Смирнов", "team_number": 2, "total_score": 16, "solved_problems": 2, "problem_results": getScores()},
-  { "display_name": "Елена Ковалева", "team_number": 3, "total_score": 28, "solved_problems": 2, "problem_results": getScores()},
-  { "display_name": "Артем Лебедев", "team_number": 6, "total_score": 10, "solved_problems": 1, "problem_results": getScores()},
-  { "display_name": "Анна Новикова", "team_number": 9, "total_score": 20, "solved_problems": 2, "problem_results": getScores()},
-  { "display_name": "Дмитрий Волков", "team_number": 4, "total_score": 18, "solved_problems": 2, "problem_results": getScores()},
-  { "display_name": "Михаил Федоров", "team_number": 10, "total_score": 8, "solved_problems": 1, "problem_results": getScores()}
-
-        ]
-    } satisfies GetRegattaContestStandingsResponses[200],
-    isSuccess: true
-  }), []);
-
+  const {data, isSuccess} = useQuery({
+    ...getRegattaContestStandingsOptions({
+      path: {
+        contest_id: contestId
+      }
+    })
+  });
   const tasks = useMemo(() => 
-    (isSuccess && data.rows) ? Object.keys(data.rows[0].problem_results) : undefined, [data, isSuccess]); // TODO: fixme.
+    (isSuccess && data.rows) ? Object.keys(data.rows[0].problem_results ?? {}) : undefined, [data, isSuccess]); // TODO: fixme.
 
   const table = useReactTable({
     columns: [

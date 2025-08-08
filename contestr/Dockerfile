@@ -1,7 +1,6 @@
 FROM golang:1.23-alpine AS builder
 
-RUN apk add --no-cache bash git curl make gcc musl-dev
-RUN go install github.com/google/wire/cmd/wire@v0.6.0
+# RUN apk add --no-cache bash git curl make gcc musl-dev
 RUN go install github.com/oapi-codegen/oapi-codegen/v2/cmd/oapi-codegen@v2.4.1
 
 WORKDIR /app
@@ -9,11 +8,13 @@ WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
 
+RUN go install github.com/google/wire/cmd/wire@v0.6.0
+
 COPY . .
 
-RUN make code-gen
+RUN sh ./scripts/codegen.sh
 
-RUN CGO_ENABLED=0 GOOS=linux GOARCH=amd64 \
+RUN CGO_ENABLED=0 \
     go build -a -installsuffix cgo -ldflags="-w -s" \
     -o server ./cmd/app
 
