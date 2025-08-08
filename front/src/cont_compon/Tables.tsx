@@ -18,10 +18,11 @@ import type { ProblemResult, RegattaContestRow } from "../client";
 import Color from "colorjs.io";
 import { getRegattaContestStandingsOptions } from "../client/@tanstack/react-query.gen";
 import { useSearchParam } from "react-use";
+import { CONTEST_IDS } from "../consts";
 
 const columnHelper = createColumnHelper<RegattaContestRow>();
 
-const hightlighted_user_id = 20773;
+const hightlighted_user_id = 0;
 
 const columns = [
   columnHelper.accessor("user_id", {
@@ -55,19 +56,19 @@ const teamColors = [
   "#FFEAEAdd", // оригинальный
   "#D4E6F1dd", // светло-голубой
   "#E8F5E9dd", // мятно-зеленый
-  "#FFF3E0dd", // теплый бежевый
+  "#f9f3e8dd", // теплый бежевый
   "#FCE4ECdd", // розоватый
   "#E0F7FAdd", // бирюзовый
   "#F1F8E9dd", // салатовый
   "#f9eededd", // персиковый
   "#D7CCC8dd", // светло-коричневый
-  "#E1BEE7dd", // лавандовый
-  "#C5CAE9dd", // сиреневый
-  "#B2DFDBdd", // морской волны
+  "#e5d0e8dd", // лавандовый
+  "#ced1e3dd", // сиреневый
+  "#c9dedcdd", // морской волны
   "#f8dfd7dd", // коралловый
-  "#DCEDC8dd", // светло-зеленый
+  "#e1ead6dd", // светло-зеленый
   "#fad8e4dd", // розовый
-  "#BBDEFBdd", // васильковый
+  "#d2dce5dd", // васильковый
   "#CFD8DCdd", // серо-голубой
 ];
 function scoreToGreenColor(score: number) {
@@ -79,22 +80,27 @@ function scoreToGreenColor(score: number) {
   return vividGreen.to("srgb").toString({ format: "rgba" });
 }
 
+const formatTime = (seconds: number) => {
+  const mins = Math.floor(seconds / 60);
+  const secs = seconds % 60;
+  return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+};
+
 function colorTeam(
   row: RegattaContestRow,
   hightlighted_user_team_number: number | undefined
 ) {
   if (row.user_id === hightlighted_user_id) {
     return {
-      backgroundColor: "#f25577ff",
-      border: "2px solid #eba6b3ff",
+      backgroundColor: "#6466fdff",
+      border: "2px solid #7a76e1ff",
     };
   } else if (
     hightlighted_user_team_number &&
     row.team_number == hightlighted_user_team_number
   ) {
     return {
-      backgroundColor: "#f75e7fff",
-      // border: '1px solid #ee9900',
+      backgroundColor: "#6466fdff",
     };
   }
   return {
@@ -157,11 +163,9 @@ const ResultsTable = () => {
                       <div>
                         {problem ? problem.score : "—"}
                         {problem?.last_submission_time && (
-                          <>
-                            <div className={styles.taskTime}>
-                              {problem.last_submission_time}
-                            </div>
-                          </>
+                          <div className={styles.taskTime}>
+                            {formatTime(problem.last_submission_time)}
+                          </div>
                         )}
                       </div>
                     );
@@ -177,20 +181,17 @@ const ResultsTable = () => {
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
-    getFacetedMinMaxValues: getFacetedMinMaxValues(), //if you need min/max values
-
-    // getPaginationRowModel: getPaginationRowModel(),
-    // onPaginationChange: setPagination,
-    //no need to pass pageCount or rowCount with client-side pagination as it is calculated automatically
-    // state: {
-    //   pagination,
-    // },
-    // autoResetPageIndex: false, // turn off page index reset when sorting or filtering
+    getFacetedMinMaxValues: getFacetedMinMaxValues(),
   });
 
   return (
     <div>
-      <h2>Таблица результатов </h2>
+      <h2>
+        Таблица результатов{" "}
+        {contestId === CONTEST_IDS[0]
+          ? "младшие параллели"
+          : "старшие параллели"}
+      </h2>
       <table className={styles.table}>
         <thead>
           {table.getHeaderGroups().map((headerGroup) => (
@@ -251,27 +252,36 @@ const ResultsTable = () => {
             return (
               <tr key={row.id}>
                 {row.getVisibleCells().map((cell) => {
-                  const taskId = cell.column.id.replace("task_", "") // wtf
+                  const taskId = cell.column.id.replace("task_", ""); // wtf
                   const columnValues = table
                     .getColumn(cell.column.id)
                     ?.getFacetedRowModel()
-                    .rows.map(row => {
+                    .rows.map((row) => {
                       const problemResults = row.original.problem_results;
-                      const problem = problemResults.find(p => p.problem_code === taskId);
+                      const problem = problemResults.find(
+                        (p) => p.problem_code === taskId
+                      );
                       return problem?.score ?? 0;
                     }) ?? [0];
 
-                    const minmaxValues = columnValues ? Math.max(...columnValues) : 0;
+                  const minmaxValues = columnValues
+                    ? Math.max(...columnValues)
+                    : 0;
 
-
-                  const ddd = cell.getValue() as Array<ProblemResult> | undefined;
-                  const curScore = ddd && ddd.find && ddd.find(p => p.problem_code === taskId)?.score || 0;
+                  const ddd = cell.getValue() as
+                    | Array<ProblemResult>
+                    | undefined;
+                  const curScore =
+                    (ddd &&
+                      ddd.find &&
+                      ddd.find((p) => p.problem_code === taskId)?.score) ||
+                    0;
                   return (
                     <td
                       key={cell.id}
                       style={{
                         backgroundColor:
-                          ["team_number", "display_name"].indexOf(
+                          ["team_number", "display_name", "user_id"].indexOf(
                             cell.column.id
                           ) !== -1
                             ? rowHightlight.backgroundColor
@@ -293,70 +303,6 @@ const ResultsTable = () => {
         </tbody>
       </table>
       <div />
-      {/* <div >
-        <button
-          onClick={() => table.firstPage()}
-          disabled={!table.getCanPreviousPage()}
-        >
-          {"<<"}
-        </button>
-        <button
-          onClick={() => table.previousPage()}
-          disabled={!table.getCanPreviousPage()}
-        >
-          {<SlArrowLeftCircle/>}
-        </button>
-        <button
-          onClick={() => table.nextPage()}
-          disabled={!table.getCanNextPage()}
-        >
-          {<SlArrowRightCircle/>}
-        </button>
-        <button
-          onClick={() => table.lastPage()}
-          disabled={!table.getCanNextPage()}
-        >
-          {">>"}
-        </button>
-        <span>
-          <div>Page</div>
-          <strong>
-            {table.getState().pagination.pageIndex + 1} of{" "}
-            {table.getPageCount().toLocaleString()}
-          </strong>
-        </span>
-        <span>
-          | Go to page:
-          <input 
-            type="number"
-            min="1"
-            max={table.getPageCount()}
-            defaultValue={table.getState().pagination.pageIndex + 1}
-            onChange={(e) => {
-              const page = e.target.value ? Number(e.target.value) - 1 : 0;
-              table.setPageIndex(page);
-            }}
-        
-          />
-        </span>
-        <select
-        className="select-page"
-          value={table.getState().pagination.pageSize}
-          onChange={(e) => {
-            table.setPageSize(Number(e.target.value));
-          }}
-        >
-          {[10, 20, 30, 40, 50].map((pageSize) => (
-            <option key={pageSize} value={pageSize}>
-              Show {pageSize}
-            </option>
-          ))}
-        </select>
-      </div>
-      <div>
-        Showing {table.getRowModel().rows.length.toLocaleString()} of{" "}
-        {table.getRowCount().toLocaleString()} Rows
-      </div> */}
     </div>
   );
 };

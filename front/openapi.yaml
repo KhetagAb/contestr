@@ -17,6 +17,18 @@ paths:
           $ref: '#/components/responses/RegattaContestStandings'
 
   # TODO
+  # whoami=user_id
+  /plugins/whoami/whoami.php:
+    get:
+      operationId: getContest
+      parameters:
+        - name: contest_id
+          in: path
+          schema:
+            type: integer
+      responses:
+        200:
+          $ref: '#/components/responses/GetContestResponse'
   /cfcontest/{contest_id}:
     get:
       operationId: getContest
