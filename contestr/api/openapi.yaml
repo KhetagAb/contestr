@@ -54,8 +54,6 @@ components:
             required:
               - contest_name
               - contest_id
-              - current_tour_start_time
-              - current_tour_duration
               - rows
             properties:
               contest_name:
@@ -128,6 +126,7 @@ components:
         score:
           type: integer
         last_submission_time:
+          description: Время последней посылки в секундах с начала контеста
           type: integer
     Contest:
       type: object

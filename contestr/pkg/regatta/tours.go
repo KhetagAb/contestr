@@ -13,9 +13,13 @@ type Problem = int
 type Group = []Participant
 
 type Tour struct {
-	Name         string                `bson:"name"`
-	Index        int                   `bson:"index"`
-	EndTime      int                   `bson:"end_time"`
+	Name  string `bson:"name"`
+	Index int    `bson:"index"`
+	// TODO refactor
+	StarTime          int `bson:"start_time"`
+	EndTime           int `bson:"end_time"`
+	DurationInSeconds int `bson:"duration_in_seconds"`
+
 	Groups       map[Participant]Group `bson:"groups"`
 	GroupSize    int                   `bson:"group_size"`
 	Problems     []Problem             `bson:"problems"`
@@ -55,9 +59,9 @@ type ContestStandings struct {
 }
 
 type ProblemResult struct {
-	ProblemCode        string    `json:"problem_code"`
-	Score              int       `json:"score"`
-	LastSubmissionTime time.Time `json:"last_submission_time"`
+	ProblemCode        string `json:"problem_code"`
+	Score              int    `json:"score"`
+	LastSubmissionTime int    `json:"last_submission_time"`
 }
 
 type ContestRow struct {

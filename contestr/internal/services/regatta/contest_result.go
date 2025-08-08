@@ -53,6 +53,13 @@ func (s *Regatta) GetContestResult(ctx context.Context, contestID int) (regatta.
 		return regatta.ContestStandings{}, fmt.Errorf("failed to find tours for contest %d: %w", contestID, err)
 	}
 
+	standings := regatta.ContestStandings{
+		ContestId:        contestID, // TODO parse int
+		ContestName:      parsedContest.Name,
+		ContestStartTime: startTime,
+		Rows:             []regatta.ContestRow{},
+	}
+
 	if len(tours) == 0 {
 		contestRows := []regatta.ContestRow{}
 		for _, participant := range parsedContest.Users.Users {
@@ -61,12 +68,8 @@ func (s *Regatta) GetContestResult(ctx context.Context, contestID int) (regatta.
 				UserID:      participant.ID,
 			})
 		}
-		return regatta.ContestStandings{
-			ContestId:        contestID, // TODO parse int
-			ContestName:      parsedContest.Name,
-			ContestStartTime: startTime,
-			Rows:             contestRows,
-		}, nil
+		standings.Rows = contestRows
+		return standings, nil
 	}
 
 	var contestRows []regatta.ContestRow
@@ -106,14 +109,9 @@ func (s *Regatta) GetContestResult(ctx context.Context, contestID int) (regatta.
 		}
 		return row1.TotalScore - row2.TotalScore
 	})
+	standings.Rows = contestRows
 
-	contestStandings := regatta.ContestStandings{
-		ContestId:   contestID, // TODO parse int
-		ContestName: parsedContest.Name,
-		Rows:        contestRows,
-	}
-
-	return contestStandings, nil
+	return standings, nil
 }
 
 func getProblemResults(result ParticipantResult) []regatta.ProblemResult {
@@ -122,7 +120,7 @@ func getProblemResults(result ParticipantResult) []regatta.ProblemResult {
 		results = append(results, regatta.ProblemResult{
 			ProblemCode:        problemResult.problemCode,
 			Score:              problemResult.score,
-			LastSubmissionTime: time.Unix(int64(problemResult.lastSubmissionTime), 0),
+			LastSubmissionTime: problemResult.lastSubmissionTime,
 		})
 	}
 	slices.SortFunc(results, func(result1, result2 regatta.ProblemResult) int {

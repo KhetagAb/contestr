@@ -86,7 +86,7 @@ func (t *TourResult) ParticipantScore(participant Participant) ParticipantResult
 		result[problemCode] = ProblemResult{
 			problemCode:        problemCode,
 			score:              score,
-			lastSubmissionTime: participantSolveTime,
+			lastSubmissionTime: participantSolveTime - t.StarTime,
 		}
 	}
 
