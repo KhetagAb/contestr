@@ -516,7 +516,7 @@ ul {
     align-items: center;
     justify-content: center;
     cursor: pointer;
-    color: #3a3a3a;
+    color: #4f4e4e;
     transition: color 0.3s ease;
     font-size: var(--fs-button);
 }
@@ -633,4 +633,38 @@ input[type="checkbox"]:checked + .check svg polyline {
     margin-top: 10em;
     color: #575756;
     font-weight: 200;
+}
+
+/* Обертка нужна для плавной анимации */
+.submenu-wrapper {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.35s ease;
+}
+
+/* Когда открыто */
+.submenu-wrapper.open {
+    max-height: 300px; /* достаточно большое значение, больше чем высота меню */
+}
+
+.submenu {
+    display: flex;
+    flex-direction: column;
+    padding-left: 20px;
+    margin: 5px 0;
+}
+
+.submenu-item {
+    padding: 5px 0;
+    cursor: pointer;
+    transition: color 0.2s ease;
+}
+
+.submenu-item:hover {
+    color: #007bff;
+}
+
+.submenu-item{
+    width: 15em;
+    height: 1em;
 }
