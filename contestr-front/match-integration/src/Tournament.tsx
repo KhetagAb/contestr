@@ -2,7 +2,7 @@ import styles from "./tour.module.css"
 import {useState} from 'react'
 import {ChevronDown, ChevronUp} from 'lucide-react'
 import {PiStarFill} from "react-icons/pi";
-import telegramLogo from './public/telegramLogo.svg';
+import telegramLogo from '../public/telegramLogo.svg';
 
 // import {
 //     createColumnHelper,
