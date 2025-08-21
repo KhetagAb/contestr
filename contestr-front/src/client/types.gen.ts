@@ -92,7 +92,7 @@ export type GetContestData = {
         contest_id?: number;
     };
     query?: never;
-    url: '/cfcontest/{contest_id}';
+    url: '/plugins/whoami/whoami.php';
 };
 
 export type GetContestResponses = {
@@ -103,6 +103,24 @@ export type GetContestResponses = {
 };
 
 export type GetContestResponse = GetContestResponses[keyof GetContestResponses];
+
+export type GetContest2Data = {
+    body?: never;
+    path?: {
+        contest_id?: number;
+    };
+    query?: never;
+    url: '/cfcontest/{contest_id}';
+};
+
+export type GetContest2Responses = {
+    /**
+     * Информацию о результатах контеста
+     */
+    200: Contest;
+};
+
+export type GetContest2Response = GetContest2Responses[keyof GetContest2Responses];
 
 export type GetHelloData = {
     body?: never;

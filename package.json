@@ -1,0 +1,15 @@
+{
+  "dependencies": {
+    "@telegram-apps/sdk": "^3.11.4",
+    "date-fns": "^4.1.0",
+    "lucide-react": "^0.540.0",
+    "swagger-ui-react": "^5.27.1"
+  },
+  "devDependencies": {
+    "@hey-api/openapi-ts": "^0.80.12"
+  },
+
+  "scripts": {
+    "openapi-ts": "openapi-ts"
+  }
+}
