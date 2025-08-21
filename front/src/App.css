@@ -476,8 +476,8 @@ ul {
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    padding: 20px 0;
-    padding-bottom: 2em;
+    /*padding: 20px 0;*/
+    /*padding-bottom: 2em;*/
     box-shadow: 2px 0 10px rgba(0, 0, 0, 0.2);
 }
 
@@ -635,36 +635,63 @@ input[type="checkbox"]:checked + .check svg polyline {
     font-weight: 200;
 }
 
-/* Обертка нужна для плавной анимации */
+/* Контейнер для каждого элемента меню с иконкой и сабменю */
+.menu-item-container {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+/* Сабменю - позиционирование и стили */
 .submenu-wrapper {
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
     max-height: 0;
     overflow: hidden;
     transition: max-height 0.35s ease;
+    z-index: 1000;
+    background: #f0eee1;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    min-width: 60px;
 }
 
-/* Когда открыто */
 .submenu-wrapper.open {
-    max-height: 300px; /* достаточно большое значение, больше чем высота меню */
+    max-height: 200px;
 }
 
 .submenu {
     display: flex;
     flex-direction: column;
-    /*padding-left: 20px;*/
-    margin: 5px 0;
+    padding: 10px 0;
+    align-items: center;
 }
 
 .submenu-item {
-    padding: 5px 0;
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     cursor: pointer;
-    transition: color 0.2s ease;
+    transition: all 0.2s ease;
+    margin: 5px 0;
+    border-radius: 6px;
 }
 
 .submenu-item:hover {
-    color: #007bff;
+    background-color: #e58995;
+    transform: scale(1.1);
 }
 
-.submenu-item{
-    width: 15em;
-    height: 1em;
+/* Иконки спорта */
+.sport-icon {
+    width: 30px;
+    height: 30px;
+    object-fit: contain;
 }
+
