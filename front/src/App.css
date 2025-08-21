@@ -650,7 +650,7 @@ input[type="checkbox"]:checked + .check svg polyline {
 .submenu {
     display: flex;
     flex-direction: column;
-    padding-left: 20px;
+    /*padding-left: 20px;*/
     margin: 5px 0;
 }
 
