@@ -1,12 +1,10 @@
 import { defineConfig } from '@hey-api/openapi-ts';
 
 export default defineConfig({
-  input: 'front/SportComponents/openapi.yaml',
-  output: 'front/SportComponents/client',
+  input: 'match-integration/openapi.yaml',
+  output: 'match-integration/client',
   plugins: [
     "@hey-api/client-fetch",
     "@tanstack/react-query"
   ]
-
-
 });
