@@ -1,13 +1,19 @@
 import { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { FiFileText } from "react-icons/fi";
 import { LuTrophy } from "react-icons/lu";
+import { GiBalloonDog, GiLightBulb } from "react-icons/gi";
 import { CONTEST_IDS } from "../consts";
 import Time_cont from "./Time_cont.tsx";
-import badminton from "../../SportComponents/public/badminton.svg";
-import basketball from "../../SportComponents/public/basketball.svg";
+import badminton from "./public/badminton.svg";
+import football from "./public/football.svg";
+import tableTennis from "./public/table_tennis.svg";
+import tennis from "./public/tennis.svg";
+import volleyball from "./public/volleyball.svg";
+import basketball from "./public/basketball.svg";
+import shooting from "./public/shooting.svg";
+import logo from "./public/logo.svg";
 
-
-// Компонент подменю
 const Submenu = ({
                      isOpen,
                      children,
@@ -21,18 +27,15 @@ const Submenu = ({
     useEffect(() => {
         if (ref.current) {
             if (isOpen) {
-                setHeight(ref.current.scrollHeight + "px"); // раскрываем по фактической высоте
+                setHeight(ref.current.scrollHeight + "px");
             } else {
-                setHeight("0px"); // закрываем
+                setHeight("0px");
             }
         }
     }, [isOpen, children]);
 
     return (
-        <div
-            className="submenu-wrapper"
-            style={{ maxHeight: height }}
-        >
+        <div className="submenu-wrapper" style={{ maxHeight: height }}>
             <div ref={ref} className="submenu">
                 {children}
             </div>
@@ -40,37 +43,79 @@ const Submenu = ({
     );
 };
 
+// Универсальный тултип через портал
+const SubTooltip = ({
+                        text,
+                        target,
+                    }: {
+    text: string;
+    target: HTMLElement | null;
+}) => {
+    if (!target) return null;
+
+    const rect = target.getBoundingClientRect();
+
+    const style: React.CSSProperties = {
+        position: "fixed",
+        top: rect.top + window.scrollY + rect.height / 2,
+        left: rect.left + window.scrollX + rect.width + 10,
+        transform: "translateY(-50%)",
+        background: "#f0eee1",
+        fontFamily: "'Montserrat Alternates', sans-serif", // <- шрифт
+        fontSize: "var(--fs-tooltip)",
+        padding: "0.5em 1em",
+        borderRadius: "1em",
+        whiteSpace: "nowrap",
+        zIndex: 9999,
+        pointerEvents: "none",
+    };
+
+    return createPortal(<div style={style}>{text}</div>, document.body);
+};
+
 export const Sidebar = () => {
     const [openMenu, setOpenMenu] = useState<string | null>(null);
+    const [hoveredItem, setHoveredItem] = useState<HTMLElement | null>(null);
+    const [tooltipText, setTooltipText] = useState("");
 
-    const toggleMenu = (menu: string) => {
+    const toggleMenu = (menu: string) =>
         setOpenMenu(openMenu === menu ? null : menu);
-    };
 
     return (
         <aside className="sidebar-hover">
             <div className="icon-wrap">
                 <div className="icon-box">
-                    <img src="/logo.svg" alt="Логотип" className="logo-icon" />
+                    <img src={logo} alt="Логотип" className="logo-icon" />
                 </div>
             </div>
 
             <div className="icon-wrap">
+                {/* Контесты */}
                 <div className="menu-item-container">
                     <div className="icon-box" onClick={() => toggleMenu("contests")}>
                         <FiFileText size={35} />
                         <span className="tooltip">Контесты</span>
                     </div>
                     <Submenu isOpen={openMenu === "contests"}>
-                        <div
-                            className="submenu-item"
-                            onClick={() =>
-                                (window.location.href = "/?contestId=" + CONTEST_IDS[0])
-                            }
-                        >
-                            Дети
-                        </div>
-                        <div className="submenu-item">Взрослые</div>
+                        {[
+                            { icon: <GiBalloonDog className="subMenu-icon" />, alt: "Младший дивизион" },
+                            { icon: <GiLightBulb className="subMenu-icon" />, alt: "Старший дивизион" },
+                        ].map((item, idx) => (
+                            <div
+                                key={idx}
+                                className="submenu-item"
+                                onMouseEnter={(e) => {
+                                    setHoveredItem(e.currentTarget);
+                                    setTooltipText(item.alt);
+                                }}
+                                onMouseLeave={() => setHoveredItem(null)}
+                                onClick={() =>
+                                    (window.location.href = "/?contestId=" + CONTEST_IDS[idx])
+                                }
+                            >
+                                {item.icon}
+                            </div>
+                        ))}
                     </Submenu>
                 </div>
 
@@ -80,35 +125,27 @@ export const Sidebar = () => {
                         <span className="tooltip">Спорт</span>
                     </div>
                     <Submenu isOpen={openMenu === "sport"}>
-                        <div
-                            className="submenu-item"
-                            onClick={() =>
-                                (window.location.href = "/?contestId=" + CONTEST_IDS[1])
-                            }
-                        >
-                            <img src={badminton} alt="Бадминтон" className="sport-icon" />
-                            <span className="tooltip">Бадминтон</span>
-                        </div>
-                        <div className="submenu-item">
-                            <img src={basketball} alt="Бадминтон" className="sport-icon" />
-                            <span className="tooltip">basketball</span>
-                        </div>
-                        <div className="submenu-item">
-                            <img src={basketball} alt="Бадминтон" className="sport-icon" />
-                            <span className="tooltip">basketball</span>
-                        </div>
-                        <div className="submenu-item">
-                            <img src={basketball} alt="Бадминтон" className="sport-icon" />
-                            <span className="tooltip">basketball</span>
-                        </div>
-                        <div className="submenu-item">
-                            <img src={basketball} alt="Бадминтон" className="sport-icon" />
-                            <span className="tooltip">basketball</span>
-                        </div>
-                        <div className="submenu-item">
-                            <img src={basketball} alt="Бадминтон" className="sport-icon" />
-                            <span className="tooltip">basketball</span>
-                        </div>
+                        {[
+                            { src: badminton, alt: "Бадминтон" },
+                            { src: basketball, alt: "Баскетбол" },
+                            { src: football, alt: "Футбол" },
+                            { src: tableTennis, alt: "Настольный теннис" },
+                            { src: tennis, alt: "Теннис" },
+                            { src: volleyball, alt: "Волейбол" },
+                            { src: shooting, alt: "Стрельба" },
+                        ].map((sport) => (
+                            <div
+                                key={sport.alt}
+                                className="submenu-item"
+                                onMouseEnter={(e) => {
+                                    setHoveredItem(e.currentTarget);
+                                    setTooltipText(sport.alt);
+                                }}
+                                onMouseLeave={() => setHoveredItem(null)}
+                            >
+                                <img src={sport.src} alt={sport.alt} className="sport-icon" />
+                            </div>
+                        ))}
                     </Submenu>
                 </div>
             </div>
@@ -116,6 +153,8 @@ export const Sidebar = () => {
             <div className="time">
                 <Time_cont />
             </div>
+
+            <SubTooltip text={tooltipText} target={hoveredItem} />
         </aside>
     );
 };

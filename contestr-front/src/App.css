@@ -688,10 +688,29 @@ input[type="checkbox"]:checked + .check svg polyline {
     transform: scale(1.1);
 }
 
+.submenu-item {
+    position: relative;
+}
+
+
+.submenu-item:hover .sub-tooltip {
+    opacity: 1;
+    transform: translateX(0);
+    pointer-events: auto;
+}
+
+
+
 /* Иконки спорта */
 .sport-icon {
+    width: 45px;
+    height: 45px;
+    object-fit: contain;
+    stroke: #3a3a3a;
+}
+
+.subMenu-icon{
     width: 30px;
     height: 30px;
     object-fit: contain;
 }
-
