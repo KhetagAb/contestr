@@ -8,6 +8,7 @@ import type { Activity, Team, RegisterPlayerRequest } from '../client';
 
 interface TournamentProps {
     playersData: RegisterPlayerRequest[]; // массив с данными всех игроков
+
 }
 
 const Tournament = ({ playersData }: TournamentProps) => {
@@ -54,8 +55,10 @@ const TournamentCard = ({ activity, isOpen, onToggle, playersData }: TournamentC
             <p className={styles.tourInfo}>{activity.description || "Описание отсутствует"}</p>
             <div className={styles.tourAdmin}>
                 <p>
-                    Организатор активности: {activity.creator?.tgId || "Информация отсутствует"}
-                    <img src={telegramLogo} className={styles.logo} alt="Telegram" />
+                    Организатор активности: {activity.creator?.name || "Информация отсутствует"}
+                    <img src={telegramLogo} className={styles.logo} alt="Telegram"
+                         onClick={() => window.open(`https://t.me/${activity.creator?.tg_username}`, "_blank")}
+                    />
                 </p>
             </div>
             <div className={styles.toggleSection}>
@@ -80,29 +83,31 @@ const TournamentCard = ({ activity, isOpen, onToggle, playersData }: TournamentC
 
 interface TeamsListProps {
     teams: Team[];
-    playersData: RegisterPlayerRequest[];
+    playersData?: RegisterPlayerRequest[];
 }
 
-const TeamsList = ({ teams, playersData }: TeamsListProps) => {
-    // функция для поиска имени по tg_id
-    const getPlayerName = (tgId: number) => {
-        const player = playersData.find(p => p.tg_id === tgId);
-        return player?.name || "Игрок";
-    };
-
+const TeamsList = ({ teams }: TeamsListProps) => {
     return (
         <div className={styles.teamsRow}>
             {teams.map((team) => (
                 <div key={team.id} className={styles.teamCard}>
                     <h3>{team.id} — {team.name}</h3>
                     <p>
-                        {getPlayerName(team.captain.tgId)}
+                        {team.captain.name}{" "}
                         <PiStarFill className={styles.logo} color={"#BF9298"} />
+                        <span className={styles.tgUsername}>
+                            @{team.captain.tg_username}
+                        </span>
                     </p>
                     <ul>
                         {team.members && team.members.length > 0 ? (
                             team.members.map((member) => (
-                                <li key={member.tgId}>{getPlayerName(member.tgId)}</li>
+                                <li key={member.tg_id}>
+                                    {member.name}{" "}
+                                    <span className={styles.tgUsername}>
+                                        @{member.tg_username}
+                                    </span>
+                                </li>
                             ))
                         ) : (
                             <li>Нет участников</li>
@@ -113,5 +118,4 @@ const TeamsList = ({ teams, playersData }: TeamsListProps) => {
         </div>
     );
 };
-
 export default Tournament;

@@ -14,6 +14,7 @@ import telegramLogo from '../public/telegramLogo.svg';
 const Tournament = () => {
     const [openId, setOpenId] = useState(null);
 
+    // @ts-ignore
     const toggleContainer = (id) => {
         setOpenId(openId === id ? null : id);
     };
