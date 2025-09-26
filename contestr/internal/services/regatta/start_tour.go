@@ -42,7 +42,7 @@ func (s *Regatta) StartTour(ctx context.Context, contestId int, duration time.Du
 	tour := regatta.Tour{
 		Name:              fmt.Sprintf("Tour №%v of contest %v", tourIdx, contestId),
 		Index:             tourIdx,
-		StarTime:          startTourInSecondsFromStart,
+		StartTime:         startTourInSecondsFromStart,
 		EndTime:           endTourInSecondsFromStart,
 		DurationInSeconds: int(duration.Seconds()),
 		Groups:            ConvertGroups(groups),

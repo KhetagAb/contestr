@@ -41,12 +41,12 @@ func (s *Regatta) GetContestResult(ctx context.Context, contestID int) (regatta.
 		return regatta.ContestStandings{}, fmt.Errorf("failed to parse contest %d: %w", contestID, err)
 	}
 
-	startTime, err := time.Parse("2006-01-02 15:04:05", parsedContest.StartTime)
+	startTime, err := time.Parse(time.DateTime, parsedContest.StartTime)
 	if err != nil {
 		return regatta.ContestStandings{}, fmt.Errorf("failed to parse contest time %d: %w", contestID, err)
 	}
 
-	currentTime, err := time.Parse("2006-01-02 15:04:05", parsedContest.CurrentTime)
+	currentTime, err := time.Parse(time.DateTime, parsedContest.CurrentTime)
 	if err != nil {
 		return regatta.ContestStandings{}, fmt.Errorf("failed to parse contest time %d: %w", contestID, err)
 	}
@@ -67,7 +67,7 @@ func (s *Regatta) GetContestResult(ctx context.Context, contestID int) (regatta.
 	}
 
 	if len(tours) == 0 {
-		contestRows := []regatta.ContestRow{}
+		var contestRows []regatta.ContestRow
 		for _, participant := range parsedContest.Users.Users {
 			contestRows = append(contestRows, regatta.ContestRow{
 				DisplayName: displayNameByParticipant[participant.ID],

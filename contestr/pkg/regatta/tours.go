@@ -16,7 +16,7 @@ type Tour struct {
 	Name  string `bson:"name"`
 	Index int    `bson:"index"`
 	// TODO refactor
-	StarTime          int `bson:"start_time"`
+	StartTime         int `bson:"start_time"`
 	EndTime           int `bson:"end_time"`
 	DurationInSeconds int `bson:"duration_in_seconds"`
 
