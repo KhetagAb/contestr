@@ -4,7 +4,7 @@ FROM oven/bun:1 as build
 # Set the working directory
 WORKDIR /app
 
-# Copy package.json and package-lock.json
+# Copy parcelsData.json and package-lock.json
 COPY package*.json ./
 
 # Install dependencies

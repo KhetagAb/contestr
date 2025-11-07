@@ -1,18 +1,27 @@
 import { useState, useRef, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { FiFileText } from "react-icons/fi";
-import { LuTrophy } from "react-icons/lu";
+// import { LuTrophy } from "react-icons/lu";
 import { GiBalloonDog, GiLightBulb } from "react-icons/gi";
 import { CONTEST_IDS } from "../consts";
-import Time_cont from "./Time_cont.tsx";
-import badminton from "./public/badminton.svg";
-import football from "./public/football.svg";
-import tableTennis from "./public/table_tennis.svg";
-import tennis from "./public/tennis.svg";
-import volleyball from "./public/volleyball.svg";
-import basketball from "./public/basketball.svg";
-import shooting from "./public/shooting.svg";
+import Clock from "./Time_cont.tsx";
+import type { GetRegattaContestStandingsResponses } from "../client";
+// import badminton from "./public/badminton.svg";
+// import football from "./public/football.svg";
+// import tableTennis from "./public/table_tennis.svg";
+// import tennis from "./public/tennis.svg";
+// import volleyball from "./public/volleyball.svg";
+// import basketball from "./public/basketball.svg";
+// import shooting from "./public/shooting.svg";
 import logo from "./public/logo.svg";
+
+const mockData: GetRegattaContestStandingsResponses["200"] = {
+    contest_name: "Regatta ITMO 2025",
+    contest_id: 42,
+    current_tour_start_time: Math.floor(Date.now() / 1000) - 600, // старт 10 мин назад
+    current_tour_duration: 120, // 2 часа
+    rows: [], // таблица нам не нужна
+};
 
 const Submenu = ({
                      isOpen,
@@ -119,40 +128,43 @@ export const Sidebar = () => {
                     </Submenu>
                 </div>
 
-                <div className="menu-item-container">
-                    <div className="icon-box" onClick={() => toggleMenu("sport")}>
-                        <LuTrophy size={35} />
-                        <span className="tooltip">Спорт</span>
-                    </div>
-                    <Submenu isOpen={openMenu === "sport"}>
-                        {[
-                            { src: badminton, alt: "Бадминтон" },
-                            { src: basketball, alt: "Баскетбол" },
-                            { src: football, alt: "Футбол" },
-                            { src: tableTennis, alt: "Настольный теннис" },
-                            { src: tennis, alt: "Теннис" },
-                            { src: volleyball, alt: "Волейбол" },
-                            { src: shooting, alt: "Стрельба" },
-                        ].map((sport) => (
-                            <div
-                                key={sport.alt}
-                                className="submenu-item"
-                                onMouseEnter={(e) => {
-                                    setHoveredItem(e.currentTarget);
-                                    setTooltipText(sport.alt);
-                                }}
-                                onMouseLeave={() => setHoveredItem(null)}
-                            >
-                                <img src={sport.src} alt={sport.alt} className="sport-icon" />
-                            </div>
-                        ))}
-                    </Submenu>
-                </div>
+                {/*<div className="menu-item-container">*/}
+                {/*    <div className="icon-box" onClick={() => toggleMenu("sport")}>*/}
+                {/*        <LuTrophy size={35} />*/}
+                {/*        <span className="tooltip">Спорт</span>*/}
+                {/*    </div>*/}
+                {/*    <Submenu isOpen={openMenu === "sport"}>*/}
+                {/*        {[*/}
+                {/*            { src: badminton, alt: "Бадминтон" },*/}
+                {/*            { src: basketball, alt: "Баскетбол" },*/}
+                {/*            { src: football, alt: "Футбол" },*/}
+                {/*            { src: tableTennis, alt: "Настольный теннис" },*/}
+                {/*            { src: tennis, alt: "Теннис" },*/}
+                {/*            { src: volleyball, alt: "Волейбол" },*/}
+                {/*            { src: shooting, alt: "Стрельба" },*/}
+                {/*        ].map((sport) => (*/}
+                {/*            <div*/}
+                {/*                key={sport.alt}*/}
+                {/*                className="submenu-item"*/}
+                {/*                onMouseEnter={(e) => {*/}
+                {/*                    setHoveredItem(e.currentTarget);*/}
+                {/*                    setTooltipText(sport.alt);*/}
+                {/*                }}*/}
+                {/*                onMouseLeave={() => setHoveredItem(null)}*/}
+                {/*            >*/}
+                {/*                <img src={sport.src} alt={sport.alt} className="sport-icon" />*/}
+                {/*            </div>*/}
+                {/*        ))}*/}
+                {/*    </Submenu>*/}
+                {/*</div>*/}
             </div>
 
             <div className="time">
-                <Time_cont />
+                <Clock data={mockData} />
+
             </div>
+
+            <div className="time-text"><p><span>Время с </span> <span>начала тура </span></p></div>
 
             <SubTooltip text={tooltipText} target={hoveredItem} />
         </aside>
