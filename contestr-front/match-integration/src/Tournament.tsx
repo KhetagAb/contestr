@@ -2,7 +2,7 @@ import styles from "./tour.module.css"
 import {useState} from 'react'
 import {ChevronDown, ChevronUp} from 'lucide-react'
 import {PiStarFill} from "react-icons/pi";
-import telegramLogo from './public/telegramLogo.svg';
+import telegramLogo from '../public/telegramLogo.svg';
 
 // import {
 //     createColumnHelper,
@@ -14,6 +14,7 @@ import telegramLogo from './public/telegramLogo.svg';
 const Tournament = () => {
     const [openId, setOpenId] = useState(null);
 
+    // @ts-ignore
     const toggleContainer = (id) => {
         setOpenId(openId === id ? null : id);
     };

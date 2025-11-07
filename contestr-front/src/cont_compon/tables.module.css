@@ -9,7 +9,7 @@
     background-color: #DCDCDC;
     height: 35px;
     user-select: none;
-      -webkit-user-select: none; /* Safari */
+      -webkit-user-select: none;
 
 }
 
@@ -35,4 +35,24 @@
 
 .taskTime {
     font-size: 0.5em;
+}
+
+.newRow {
+    background-color: #d4f7d4;
+    animation: fadeIn 2s ease;
+}
+
+@keyframes fadeIn {
+    0% {
+        background-color: #d4f7d4;
+        opacity: 0;
+    }
+    50% {
+        background-color: #d4f7d4;
+        opacity: 0.5;
+    }
+    100% {
+        background-color: #d4f7d4;
+        opacity: 1;
+    }
 }

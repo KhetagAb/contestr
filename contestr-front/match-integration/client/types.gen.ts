@@ -4,8 +4,10 @@
  * Структура описывающая пользователя
  */
 export type Player = {
-    coreId: number;
-    tgId: number;
+    core_id: number;
+    name: string;
+    tg_id: number;
+    tg_username: string;
 };
 
 export type PlayerList = Array<Player>;
@@ -38,6 +40,11 @@ export type Activity = {
     title: string;
     description?: string;
     creator: Player;
+    /**
+     * Идентификатор спортивной секции
+     */
+    sport_section_id: number;
+    enroll_deadline?: unknown;
 };
 
 export type RegisterPlayerRequest = {
@@ -46,9 +53,51 @@ export type RegisterPlayerRequest = {
     tg_id: number;
 };
 
-export type ActivityEnrollPlayerRequest = {
-    tgId?: number;
+export type CreateActivityRequest = {
+    /**
+     * Название активности
+     */
+    title: string;
+    /**
+     * Описание активности
+     */
+    description?: string;
+    sport_section_id: number;
+    /**
+     * Core-идентификатор создателя активности
+     */
+    creator_id: number;
+    /**
+     * Время
+     */
+    enroll_deadline?: string;
 };
+
+export type UpdateActivityRequest = {
+    /**
+     * Название активности
+     */
+    title?: string;
+    /**
+     * Описание активности
+     */
+    description?: string;
+    /**
+     * Core-идентификатор создателя активности
+     */
+    creator_id?: number;
+    enroll_deadline?: string;
+};
+
+export type ActivityEnrollPlayerRequest = {
+    id: number;
+};
+
+export type ActivityLeavePlayerRequest = {
+    id: number;
+};
+
+export type PrivilegeToken = string;
 
 export type RegisterPlayerData = {
     body: RegisterPlayerRequest;
@@ -87,6 +136,35 @@ export type RegisterPlayerResponses = {
 };
 
 export type RegisterPlayerResponse = RegisterPlayerResponses[keyof RegisterPlayerResponses];
+
+export type GetCorePlayerByTgData = {
+    body?: never;
+    path?: never;
+    query?: {
+        tg_id?: number;
+        tg_username?: string;
+    };
+    url: '/core/player/by_tg';
+};
+
+export type GetCorePlayerByTgErrors = {
+    400: {
+        message: string;
+    };
+};
+
+export type GetCorePlayerByTgError = GetCorePlayerByTgErrors[keyof GetCorePlayerByTgErrors];
+
+export type GetCorePlayerByTgResponses = {
+    /**
+     * Информация о пользователе
+     */
+    200: {
+        player: Player;
+    };
+};
+
+export type GetCorePlayerByTgResponse = GetCorePlayerByTgResponses[keyof GetCorePlayerByTgResponses];
 
 export type GetCoreSportListData = {
     body?: never;
@@ -134,6 +212,97 @@ export type GetCoreTeamsByActivityByIdResponses = {
 
 export type GetCoreTeamsByActivityByIdResponse = GetCoreTeamsByActivityByIdResponses[keyof GetCoreTeamsByActivityByIdResponses];
 
+export type PostCoreActivityCreateData = {
+    body: CreateActivityRequest;
+    headers: {
+        'Privilege-Token': string;
+    };
+    path?: never;
+    query?: never;
+    url: '/core/activity/create';
+};
+
+export type PostCoreActivityCreateErrors = {
+    400: {
+        message: string;
+    };
+};
+
+export type PostCoreActivityCreateError = PostCoreActivityCreateErrors[keyof PostCoreActivityCreateErrors];
+
+export type PostCoreActivityCreateResponses = {
+    /**
+     * Информация об активности
+     */
+    200: {
+        activity: Activity;
+    };
+};
+
+export type PostCoreActivityCreateResponse = PostCoreActivityCreateResponses[keyof PostCoreActivityCreateResponses];
+
+export type PostCoreActivityDeleteByByIdData = {
+    body?: never;
+    headers: {
+        'Privilege-Token': string;
+    };
+    path: {
+        id: number;
+    };
+    query?: never;
+    url: '/core/activity/delete_by/{id}';
+};
+
+export type PostCoreActivityDeleteByByIdErrors = {
+    400: {
+        message: string;
+    };
+};
+
+export type PostCoreActivityDeleteByByIdError = PostCoreActivityDeleteByByIdErrors[keyof PostCoreActivityDeleteByByIdErrors];
+
+export type PostCoreActivityDeleteByByIdResponses = {
+    /**
+     * Информация об активности
+     */
+    200: {
+        activity: Activity;
+    };
+};
+
+export type PostCoreActivityDeleteByByIdResponse = PostCoreActivityDeleteByByIdResponses[keyof PostCoreActivityDeleteByByIdResponses];
+
+export type PostCoreActivityUpdateByByIdData = {
+    body: UpdateActivityRequest;
+    headers: {
+        'Privilege-Token': string;
+    };
+    path: {
+        id: number;
+    };
+    query?: never;
+    url: '/core/activity/update_by/{id}';
+};
+
+export type PostCoreActivityUpdateByByIdErrors = {
+    400: {
+        message: string;
+    };
+};
+
+export type PostCoreActivityUpdateByByIdError = PostCoreActivityUpdateByByIdErrors[keyof PostCoreActivityUpdateByByIdErrors];
+
+export type PostCoreActivityUpdateByByIdResponses = {
+    /**
+     * Информация об активности
+     */
+    200: {
+        activity: Activity;
+    };
+};
+
+export type PostCoreActivityUpdateByByIdResponse = PostCoreActivityUpdateByByIdResponses[keyof PostCoreActivityUpdateByByIdResponses];
+
 export type GetCoreActivitiesBySportSectionByIdData = {
     body?: never;
     path: {
@@ -162,6 +331,34 @@ export type GetCoreActivitiesBySportSectionByIdResponses = {
 
 export type GetCoreActivitiesBySportSectionByIdResponse = GetCoreActivitiesBySportSectionByIdResponses[keyof GetCoreActivitiesBySportSectionByIdResponses];
 
+export type GetCoreActivityByIdData = {
+    body?: never;
+    path: {
+        id: number;
+    };
+    query?: never;
+    url: '/core/activity/{id}';
+};
+
+export type GetCoreActivityByIdErrors = {
+    404: {
+        message: string;
+    };
+};
+
+export type GetCoreActivityByIdError = GetCoreActivityByIdErrors[keyof GetCoreActivityByIdErrors];
+
+export type GetCoreActivityByIdResponses = {
+    /**
+     * Информация об активности
+     */
+    200: {
+        activity: Activity;
+    };
+};
+
+export type GetCoreActivityByIdResponse = GetCoreActivityByIdResponses[keyof GetCoreActivityByIdResponses];
+
 export type PostCoreActivityByIdEnrollData = {
     body: ActivityEnrollPlayerRequest;
     path: {
@@ -173,6 +370,12 @@ export type PostCoreActivityByIdEnrollData = {
 
 export type PostCoreActivityByIdEnrollErrors = {
     400: {
+        message: string;
+    };
+    403: {
+        message: string;
+    };
+    409: {
         message: string;
     };
 };
@@ -189,6 +392,30 @@ export type PostCoreActivityByIdEnrollResponses = {
 };
 
 export type PostCoreActivityByIdEnrollResponse = PostCoreActivityByIdEnrollResponses[keyof PostCoreActivityByIdEnrollResponses];
+
+export type PostCoreActivityByIdLeaveData = {
+    body: ActivityLeavePlayerRequest;
+    path: {
+        id: number;
+    };
+    query?: never;
+    url: '/core/activity/{id}/leave';
+};
+
+export type PostCoreActivityByIdLeaveErrors = {
+    404: {
+        message: string;
+    };
+};
+
+export type PostCoreActivityByIdLeaveError = PostCoreActivityByIdLeaveErrors[keyof PostCoreActivityByIdLeaveErrors];
+
+export type PostCoreActivityByIdLeaveResponses = {
+    /**
+     * Игрок успешно удалён из активности
+     */
+    200: unknown;
+};
 
 export type ClientOptions = {
     baseUrl: `${string}://match-integration` | (string & {});
