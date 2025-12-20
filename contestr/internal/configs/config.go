@@ -1,21 +1,24 @@
 package configs
 
 import (
-	"github.com/joho/godotenv"
 	"strings"
 	"time"
+
+	"github.com/joho/godotenv"
 
 	"github.com/spf13/viper"
 )
 
 type (
 	Config struct {
-		App        AppConfig        `mapstructure:"app"`
-		HTTP       HTTPConfig       `mapstructure:"http"`
-		MongoDB    MongoDBConfig    `mapstructure:"mongodb"`
-		Telegram   TelegramConfig   `mapstructure:"telegram"`
-		Codeforces CodeforcesConfig `mapstructure:"codeforces"`
-		Ejudge     EjudgeConfig     `mapstructure:"ejudge"`
+		App         AppConfig             `mapstructure:"app"`
+		HTTP        HTTPConfig            `mapstructure:"http"`
+		MongoDB     MongoDBConfig         `mapstructure:"mongodb"`
+		Telegram    TelegramConfig        `mapstructure:"telegram"`
+		Codeforces  CodeforcesConfig      `mapstructure:"codeforces"`
+		Ejudge      EjudgeConfig          `mapstructure:"ejudge"`
+		ContestSync ContestSyncConfig     `mapstructure:"contest_sync"`
+		Contests    ContestRegistryConfig `mapstructure:"contests"`
 	}
 
 	AppConfig struct {
@@ -52,6 +55,14 @@ type (
 	EjudgeConfig struct {
 		XMLUrl         string        `mapstructure:"xml_url"`
 		RequestTimeout time.Duration `mapstructure:"request_timeout"`
+	}
+
+	ContestSyncConfig struct {
+		Interval time.Duration `mapstructure:"interval"`
+	}
+
+	ContestRegistryConfig struct {
+		Registry map[string][]int `mapstructure:"registry"`
 	}
 )
 

@@ -1,7 +1,7 @@
 services:
   nginx:
     build:
-      context: ./front
+      context: ./contestr-front
     restart: unless-stopped
     depends_on:
       - server
@@ -49,5 +49,7 @@ services:
 volumes:
   mongodb_data:
 networks:
+  default:
+    name: contestr_default
   proxy:
     external: true

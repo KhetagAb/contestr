@@ -4,10 +4,11 @@ import (
 	"contestr/pkg/regatta"
 	"context"
 	"fmt"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 	"slices"
 	"strings"
 	"time"
+
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type TourRepository interface {
@@ -15,75 +16,81 @@ type TourRepository interface {
 	FindByContestID(ctx context.Context, contestID int) ([]regatta.Tour, error)
 }
 
-type EjudgeParser interface {
-	FetchAndParseXML(ctx context.Context, contestId int) (*regatta.RunLog, error)
+type ContestRepository interface {
+	GetByContestID(ctx context.Context, contestID int) (*regatta.Contest, error)
+	GetParticipants(ctx context.Context, contestID int) (map[string]string, error)
+	GetSubmissions(ctx context.Context, contestID int) ([]regatta.ContestSubmission, error)
 }
 
 type Regatta struct {
 	tourRepository TourRepository
-	ejudgeParser   EjudgeParser
+	contestRepo    ContestRepository
 }
 
 func NewRegatta(
 	tourRepository TourRepository,
-	ejudgeParser EjudgeParser,
+	contestRepo ContestRepository,
 ) *Regatta {
 	return &Regatta{
 		tourRepository: tourRepository,
-		ejudgeParser:   ejudgeParser,
+		contestRepo:    contestRepo,
 	}
 }
 
-// TODO рефакторинг
 func (s *Regatta) GetContestResult(ctx context.Context, contestID int) (regatta.ContestStandings, error) {
-	parsedContest, err := s.ejudgeParser.FetchAndParseXML(ctx, contestID)
+	contest, err := s.contestRepo.GetByContestID(ctx, contestID)
 	if err != nil {
-		return regatta.ContestStandings{}, fmt.Errorf("failed to parse contest %d: %w", contestID, err)
+		return regatta.ContestStandings{}, fmt.Errorf("failed to get contest %d: %w", contestID, err)
 	}
 
-	startTime, err := time.Parse("2006-01-02 15:04:05", parsedContest.StartTime)
+	participantsMap, err := s.contestRepo.GetParticipants(ctx, contestID)
 	if err != nil {
-		return regatta.ContestStandings{}, fmt.Errorf("failed to parse contest time %d: %w", contestID, err)
+		return regatta.ContestStandings{}, fmt.Errorf("failed to get participants: %w", err)
 	}
 
-	currentTime, err := time.Parse("2006-01-02 15:04:05", parsedContest.CurrentTime)
-	if err != nil {
-		return regatta.ContestStandings{}, fmt.Errorf("failed to parse contest time %d: %w", contestID, err)
-	}
-
-	displayNameByParticipant := getDisplayNameByParticipant(parsedContest.Users)
+	slugToIntMap := makeSlugToIntMapping(contest.Participants)
+	intToSlugMap := makeIntToSlugMapping(contest.Participants)
 
 	tours, err := s.tourRepository.FindByContestID(ctx, contestID)
 	if err != nil {
 		return regatta.ContestStandings{}, fmt.Errorf("failed to find tours for contest %d: %w", contestID, err)
 	}
 
+	currentTime := time.Now()
 	standings := regatta.ContestStandings{
-		ContestId:        contestID, // TODO parse int
-		ContestName:      parsedContest.Name,
+		ContestId:        contestID,
+		ContestName:      contest.ContestName,
 		CurrentTime:      currentTime,
-		ContestStartTime: startTime,
+		ContestStartTime: contest.StartTime,
 		Rows:             []regatta.ContestRow{},
 	}
 
 	if len(tours) == 0 {
 		contestRows := []regatta.ContestRow{}
-		for _, participant := range parsedContest.Users.Users {
+		for _, participant := range contest.Participants {
+			participantInt := slugToIntMap[participant.ID]
 			contestRows = append(contestRows, regatta.ContestRow{
-				DisplayName: displayNameByParticipant[participant.ID],
-				UserID:      participant.ID,
+				DisplayName: participant.DisplayName,
+				UserID:      participantInt,
 			})
 		}
 		standings.Rows = contestRows
 		return standings, nil
 	}
 
+	submissions, err := s.contestRepo.GetSubmissions(ctx, contestID)
+	if err != nil {
+		return regatta.ContestStandings{}, fmt.Errorf("failed to get submissions: %w", err)
+	}
+
+	runs := convertSubmissionsToRuns(submissions, slugToIntMap)
+
 	var contestRows []regatta.ContestRow
 	contestStandingsByParticipants := make(ResultsByParticipant)
 	participantTotal := make(map[Participant]int)
 
 	for _, tour := range tours {
-		result := CalculateResult(tour, parsedContest.Runs.Runs).Export()
+		result := CalculateResult(tour, runs).Export()
 
 		for participant, participantResult := range result {
 			_, was := contestStandingsByParticipants[participant]
@@ -99,8 +106,14 @@ func (s *Regatta) GetContestResult(ctx context.Context, contestID int) (regatta.
 	}
 
 	for participant, participantResult := range contestStandingsByParticipants {
+		participantSlug := intToSlugMap[participant]
+		displayName := participantsMap[participantSlug]
+		if displayName == "" {
+			displayName = participantSlug
+		}
+
 		contestRows = append(contestRows, regatta.ContestRow{
-			DisplayName:    displayNameByParticipant[participant],
+			DisplayName:    displayName,
 			ProblemResults: getProblemResults(participantResult),
 			SolvedProblems: getSolvedProblemsCount(participantResult),
 			TeamNumber:     tours[len(tours)-1].GroupNumbers[participant],
@@ -109,24 +122,48 @@ func (s *Regatta) GetContestResult(ctx context.Context, contestID int) (regatta.
 		})
 	}
 
-	// func sumTimes(row: regatta.ContestRow) {
-	// 	// for _, r := range row.ProblemResults {
-	// 	// 	max(time1, time2)
-
-	// 	// }
-	// }
-
 	slices.SortFunc(contestRows, func(row1, row2 regatta.ContestRow) int {
 		if row1.TotalScore != row2.TotalScore {
 			return row2.TotalScore - row1.TotalScore
-		} else {
-			// TODO: take sum of times or time of last sumbit
 		}
 		return strings.Compare(row1.DisplayName, row2.DisplayName)
 	})
 	standings.Rows = contestRows
 
 	return standings, nil
+}
+
+func makeSlugToIntMapping(participants []regatta.ContestParticipant) map[string]Participant {
+	result := make(map[string]Participant)
+	for idx, participant := range participants {
+		result[participant.ID] = idx + 1
+	}
+	return result
+}
+
+func makeIntToSlugMapping(participants []regatta.ContestParticipant) map[Participant]string {
+	result := make(map[Participant]string)
+	for idx, participant := range participants {
+		result[Participant(idx+1)] = participant.ID
+	}
+	return result
+}
+
+func convertSubmissionsToRuns(submissions []regatta.ContestSubmission, slugToIntMap map[string]Participant) []regatta.Run {
+	runs := make([]regatta.Run, 0, len(submissions))
+	for _, sub := range submissions {
+		participantInt, ok := slugToIntMap[sub.ParticipantID]
+		if !ok {
+			continue
+		}
+		runs = append(runs, regatta.Run{
+			UserID: participantInt,
+			ProbID: sub.ProblemID,
+			Time:   sub.Time,
+			Status: sub.Status,
+		})
+	}
+	return runs
 }
 
 func getProblemResults(result ParticipantResult) []regatta.ProblemResult {
@@ -152,12 +189,4 @@ func getSolvedProblemsCount(result ParticipantResult) int {
 		}
 	}
 	return count
-}
-
-func getDisplayNameByParticipant(users regatta.Users) map[Participant]string {
-	displayNameByParticipant := make(map[Participant]string)
-	for _, user := range users.Users {
-		displayNameByParticipant[user.ID] = user.Name
-	}
-	return displayNameByParticipant
 }

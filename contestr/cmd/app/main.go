@@ -35,6 +35,13 @@ func main() {
 		}
 	}()
 
+	contestSync := svc.ContestSync
+	go func() {
+		if err := contestSync.Start(ctx); err != nil && !errors.Is(err, context.Canceled) {
+			logger.Errorf(ctx, "failed to start contest sync: %v", err)
+		}
+	}()
+
 	awaitGracefulShutdown(ctx, cfg, bot, server)
 }
 

@@ -27,3 +27,13 @@ codeforces:
 ejudge:
   xml_url: https://ejudge.lksh.ru/ejudge-external
   request_timeout: 10s
+
+contest_sync:
+  interval: 3m
+
+contests:
+  registry:
+    ejudge:
+      -
+    codeforces:
+      - 
