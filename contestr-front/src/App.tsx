@@ -6,7 +6,7 @@ import { client } from './client/client.gen.ts';
 import RecentParcelsTable from "./cont_compon/recentParcelsTable.tsx";
 const queryClient = new QueryClient()
 
-const baseUrl = localStorage.get("baseUrl") ?? "/"
+const baseUrl = localStorage.getItem("baseUrl") ?? "/"
 
 client.setConfig({
     baseUrl: baseUrl
