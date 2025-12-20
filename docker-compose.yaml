@@ -1,7 +1,7 @@
 services:
   nginx:
     build:
-      context: ./front
+      context: ./contestr-front
     restart: unless-stopped
     depends_on:
       - server
