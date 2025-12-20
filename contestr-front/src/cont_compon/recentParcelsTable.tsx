@@ -70,7 +70,7 @@ const RecentParcelsTable = ({
     const columns = createColumns(contestStartTime);
 
     data = data.sort((a, b) => {
-        return b.last_submission_time - a.last_submission_time
+        return (b.last_submission_time ?? 0) - (a.last_submission_time ?? 0)
     })
 
     // const [sorting, setSorting] = useState<SortingState>([]);
@@ -128,9 +128,9 @@ const RecentParcelsTable = ({
                             {row.getVisibleCells().map((cell) => {
                                 const color =
                                     cell.column.id === "score"
-                                        ? cell.getValue() > 0
+                                        ? (cell.getValue() as number) > 0
                                             ? "green"
-                                            : cell.getValue() < 0
+                                            : (cell.getValue() as number) < 0
                                                 ? "red"
                                                 : "inherit"
                                         : "inherit";
