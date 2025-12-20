@@ -15,7 +15,8 @@ import { SlArrowDown, SlArrowUp } from "react-icons/sl";
 // import { getRegattaContestStandingsOptions } from "../client/@tanstack/react-query.gen";
 import { useSearchParam } from "react-use";
 import { CONTEST_IDS } from "../consts";
-import data from "./mocks/data.json";
+import { useQuery } from "@tanstack/react-query";
+import { getRegattaContestStandingsOptions } from "../client/@tanstack/react-query.gen";
 
 // Временный тип, если отключен импорт типов
 type ProblemResult = {
@@ -123,37 +124,32 @@ const ResultsTable = () => {
   const contestId = parseInt(useSearchParam("contestId") || "");
 
   // когда нужен сервер ьудет это раскоментить
-  /*
-  const { data, isSuccess } = useQuery({
-    ...getRegattaContestStandingsOptions({
+  const { data, isSuccess } = useQuery(
+    getRegattaContestStandingsOptions({
       path: {
         contest_id: contestId,
       },
     }),
-  });
-  */
-
-  // локальные данные из файла:
-  const isSuccess = true;
-  const localData = data;
+  );
 
   const tasks = useMemo(() => {
     return (
         isSuccess &&
-        localData.contest_rows &&
-        localData.contest_rows.length > 0 &&
-        localData.contest_rows[0].problem_results.map((r) => r.problem_code)
+        data.rows &&
+        data.rows.length > 0 &&
+        data.rows[0].problem_results.map((r) => r.problem_code)
     );
-  }, [localData, isSuccess]);
+  }, [data, isSuccess]);
+  
 
   const hightlighted_user_team_number = useMemo(
       () =>
           (isSuccess &&
-              localData.contest_rows &&
-              localData.contest_rows.find((r) => r.user_id === hightlighted_user_id)
+              data.rows &&
+              data.rows.find((r) => r.user_id === hightlighted_user_id)
                   ?.team_number) ||
           undefined,
-      [localData, isSuccess]
+      [data, isSuccess]
   );
 
   const table = useReactTable({
@@ -187,7 +183,7 @@ const ResultsTable = () => {
           ]
           : []),
     ],
-    data: localData?.contest_rows || [],
+    data: data?.rows || [],
     debugTable: true,
     getCoreRowModel: getCoreRowModel(),
     getSortedRowModel: getSortedRowModel(),

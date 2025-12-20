@@ -9,9 +9,6 @@ services:
       - 10888:80
     environment:
       VIRTUAL_HOST: contestr.d.lksh.ru
-    networks:
-      - proxy
-      - default
 
   server:
     build:
@@ -48,8 +45,3 @@ services:
 
 volumes:
   mongodb_data:
-networks:
-  default:
-    name: contestr_default
-  proxy:
-    external: true
