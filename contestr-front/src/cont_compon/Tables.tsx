@@ -13,10 +13,11 @@ import { useMemo } from "react";
 import { SlArrowDown, SlArrowUp } from "react-icons/sl";
 // import type { ProblemResult, RegattaContestRow } from "../client";
 // import { getRegattaContestStandingsOptions } from "../client/@tanstack/react-query.gen";
-import { useSearchParam } from "react-use";
-import { CONTEST_IDS } from "../consts";
-import { useQuery } from "@tanstack/react-query";
-import { getRegattaContestStandingsOptions } from "../client/@tanstack/react-query.gen";
+// import { useSearchParam } from "react-use";
+// import { CONTEST_IDS } from "../consts";
+// import { useQuery } from "@tanstack/react-query";
+// import { getRegattaContestStandingsOptions } from "../client/@tanstack/react-query.gen";
+import { useCurRegattaData } from "../data";
 
 // Временный тип, если отключен импорт типов
 type ProblemResult = {
@@ -109,7 +110,7 @@ function colorTeam(
     };
   } else if (
       hightlighted_user_team_number &&
-      row.team_number == hightlighted_user_team_number
+      row.team_number === hightlighted_user_team_number
   ) {
     return {
       backgroundColor: "#6466fdff",
@@ -121,16 +122,8 @@ function colorTeam(
 }
 
 const ResultsTable = () => {
-  const contestId = parseInt(useSearchParam("contestId") || "");
-
   // когда нужен сервер ьудет это раскоментить
-  const { data, isSuccess } = useQuery(
-    getRegattaContestStandingsOptions({
-      path: {
-        contest_id: contestId,
-      },
-    }),
-  );
+  const { data, isSuccess } = useCurRegattaData()
 
   const tasks = useMemo(() => {
     return (
@@ -194,10 +187,7 @@ const ResultsTable = () => {
   return (
       <div>
         <h2>
-          Таблица результатов{" "}
-          {contestId === CONTEST_IDS[0]
-              ? "младшие параллели"
-              : "старшие параллели"}
+          Таблица результатов
         </h2>
         <table className={styles.table}>
           <thead>
@@ -269,9 +259,7 @@ const ResultsTable = () => {
                         | Array<ProblemResult>
                         | undefined;
                     const curScore =
-                        (ddd &&
-                            ddd.find &&
-                            ddd.find((p) => p.problem_code === taskId)?.score) ||
+                        (ddd?.find?.((p) => p.problem_code === taskId)?.score) ||
                         0;
                     return (
                         <td

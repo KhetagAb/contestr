@@ -1,2 +1,15 @@
-export const CONTEST_IDS = [48098, 48099];
+import { GiBalloonDog, GiLightBulb } from "react-icons/gi";
+
+export const CONTESTS = [
+    {
+        name: "Младший дивизион",
+        id: 48098,
+        IconComponent: GiBalloonDog,
+    },
+    {
+        name: "Старший дивизион",
+        id: 48099,
+        IconComponent: GiLightBulb
+    },
+] as const
 

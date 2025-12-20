@@ -1,11 +1,10 @@
 import { useState, useEffect } from "react";
-import type { GetRegattaContestStandingsResponses } from "../client";
+// import type { GetRegattaContestStandingsResponses } from "../client";
+import { useCurRegattaData } from "../data";
 
-interface ClockProps {
-  data: GetRegattaContestStandingsResponses["200"];
-}
 
-function Clock({ data }: ClockProps) {
+function Clock() {
+  const {data} = useCurRegattaData();
   const [now, setNow] = useState(Date.now());
 
   useEffect(() => {
@@ -14,6 +13,10 @@ function Clock({ data }: ClockProps) {
     }, 1000);
     return () => clearInterval(interval);
   }, []);
+
+  if (!data) {
+    return null
+  }
 
   const startTime = data.current_tour_start_time * 1000;
   // const endTime = startTime + data.current_tour_duration * 60 * 1000;
