@@ -78,7 +78,7 @@ components:
                 description: Идентификатор контеста
               current_tour_start_time:
                 type: integer
-                description: Время начала последнего тура
+                description: Время начала последнего тура (Unix timestamp в секундах)
               current_tour_duration:
                 type: integer
                 description: Длительность последнего тура в минутах

@@ -74,12 +74,7 @@ const Submenu = ({
 // };
 
 export const Sidebar = () => {
-    const [openMenu, setOpenMenu] = useState<string | null>(null);
-    // const [hoveredItem, setHoveredItem] = useState<HTMLElement | null>(null);
-    // const [tooltipText, setTooltipText] = useState("");
-
-    const toggleMenu = (menu: string) =>
-        setOpenMenu(openMenu === menu ? null : menu);
+    const [hoveredMenu, setHoveredMenu] = useState<string | null>(null);
 
     return (
         <aside className="sidebar-hover">
@@ -91,17 +86,21 @@ export const Sidebar = () => {
 
             <div className="icon-wrap">
                 {/* Контесты */}
-                <div className="menu-item-container">
-                    <button className="icon-box" onClick={() => toggleMenu("contests")} type="button">
+                <div 
+                    className="menu-item-container"
+                    onMouseEnter={() => setHoveredMenu("contests")}
+                    onMouseLeave={() => setHoveredMenu(null)}
+                >
+                    <div className="icon-box">
                         <FiFileText size={35} />
-                        <span className="tooltip">Контесты</span>
-                    </button>
-                    <Submenu isOpen={openMenu === "contests"}>
+                    </div>
+                    <Submenu isOpen={hoveredMenu === "contests"}>
                         {
                             CONTESTS.map((item) => (
                                 <a key={item.id} className="submenu-item"
                                 href={`/?contestId=${item.id}`}>
                                     <item.IconComponent className="subMenu-icon"></item.IconComponent>
+                                    <span className="submenu-item-text">{item.name}</span>
                                 </a>
                             ))
                         }

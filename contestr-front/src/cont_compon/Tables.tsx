@@ -52,10 +52,6 @@ const columns = [
     cell: (info) => info.getValue() + "",
     header: () => "Счет",
   }),
-  columnHelper.accessor("solved_problems", {
-    cell: (info) => info.getValue() + "",
-    header: () => "Решено",
-  }),
 ];
 
 const teamColors = [

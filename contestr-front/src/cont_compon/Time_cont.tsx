@@ -18,12 +18,29 @@ function Clock() {
     return null
   }
 
-  const startTime = data.current_tour_start_time * 1000;
+
+  // TODь костыли
+  const startTimeSeconds = data.current_tour_start_time;
+  if (startTimeSeconds === undefined || startTimeSeconds === null || isNaN(startTimeSeconds)) {
+    return <div>00:00:00</div>;
+  }
+
+  const startTime = startTimeSeconds * 1000;
+  if (isNaN(startTime)) {
+    return <div>00:00:00</div>;
+  }
+
   // const endTime = startTime + data.current_tour_duration * 60 * 1000;
   const elapsed = Math.max(0, now - startTime);
+  if (isNaN(elapsed)) {
+    return <div>00:00:00</div>;
+  }
   // const remaining = Math.max(0, endTime - now);
 
   const formatTime = (ms: number) => {
+    if (isNaN(ms) || ms < 0) {
+      return "00:00:00";
+    }
     const totalSeconds = Math.floor(ms / 1000);
     const hours = Math.floor(totalSeconds / 3600);
     const minutes = Math.floor((totalSeconds % 3600) / 60);

@@ -302,57 +302,74 @@ ul {
     margin-bottom: 10px;
 }
 
-.submenu-wrapper {
-    position: absolute;
-    top: 100%;
-    left: 50%;
-    transform: translateX(-50%);
-    max-height: 0;
-    overflow: hidden;
-    transition: max-height 0.35s ease;
-    z-index: 1000;
-    background: #f0eee1;
-    border-radius: 8px;
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    min-width: 60px;
+.menu-item-container .icon-box {
+    width: 50px;
+    height: 50px;
+    border-radius: 10px;
+    background: transparent;
+    border: 2px solid transparent;
+    transition: all 0.2s ease;
 }
 
-.submenu-wrapper.open {
-    max-height: 200px;
+.menu-item-container:hover .icon-box {
+    background: rgba(229, 137, 149, 0.12);
+    border-color: rgba(229, 137, 149, 0.4);
+}
+
+.submenu-wrapper {
+    position: absolute;
+    top: 0;
+    left: 60px;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease, opacity 0.25s ease, transform 0.25s ease;
+    z-index: 1000;
+    background: #f0eee1;
+    border-radius: 10px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    min-width: 160px;
+    padding: 6px;
+    opacity: 0;
+    transform: translateX(-10px);
+    pointer-events: none;
+}
+
+.submenu-wrapper[style*="max-height"]:not([style*="max-height: 0px"]) {
+    opacity: 1;
+    transform: translateX(0);
+    pointer-events: auto;
 }
 
 .submenu {
     display: flex;
     flex-direction: column;
-    padding: 10px 0;
-    align-items: center;
+    padding: 4px 0;
+    align-items: stretch;
+    gap: 0;
 }
 
 .submenu-item {
-    width: 40px;
-    height: 40px;
     display: flex;
     align-items: center;
-    justify-content: center;
+    gap: 10px;
+    padding: 8px 12px;
     cursor: pointer;
-    transition: all 0.2s ease;
-    margin: 5px 0;
+    transition: background-color 0.2s ease;
     border-radius: 6px;
+    text-decoration: none;
+    color: #3a3a3a;
+    background: transparent;
+    border: none;
+    position: relative;
+    margin: 1px 2px;
 }
 
 .submenu-item:hover {
-    background-color: #e58995;
-    transform: scale(1.1);
+    background: rgba(229, 137, 149, 0.1);
 }
 
-.submenu-item {
-    position: relative;
-}
-
-.submenu-item:hover .sub-tooltip {
-    opacity: 1;
-    transform: translateX(0);
-    pointer-events: auto;
+.submenu-item:active {
+    background: rgba(229, 137, 149, 0.15);
 }
 
 .sport-icon {
@@ -363,8 +380,27 @@ ul {
 }
 
 .subMenu-icon{
-    width: 30px;
-    height: 30px;
-    object-fit: contain;
+    width: 22px;
+    height: 22px;
+    flex-shrink: 0;
+    color: #6B6A68;
+    transition: all 0.2s ease;
+}
+
+.submenu-item:hover .subMenu-icon {
+    color: #e58995;
+}
+
+.submenu-item-text {
+    font-family: 'Montserrat Alternates', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    color: #3a3a3a;
+    white-space: nowrap;
+    transition: color 0.2s ease;
+}
+
+.submenu-item:hover .submenu-item-text {
+    color: #e58995;
 }
 

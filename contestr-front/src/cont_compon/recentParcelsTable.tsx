@@ -13,17 +13,20 @@ import { useCurRegattaData } from "../data";
 // Описываем тип строки таблицы (одна посылка)
 type RecentParcelRow = RegattaContestRow & ProblemResult;
 
-export const createColumns = (contestStartTime: number) => {
+export const createColumns = () => {
     const columnHelper = createColumnHelper<RecentParcelRow>();
 
     return [
         columnHelper.accessor("last_submission_time", {
-            header: () => "Время последней посылки",
+            header: () => "Время с начала тура",
             cell: (info) => {
-                const lastSubmission = info.getValue() || 0;
-                const elapsed = lastSubmission - contestStartTime;
+                const lastSubmission = info.getValue();
+                
+                if (lastSubmission === undefined || lastSubmission === null || isNaN(lastSubmission)) {
+                    return "00:00:00";
+                }
 
-                if (elapsed < 0) return "00:00:00";
+                const elapsed = Math.max(0, lastSubmission);
 
                 const hours = Math.floor(elapsed / 3600);
                 const mins = Math.floor((elapsed % 3600) / 60);
@@ -61,21 +64,29 @@ export const createColumns = (contestStartTime: number) => {
     ];
 };
 
-const RecentParcelsTable = ({
-                                contestStartTime,
-                            }: {
-    contestStartTime: number;
-}) => {
-    const columns = createColumns(contestStartTime);
+const RecentParcelsTable = () => {
+    const columns = createColumns();
     const {data} = useCurRegattaData();
     const rows = useMemo(() => {
-        const rows = data?.rows ?? [];
-        // fuck you
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        rows.sort((a: any, b: any) => {
-            return (b.last_submission_time ?? 0) - (a.last_submission_time ?? 0)
-        })
-        return rows;
+        const contestRows = data?.rows ?? [];
+        // Разворачиваем данные: для каждого участника создаем отдельные строки для каждой задачи
+        const flattenedRows: RecentParcelRow[] = [];
+        for (const row of contestRows) {
+            for (const problemResult of row.problem_results) {
+                // Показываем только успешные посылки (с last_submission_time)
+                if (problemResult.last_submission_time !== undefined && problemResult.last_submission_time !== null) {
+                    flattenedRows.push({
+                        ...row,
+                        ...problemResult,
+                    });
+                }
+            }
+        }
+        // Сортируем по времени последней посылки (от новых к старым)
+        flattenedRows.sort((a, b) => {
+            return (b.last_submission_time ?? 0) - (a.last_submission_time ?? 0);
+        });
+        return flattenedRows;
     }, [data])
 
     // const [sorting, setSorting] = useState<SortingState>([]);
