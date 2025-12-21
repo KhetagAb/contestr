@@ -48,9 +48,6 @@ func (s *Regatta) GetContestResult(ctx context.Context, contestID int) (regatta.
 		return regatta.ContestStandings{}, fmt.Errorf("failed to get participants: %w", err)
 	}
 
-	slugToIntMap := makeSlugToIntMapping(contest.Participants)
-	intToSlugMap := makeIntToSlugMapping(contest.Participants)
-
 	tours, err := s.tourRepository.FindByContestID(ctx, contestID)
 	if err != nil {
 		return regatta.ContestStandings{}, fmt.Errorf("failed to find tours for contest %d: %w", contestID, err)
@@ -68,13 +65,18 @@ func (s *Regatta) GetContestResult(ctx context.Context, contestID int) (regatta.
 	if len(tours) == 0 {
 		contestRows := []regatta.ContestRow{}
 		for _, participant := range contest.Participants {
-			participantInt := slugToIntMap[participant.ID]
 			contestRows = append(contestRows, regatta.ContestRow{
-				DisplayName: participant.DisplayName,
-				UserID:      participantInt,
+				DisplayName:    participant.DisplayName,
+				UserID:         participant.ID,
+				ProblemResults: []regatta.ProblemResult{},
+				SolvedProblems: 0,
+				TeamNumber:     0,
+				TotalScore:     0,
 			})
 		}
 		standings.Rows = contestRows
+		standings.CurrentTourStartTime = 0
+		standings.CurrentTourDuration = 0
 		return standings, nil
 	}
 
@@ -83,7 +85,7 @@ func (s *Regatta) GetContestResult(ctx context.Context, contestID int) (regatta.
 		return regatta.ContestStandings{}, fmt.Errorf("failed to get submissions: %w", err)
 	}
 
-	runs := convertSubmissionsToRuns(submissions, slugToIntMap)
+	runs := convertSubmissionsToRuns(submissions)
 
 	var contestRows []regatta.ContestRow
 	contestStandingsByParticipants := make(ResultsByParticipant)
@@ -106,10 +108,9 @@ func (s *Regatta) GetContestResult(ctx context.Context, contestID int) (regatta.
 	}
 
 	for participant, participantResult := range contestStandingsByParticipants {
-		participantSlug := intToSlugMap[participant]
-		displayName := participantsMap[participantSlug]
+		displayName := participantsMap[participant]
 		if displayName == "" {
-			displayName = participantSlug
+			displayName = participant
 		}
 
 		contestRows = append(contestRows, regatta.ContestRow{
@@ -130,34 +131,20 @@ func (s *Regatta) GetContestResult(ctx context.Context, contestID int) (regatta.
 	})
 	standings.Rows = contestRows
 
+	if len(tours) > 0 {
+		lastTour := tours[len(tours)-1]
+		standings.CurrentTourStartTime = int(contest.StartTime.Unix()) + lastTour.StarTime
+		standings.CurrentTourDuration = lastTour.DurationInSeconds / 60
+	}
+
 	return standings, nil
 }
 
-func makeSlugToIntMapping(participants []regatta.ContestParticipant) map[string]Participant {
-	result := make(map[string]Participant)
-	for idx, participant := range participants {
-		result[participant.ID] = idx + 1
-	}
-	return result
-}
-
-func makeIntToSlugMapping(participants []regatta.ContestParticipant) map[Participant]string {
-	result := make(map[Participant]string)
-	for idx, participant := range participants {
-		result[Participant(idx+1)] = participant.ID
-	}
-	return result
-}
-
-func convertSubmissionsToRuns(submissions []regatta.ContestSubmission, slugToIntMap map[string]Participant) []regatta.Run {
-	runs := make([]regatta.Run, 0, len(submissions))
+func convertSubmissionsToRuns(submissions []regatta.ContestSubmission) []Run {
+	runs := make([]Run, 0, len(submissions))
 	for _, sub := range submissions {
-		participantInt, ok := slugToIntMap[sub.ParticipantID]
-		if !ok {
-			continue
-		}
-		runs = append(runs, regatta.Run{
-			UserID: participantInt,
+		runs = append(runs, Run{
+			UserID: sub.ParticipantID,
 			ProbID: sub.ProblemID,
 			Time:   sub.Time,
 			Status: sub.Status,

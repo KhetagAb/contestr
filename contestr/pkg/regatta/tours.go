@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-type Participant = int
+type Participant = string
 
 type Problem = int
 
@@ -38,7 +38,7 @@ func (t *Tour) ProblemsIDsToNameMapping(problems []Problem) map[Problem]string {
 	return mapping
 }
 
-func ParticipantsToGroupNumbersMapping(groups [][]int) map[Participant]int {
+func ParticipantsToGroupNumbersMapping(groups [][]string) map[Participant]int {
 	result := make(map[Participant]int)
 
 	for idx, group := range groups {
@@ -52,11 +52,13 @@ func ParticipantsToGroupNumbersMapping(groups [][]int) map[Participant]int {
 }
 
 type ContestStandings struct {
-	ContestId        int          `json:"contest_id,omitempty"`
-	ContestName      string       `json:"contest_name,omitempty"`
-	Rows             []ContestRow `json:"rows,omitempty"`
-	ContestStartTime time.Time    `json:"contest_start_time,omitempty"`
-	CurrentTime      time.Time    `json:"current_time,omitempty"`
+	ContestId             int          `json:"contest_id,omitempty"`
+	ContestName           string       `json:"contest_name,omitempty"`
+	Rows                  []ContestRow `json:"rows,omitempty"`
+	ContestStartTime      time.Time    `json:"contest_start_time,omitempty"`
+	CurrentTime           time.Time    `json:"current_time,omitempty"`
+	CurrentTourStartTime  int          `json:"current_tour_start_time,omitempty"`
+	CurrentTourDuration   int          `json:"current_tour_duration,omitempty"`
 }
 
 type ProblemResult struct {
@@ -66,12 +68,11 @@ type ProblemResult struct {
 }
 
 type ContestRow struct {
+	UserID         string          `json:"user_id"`
 	DisplayName    string          `json:"display_name"`
 	ProblemResults []ProblemResult `json:"problem_results"`
 	SolvedProblems int             `json:"solved_problems"`
 	TeamNumber     int             `json:"team_number"`
 	TotalScore     int             `json:"total_score"`
 
-	// TODO совместимость с кфом
-	UserID Participant `json:"user_id"`
 }

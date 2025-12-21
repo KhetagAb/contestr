@@ -34,26 +34,55 @@ func (h *RegattaStartTourHandle) Register() (bot.HandlerType, string, bot.MatchT
 func (h *RegattaStartTourHandle) Handle(ctx context.Context, b *bot.Bot, update *models.Update) {
 	chatID := update.Message.Chat.ID
 
-	// TODO писали в 2:36, ебал исправлять
-	logger.Info(ctx, update.Message.Text[12:])
 	message := "Неверный формат, необходимо: \n" +
 		"/start_tour <contest_id> <duration_in_minutes>"
-
-	parts := strings.Split(update.Message.Text[12:], " ")
-	if len(parts) == 2 {
-		contestId, err1 := strconv.Atoi(parts[0])
-		duration, err2 := strconv.Atoi(parts[1])
-		if err1 == nil && err2 == nil {
-			objectID, err := h.regatta.StartTour(ctx, contestId, time.Duration(duration)*time.Minute)
-			if err != nil {
-				message = fmt.Sprintf("Ошибка при добавлении нового тура: %v", err)
-			} else {
-				message = fmt.Sprintf("Начался тур... [ObjectId=%v]", objectID)
-			}
+	parts := strings.Fields(update.Message.Text)
+	
+	if len(parts) != 3 {
+		_, err := b.SendMessage(ctx, &bot.SendMessageParams{
+			ChatID: chatID,
+			Text:   message,
+		})
+		if err != nil {
+			logger.Errorf(ctx, "error sending message: %v", err)
 		}
+		return
 	}
 
-	_, err := b.SendMessage(ctx, &bot.SendMessageParams{
+	contestId, err := strconv.Atoi(parts[1])
+	if err != nil {
+		logger.Errorf(ctx, "error parsing contest_id: %v", err)
+		_, err := b.SendMessage(ctx, &bot.SendMessageParams{
+			ChatID: chatID,
+			Text:   message,
+		})
+		if err != nil {
+			logger.Errorf(ctx, "error sending message: %v", err)
+		}
+		return
+	}
+
+	duration, err := strconv.Atoi(parts[2])
+	if err != nil {
+		logger.Errorf(ctx, "error parsing duration: %v", err)
+		_, err := b.SendMessage(ctx, &bot.SendMessageParams{
+			ChatID: chatID,
+			Text:   message,
+		})
+		if err != nil {
+			logger.Errorf(ctx, "error sending message: %v", err)
+		}
+		return
+	}
+
+	objectID, err := h.regatta.StartTour(ctx, contestId, time.Duration(duration)*time.Minute)
+	if err != nil {
+		message = fmt.Sprintf("Ошибка при добавлении нового тура: %v", err)
+	} else {
+		message = fmt.Sprintf("Начался тур... [ObjectId=%v]", objectID)
+	}
+
+	_, err = b.SendMessage(ctx, &bot.SendMessageParams{
 		ChatID: chatID,
 		Text:   message,
 	})

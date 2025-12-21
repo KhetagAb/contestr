@@ -1,16 +1,15 @@
 package codeforces
 
 import (
-	"contestr/internal/generated/server"
 	"context"
 	"github.com/labstack/echo/v4"
 	"github.com/togatoga/goforces"
 	"net/http"
-	"strconv"
 )
 
 type Service interface {
 	GetContest(ctx context.Context, contestID int) (*goforces.Standings, error)
+	GetContestStatus(ctx context.Context, contestID int, options *goforces.ContestStatusOptions) ([]goforces.Submission, error)
 }
 
 type ContestHandle struct {
@@ -32,10 +31,5 @@ func (s *ContestHandle) GetContest(ectx echo.Context, contestId int) error {
 		return err
 	}
 
-	response := server.GetContestResponse{
-		Id:   strconv.FormatInt(standings.Contest.ID, 10),
-		Name: standings.Contest.Name,
-	}
-
-	return ectx.JSON(http.StatusOK, response)
+	return ectx.JSON(http.StatusOK, standings)
 }

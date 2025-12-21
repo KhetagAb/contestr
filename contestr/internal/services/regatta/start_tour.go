@@ -12,7 +12,14 @@ import (
 const GroupSize = 3
 
 func (s *Regatta) StartTour(ctx context.Context, contestId int, duration time.Duration) (string, error) {
-	logger.Infof(context.Background(), "Starting tour on %v duration=%v", contestId, duration)
+	if contestId <= 0 {
+		return "", fmt.Errorf("invalid contest ID: %d", contestId)
+	}
+	if duration <= 0 {
+		return "", fmt.Errorf("invalid duration: %v", duration)
+	}
+
+	logger.Infof(ctx, "Starting tour on contest %d, duration=%v", contestId, duration)
 
 	tours, err := s.tourRepository.FindByContestID(ctx, contestId)
 	if err != nil {
@@ -24,21 +31,17 @@ func (s *Regatta) StartTour(ctx context.Context, contestId int, duration time.Du
 		return "", fmt.Errorf("failed to get contest standings: %w", err)
 	}
 
-	logger.Infof(ctx, "starting tour for contest %d", contestId)
-
 	var ratedParticipants []Participant
 	for _, row := range contestStandings.Rows {
-		logger.Infof(ctx, "participant %s has %d points", row.DisplayName, row.TotalScore)
 		ratedParticipants = append(ratedParticipants, row.UserID)
 	}
 
 	groups := util.FormGroups(ratedParticipants, GroupSize)
 	tourIdx := len(tours) + 1
 
-	logger.Infof(context.Background(), "Current time: %v, contest start time: %v", contestStandings.CurrentTime, contestStandings.ContestStartTime)
 	startTourInSecondsFromStart := int(contestStandings.CurrentTime.Sub(contestStandings.ContestStartTime).Seconds())
 	endTourInSecondsFromStart := int((contestStandings.CurrentTime.Sub(contestStandings.ContestStartTime) + duration).Seconds())
-	logger.Infof(context.Background(), "Tour from start starts: %v, ends: %v", startTourInSecondsFromStart, endTourInSecondsFromStart)
+	logger.Infof(ctx, "Tour from start: %v, ends: %v (contest start: %v)", startTourInSecondsFromStart, endTourInSecondsFromStart, contestStandings.ContestStartTime)
 	tour := regatta.Tour{
 		Name:              fmt.Sprintf("Tour №%v of contest %v", tourIdx, contestId),
 		Index:             tourIdx,
@@ -60,12 +63,14 @@ func (s *Regatta) StartTour(ctx context.Context, contestId int, duration time.Du
 	return create.Hex(), nil
 }
 
-func ConvertGroups(groups [][]int) map[Participant]Group {
+func ConvertGroups(groups [][]string) map[Participant]Group {
 	result := make(map[Participant]Group)
 
 	for _, group := range groups {
 		for _, participantID := range group {
-			result[participantID] = group
+			groupCopy := make([]string, len(group))
+			copy(groupCopy, group)
+			result[participantID] = groupCopy
 		}
 	}
 

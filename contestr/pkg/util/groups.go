@@ -8,9 +8,9 @@ const (
 	SWAP_BORDER_PROBABILITY = 0.4
 )
 
-func FormGroups(ratedParticipants []int, groupSize int) [][]int {
+func FormGroups(ratedParticipants []string, groupSize int) [][]string {
 	n := len(ratedParticipants)
-	result := make([][]int, 0, n/groupSize+1)
+	result := make([][]string, 0, n/groupSize+1)
 
 	for i := 0; i < n-1; i++ {
 		if rand.Float64() <= SWAP_BORDER_PROBABILITY {
@@ -28,10 +28,10 @@ func FormGroups(ratedParticipants []int, groupSize int) [][]int {
 	}
 
 	if len(result[len(result)-1]) == 1 {
-		result[len(result)-1] = []int{
+		result[len(result)-1] = []string{
 			result[len(result)-2][2], result[len(result)-1][0],
 		}
-		result[len(result)-2] = []int{
+		result[len(result)-2] = []string{
 			result[len(result)-2][0], result[len(result)-2][1],
 		}
 	}

@@ -20,7 +20,7 @@ const (
 
 type Problem = int
 
-type Participant = int
+type Participant = string
 
 type SubmissionTime = int
 
@@ -116,7 +116,14 @@ func (t *TourResult) Export() ResultsByParticipant {
 	return result
 }
 
-func CalculateResult(tc regatta.Tour, runs []regatta.Run) *TourResult {
+type Run struct {
+	UserID string
+	ProbID int
+	Time   int
+	Status string
+}
+
+func CalculateResult(tc regatta.Tour, runs []Run) *TourResult {
 	return &TourResult{
 		Tour:            tc,
 		Results:         calcSubmissions(runs),
@@ -124,7 +131,7 @@ func CalculateResult(tc regatta.Tour, runs []regatta.Run) *TourResult {
 	}
 }
 
-func calcSubmissions(submissions []regatta.Run) map[Participant]ContestResult {
+func calcSubmissions(submissions []Run) map[Participant]ContestResult {
 	results := make(map[Participant]ContestResult)
 
 	for _, submission := range submissions {

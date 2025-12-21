@@ -34,6 +34,5 @@ contest_sync:
 contests:
   registry:
     ejudge:
-      -
     codeforces:
-      - 
+      - 659960
