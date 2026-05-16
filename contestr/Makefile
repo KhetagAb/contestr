@@ -1,3 +1,5 @@
+codegen: code-gen
+
 code-gen:
 	./scripts/codegen.sh
 
