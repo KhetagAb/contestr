@@ -18,7 +18,7 @@ RUN CGO_ENABLED=0 \
 
 FROM alpine:latest
 
-RUN apk --no-cache add ca-certificates
+COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
 
 WORKDIR /app
 

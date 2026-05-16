@@ -48,7 +48,6 @@ var All = wire.NewSet(
 
 	cfhandlers.NewContestHandle,
 	handlers.NewHandlers,
-	handlers.NewHelloHandle,
 	transport.NewHTTPServer,
 
 	tgbot.NewStartHandle,

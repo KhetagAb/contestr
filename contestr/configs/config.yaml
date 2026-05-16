@@ -29,10 +29,10 @@ ejudge:
   request_timeout: 10s
 
 contest_sync:
-  interval: 3m
+  interval: 1m
 
 contests:
   registry:
     ejudge:
     codeforces:
-      - 659960
+      - 681038
