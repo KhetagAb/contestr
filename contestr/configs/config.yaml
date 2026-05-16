@@ -36,3 +36,9 @@ contests:
     ejudge:
     codeforces:
       - 681038
+
+admin:
+  jwt_secret: ""
+  username: ""
+  password: ""
+  jwt_ttl: 24h

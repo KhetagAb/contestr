@@ -1,8 +1,10 @@
 package wiresets
 
 import (
+	"contestr/internal/auth"
 	"contestr/internal/configs"
 	"contestr/internal/handlers"
+	adminhandlers "contestr/internal/handlers/admin"
 	cfhandlers "contestr/internal/handlers/codeforces"
 	regattahandlers "contestr/internal/handlers/regatta"
 	"contestr/internal/handlers/tgbot"
@@ -47,7 +49,10 @@ var All = wire.NewSet(
 	codeforces.NewService,
 
 	cfhandlers.NewContestHandle,
+	adminhandlers.NewLoginHandle,
+	adminhandlers.NewMeHandle,
 	handlers.NewHandlers,
+	auth.NewService,
 	transport.NewHTTPServer,
 
 	tgbot.NewStartHandle,

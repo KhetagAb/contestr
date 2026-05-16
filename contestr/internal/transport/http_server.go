@@ -1,14 +1,17 @@
 package transport
 
 import (
+	"contestr/internal/auth"
 	"contestr/internal/configs"
 	"contestr/internal/generated/server"
 	"contestr/internal/handlers"
+	authmiddleware "contestr/internal/middleware"
 	"contestr/pkg/logger"
 	"context"
-	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
 	"net/http"
+
+	"github.com/labstack/echo/v4"
+	echomiddleware "github.com/labstack/echo/v4/middleware"
 )
 
 type HTTPServer struct {
@@ -17,7 +20,7 @@ type HTTPServer struct {
 	httpServer *http.Server
 }
 
-func NewHTTPServer(ctx context.Context, handlers *handlers.Handlers, cfg *configs.Config) *HTTPServer {
+func NewHTTPServer(ctx context.Context, handlers *handlers.Handlers, cfg *configs.Config, authService *auth.Service) *HTTPServer {
 	logger.Infof(ctx, "server configuration: address=%s, read_timeout=%v, write_timeout=%v",
 		cfg.HTTP.Port, cfg.HTTP.ReadTimeout, cfg.HTTP.WriteTimeout)
 
@@ -35,7 +38,7 @@ func NewHTTPServer(ctx context.Context, handlers *handlers.Handlers, cfg *config
 		httpServer: httpServer,
 	}
 
-	httpServerWrapper.RegisterHandlers(handlers)
+	httpServerWrapper.RegisterHandlers(handlers, authService)
 
 	return httpServerWrapper
 }
@@ -46,12 +49,13 @@ func newEcho() *echo.Echo {
 	e.HideBanner = true
 	e.HidePort = true
 
-	e.Use(middleware.Recover())
-	e.Use(middleware.Logger())
+	e.Use(echomiddleware.Recover())
+	e.Use(echomiddleware.Logger())
 	return e
 }
 
-func (s *HTTPServer) RegisterHandlers(handlers *handlers.Handlers) {
+func (s *HTTPServer) RegisterHandlers(handlers *handlers.Handlers, authService *auth.Service) {
+	s.echo.Use(authmiddleware.AdminJWT(authService))
 	s.echo.GET("/", func(c echo.Context) error {
 		return c.String(http.StatusOK, "HTTPServer is running")
 	})

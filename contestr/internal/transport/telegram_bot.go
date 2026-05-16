@@ -5,6 +5,7 @@ import (
 	"contestr/internal/handlers/tgbot"
 	"contestr/pkg/logger"
 	"context"
+
 	"github.com/go-telegram/bot"
 )
 
@@ -14,7 +15,12 @@ type TgBot struct {
 	handlers *tgbot.Handlers
 }
 
-func NewBot(cfg *configs.Config, handlers *tgbot.Handlers) (*TgBot, error) {
+func NewBot(ctx context.Context, cfg *configs.Config, handlers *tgbot.Handlers) (*TgBot, error) {
+	if !cfg.Telegram.Enabled() {
+		logger.Info(ctx, "telegram bot is disabled: token is not configured")
+		return &TgBot{cfg: cfg, handlers: handlers}, nil
+	}
+
 	opts := []bot.Option{
 		bot.WithDefaultHandler(handlers.DefaultHandle),
 		bot.WithDebug(),
@@ -22,7 +28,8 @@ func NewBot(cfg *configs.Config, handlers *tgbot.Handlers) (*TgBot, error) {
 
 	b, err := bot.New(cfg.Telegram.Token, opts...)
 	if err != nil {
-		return nil, err
+		logger.Warnf(ctx, "telegram bot is disabled: failed to connect: %v", err)
+		return &TgBot{cfg: cfg, handlers: handlers}, nil
 	}
 
 	tgBot := TgBot{
@@ -33,15 +40,28 @@ func NewBot(cfg *configs.Config, handlers *tgbot.Handlers) (*TgBot, error) {
 
 	handlers.Register(b)
 
+	logger.Info(ctx, "telegram bot initialized")
 	return &tgBot, nil
 }
 
+func (b *TgBot) Enabled() bool {
+	return b != nil && b.bot != nil
+}
+
 func (b *TgBot) Start(ctx context.Context) error {
+	if !b.Enabled() {
+		return nil
+	}
+
 	logger.Info(ctx, "starting telegram bot...")
 	b.bot.Start(ctx)
 	return nil
 }
 
 func (b *TgBot) Stop(ctx context.Context) {
+	if !b.Enabled() {
+		return
+	}
+
 	logger.Info(ctx, "telegram bot stopped")
 }

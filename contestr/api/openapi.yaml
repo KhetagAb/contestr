@@ -28,7 +28,49 @@ paths:
         200:
           $ref: '#/components/responses/GetContestResponse'
 
+  /admin/auth/login:
+    post:
+      operationId: postAdminAuthLogin
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AdminLoginRequest'
+      responses:
+        200:
+          description: Успешная авторизация
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminLoginResponse'
+        401:
+          $ref: '#/components/responses/ErrorResponse'
+        503:
+          $ref: '#/components/responses/ErrorResponse'
+
+  /admin/me:
+    get:
+      operationId: getAdminMe
+      security:
+        - bearerAuth: []
+      responses:
+        200:
+          description: Информация о текущем админе
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminMeResponse'
+        401:
+          $ref: '#/components/responses/ErrorResponse'
+
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
   responses:
     RegattaContestStandings:
       description: Список студентов с результатами контеста
@@ -138,4 +180,35 @@ components:
       properties:
         message:
           type: string
+    AdminLoginRequest:
+      type: object
+      required:
+        - username
+        - password
+      properties:
+        username:
+          type: string
+        password:
+          type: string
+    AdminLoginResponse:
+      type: object
+      required:
+        - access_token
+        - expires_in
+      properties:
+        access_token:
+          type: string
+        expires_in:
+          type: integer
+          description: Время жизни токена в секундах
+    AdminMeResponse:
+      type: object
+      required:
+        - username
+        - ok
+      properties:
+        username:
+          type: string
+        ok:
+          type: boolean
 

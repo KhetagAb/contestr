@@ -19,6 +19,7 @@ type (
 		Ejudge      EjudgeConfig          `mapstructure:"ejudge"`
 		ContestSync ContestSyncConfig     `mapstructure:"contest_sync"`
 		Contests    ContestRegistryConfig `mapstructure:"contests"`
+		Admin       AdminConfig           `mapstructure:"admin"`
 	}
 
 	AppConfig struct {
@@ -64,7 +65,28 @@ type (
 	ContestRegistryConfig struct {
 		Registry map[string][]int `mapstructure:"registry"`
 	}
+
+	AdminConfig struct {
+		JWTSecret string        `mapstructure:"jwt_secret"`
+		Username  string        `mapstructure:"username"`
+		Password  string        `mapstructure:"password"`
+		JWTTTL    time.Duration `mapstructure:"jwt_ttl"`
+	}
 )
+
+func (c AdminConfig) Enabled() bool {
+	return strings.TrimSpace(c.JWTSecret) != "" &&
+		strings.TrimSpace(c.Username) != "" &&
+		strings.TrimSpace(c.Password) != ""
+}
+
+func (c TelegramConfig) Enabled() bool {
+	token := strings.TrimSpace(c.Token)
+	if token == "" || token == "YOUR_TELEGRAM_BOT_TOKEN" || token == "YOUR_BOT_API_KEY" {
+		return false
+	}
+	return true
+}
 
 func LoadConfig(path string) (*Config, error) {
 	_ = godotenv.Load()

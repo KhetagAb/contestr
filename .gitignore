@@ -17,6 +17,7 @@ vendor/
 # IDE specific files
 .idea/
 .vscode/
+.agents/
 *.swp
 *.swo
 
