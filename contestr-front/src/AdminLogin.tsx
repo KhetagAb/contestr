@@ -1,7 +1,7 @@
-import { useEffect, useState, type FormEvent } from "react";
-import { adminAuthHeaders, clearAdminToken, getAdminToken, setAdminToken } from "./adminAuth";
+import { useState, type FormEvent } from "react";
+import { adminAuthHeaders, clearAdminToken, setAdminToken } from "./adminAuth";
+import { useAdminSession } from "./AdminSessionContext.tsx";
 import AdminTimetable from "./AdminTimetable";
-import { Sidebar } from "./cont_compon/SideBar.tsx";
 import "./App.css";
 import "./AdminLogin.css";
 
@@ -53,34 +53,11 @@ async function fetchAdminMe(): Promise<{ ok: true; username: string } | { ok: fa
 }
 
 export default function AdminLogin() {
-    const [username, setUsername] = useState("");
+    const { username, setUsername } = useAdminSession();
+    const [loginUsername, setLoginUsername] = useState("");
     const [password, setPassword] = useState("");
-    const [loggedInAs, setLoggedInAs] = useState<string | null>(null);
     const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
     const [message, setMessage] = useState("");
-
-    useEffect(() => {
-        const token = getAdminToken();
-        if (!token) {
-            return;
-        }
-
-        setStatus("loading");
-        fetchAdminMe()
-            .then((result) => {
-                if (result.ok) {
-                    setLoggedInAs(result.username);
-                    setStatus("success");
-                } else {
-                    clearAdminToken();
-                    setStatus("idle");
-                }
-            })
-            .catch(() => {
-                clearAdminToken();
-                setStatus("idle");
-            });
-    }, []);
 
     const handleSubmit = async (e: FormEvent) => {
         e.preventDefault();
@@ -91,7 +68,7 @@ export default function AdminLogin() {
             const loginRes = await fetch("/api/admin/auth/login", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ username, password }),
+                body: JSON.stringify({ username: loginUsername, password }),
             });
 
             const loginBody = (await loginRes.json()) as LoginResponse & ErrorResponse;
@@ -111,7 +88,7 @@ export default function AdminLogin() {
                 return;
             }
 
-            setLoggedInAs(meResult.username);
+            setUsername(meResult.username);
             setStatus("success");
         } catch {
             setStatus("error");
@@ -119,76 +96,52 @@ export default function AdminLogin() {
         }
     };
 
-    const handleLogout = () => {
-        clearAdminToken();
-        setLoggedInAs(null);
-        setStatus("idle");
-        setMessage("");
-        setPassword("");
-    };
-
     return (
-        <>
-            <Sidebar />
-            <div className="admin-login-content">
-                <div className={`admin-login-panel ${loggedInAs ? "admin-console-panel" : ""}`}>
-                    {loggedInAs ? (
-                        <>
+        <div className={`admin-login-content${username ? " admin-login-content--console" : ""}`}>
+            <div className={`admin-login-panel ${username ? "admin-console-panel" : ""}`}>
+                {username ? (
+                    <AdminTimetable />
+                ) : (
+                    <>
+                        <h1 className="admin-login-title">Авторизация</h1>
+                        <form onSubmit={handleSubmit} className="admin-login-form">
                             <div className="admin-login-form-box">
-                                <p className="admin-login-greeting">
-                                    Вы вошли как <span className="h1_pink">{loggedInAs}</span>
-                                </p>
-                                <button type="button" className="admin-login-btn" onClick={handleLogout}>
-                                    Выйти
+                                {message && status === "error" && (
+                                    <p
+                                        className="admin-login-message admin-login-message--error"
+                                        role="alert"
+                                    >
+                                        Ошибка: {message}
+                                    </p>
+                                )}
+                                <label className="admin-login-field">
+                                    <span>Логин</span>
+                                    <input
+                                        type="text"
+                                        value={loginUsername}
+                                        onChange={(e) => setLoginUsername(e.target.value)}
+                                        autoComplete="username"
+                                        required
+                                    />
+                                </label>
+                                <label className="admin-login-field">
+                                    <span>Пароль</span>
+                                    <input
+                                        type="password"
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        autoComplete="current-password"
+                                        required
+                                    />
+                                </label>
+                                <button type="submit" className="admin-login-btn" disabled={status === "loading"}>
+                                    {status === "loading" ? "Проверка…" : "Войти"}
                                 </button>
-                                <a href="/" className="admin-login-link">
-                                    На главную
-                                </a>
                             </div>
-                            <AdminTimetable />
-                        </>
-                    ) : (
-                        <>
-                            <h1 className="admin-login-title">Авторизация</h1>
-                            <form onSubmit={handleSubmit} className="admin-login-form">
-                                <div className="admin-login-form-box">
-                                    {message && status === "error" && (
-                                        <p
-                                            className="admin-login-message admin-login-message--error"
-                                            role="alert"
-                                        >
-                                            Ошибка: {message}
-                                        </p>
-                                    )}
-                                    <label className="admin-login-field">
-                                        <span>Логин</span>
-                                        <input
-                                            type="text"
-                                            value={username}
-                                            onChange={(e) => setUsername(e.target.value)}
-                                            autoComplete="username"
-                                            required
-                                        />
-                                    </label>
-                                    <label className="admin-login-field">
-                                        <span>Пароль</span>
-                                        <input
-                                            type="password"
-                                            value={password}
-                                            onChange={(e) => setPassword(e.target.value)}
-                                            autoComplete="current-password"
-                                            required
-                                        />
-                                    </label>
-                                    <button type="submit" className="admin-login-btn" disabled={status === "loading"}>
-                                        {status === "loading" ? "Проверка…" : "Войти"}
-                                    </button>
-                                </div>
-                            </form>
-                        </>
-                    )}
-                </div>
+                        </form>
+                    </>
+                )}
             </div>
-        </>
+        </div>
     );
 }

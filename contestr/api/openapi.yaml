@@ -10,6 +10,7 @@ paths:
       parameters:
         - name: contest_id
           in: path
+          required: true
           schema:
             type: integer
       responses:
@@ -22,6 +23,7 @@ paths:
       parameters:
         - name: contest_id
           in: path
+          required: true
           schema:
             type: integer
       responses:

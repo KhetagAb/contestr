@@ -13,6 +13,12 @@ import Clock from "./Time_cont.tsx";
 // import basketball from "./public/basketball.svg";
 // import shooting from "./public/shooting.svg";
 import logo from "./public/logo.svg";
+import adminUserIcon from "./public/admin-user-icon.png";
+
+export type AdminSidebarSession = {
+    username: string;
+    onLogout: () => void;
+};
 
 const Submenu = ({
                      isOpen,
@@ -56,7 +62,11 @@ const Submenu = ({
 //     return createPortal(<div style={style}>{text}</div>, document.body);
 // };
 
-export const Sidebar = () => {
+type SidebarProps = {
+    adminSession?: AdminSidebarSession | null;
+};
+
+export const Sidebar = ({ adminSession }: SidebarProps) => {
     const [hoveredMenu, setHoveredMenu] = useState<string | null>(null);
 
     return (
@@ -127,6 +137,32 @@ export const Sidebar = () => {
             </div>
 
             <div className="time-text"><p><span>Время с </span> <span>начала тура </span></p></div>
+
+            {adminSession && (
+                <div
+                    className="menu-item-container sidebar-admin-user"
+                    onMouseEnter={() => setHoveredMenu("admin-user")}
+                    onMouseLeave={() => setHoveredMenu(null)}
+                >
+                    <div className="icon-box sidebar-admin-user-trigger" aria-label="Аккаунт администратора">
+                        <img src={adminUserIcon} alt="" className="sidebar-admin-user-icon" />
+                    </div>
+                    <Submenu isOpen={hoveredMenu === "admin-user"}>
+                        <div className="admin-user-popover">
+                            <p className="admin-user-popover-greeting">
+                                Вы вошли как <span className="h1_pink">{adminSession.username}</span>
+                            </p>
+                            <button
+                                type="button"
+                                className="admin-user-popover-btn"
+                                onClick={adminSession.onLogout}
+                            >
+                                Выйти
+                            </button>
+                        </div>
+                    </Submenu>
+                </div>
+            )}
 
             {/* <SubTooltip text={tooltipText} target={hoveredItem} /> */}
         </aside>

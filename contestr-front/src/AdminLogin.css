@@ -10,6 +10,12 @@
     padding: var(--space-m);
 }
 
+.admin-login-content--console {
+    align-items: flex-start;
+    justify-content: flex-start;
+    padding-top: var(--space-l);
+}
+
 .admin-login-panel {
     width: min(100%, 24rem);
 }
@@ -137,7 +143,7 @@
 }
 
 .admin-timetable {
-    margin-top: var(--space-l);
+    margin-top: 0;
     width: 100%;
 }
 

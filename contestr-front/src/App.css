@@ -423,3 +423,78 @@ ul {
     color: #e58995;
 }
 
+.sidebar-admin-user {
+    margin-top: auto;
+    margin-bottom: 1rem;
+    align-self: center;
+}
+
+.sidebar-admin-user::after {
+    top: auto;
+    bottom: 0;
+    height: 100%;
+    min-height: 46px;
+}
+
+.sidebar-admin-user-trigger {
+    width: 46px;
+    height: 46px;
+    padding: 0;
+    overflow: hidden;
+}
+
+.sidebar-admin-user-icon {
+    width: 28px;
+    height: 28px;
+    object-fit: contain;
+    opacity: 0.85;
+    filter: brightness(0) saturate(100%) invert(32%) sepia(5%) saturate(500%) hue-rotate(314deg);
+    transition: opacity 0.2s ease, filter 0.2s ease;
+}
+
+.sidebar-admin-user:hover .sidebar-admin-user-icon,
+.sidebar-admin-user:focus-within .sidebar-admin-user-icon {
+    opacity: 1;
+    filter: brightness(0) saturate(100%) invert(62%) sepia(18%) saturate(900%) hue-rotate(314deg);
+}
+
+.admin-user-popover {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    padding: 0.35rem 0.15rem;
+    min-width: 14rem;
+}
+
+.admin-user-popover-greeting {
+    margin: 0;
+    padding: 0.25rem 0.5rem 0;
+    font-family: "Anonymous Pro", sans-serif;
+    font-size: var(--fs-p);
+    color: #6b6a68;
+    text-align: left;
+    white-space: nowrap;
+}
+
+.admin-user-popover-btn {
+    width: 100%;
+    padding: 0.65rem 1rem;
+    border: none;
+    border-radius: 0.5rem;
+    background: #bf9298;
+    color: #fbf8f3;
+    font-family: "Montserrat Alternates", sans-serif;
+    font-size: var(--fs-button);
+    cursor: pointer;
+    transition: background 0.2s ease;
+}
+
+.admin-user-popover-btn:hover {
+    background: #e58995;
+}
+
+.sidebar-admin-user .submenu-wrapper {
+    top: auto;
+    bottom: 0;
+}
+
