@@ -51,7 +51,7 @@ func (h *TimetableHandle) Handle(ctx context.Context, b *bot.Bot, update *models
 
 	chatID := update.Message.Chat.ID
 	if !h.isAdmin(update.Message.From.ID) {
-		h.sendText(ctx, b, chatID, "Редактировать расписания туров могут только администраторы.")
+		h.sendText(ctx, b, chatID, "Only admins can edit tour timetables.")
 		return
 	}
 
@@ -95,7 +95,7 @@ func (h *TimetableHandle) handleCreate(ctx context.Context, parts []string) (str
 
 	contestID, err := strconv.Atoi(parts[2])
 	if err != nil {
-		return "", fmt.Errorf("некорректный contest_id: %w", err)
+		return "", fmt.Errorf("invalid contest_id: %w", err)
 	}
 
 	tours, err := parseTourConfigs(parts[3:])
@@ -121,7 +121,7 @@ func (h *TimetableHandle) handleGet(ctx context.Context, parts []string) (string
 
 	contestID, err := strconv.Atoi(parts[2])
 	if err != nil {
-		return "", fmt.Errorf("некорректный contest_id: %w", err)
+		return "", fmt.Errorf("invalid contest_id: %w", err)
 	}
 
 	timetable, err := h.timetable.GetTimetable(ctx, contestID)
@@ -139,7 +139,7 @@ func (h *TimetableHandle) handleUpdate(ctx context.Context, parts []string) (str
 
 	contestID, err := strconv.Atoi(parts[2])
 	if err != nil {
-		return "", fmt.Errorf("некорректный contest_id: %w", err)
+		return "", fmt.Errorf("invalid contest_id: %w", err)
 	}
 
 	tours, err := parseTourConfigs(parts[3:])
@@ -165,7 +165,7 @@ func (h *TimetableHandle) handleDelete(ctx context.Context, parts []string) (str
 
 	contestID, err := strconv.Atoi(parts[2])
 	if err != nil {
-		return "", fmt.Errorf("некорректный contest_id: %w", err)
+		return "", fmt.Errorf("invalid contest_id: %w", err)
 	}
 
 	if err := h.timetable.DeleteTimetable(ctx, contestID); err != nil {
@@ -182,15 +182,15 @@ func (h *TimetableHandle) handleMove(ctx context.Context, parts []string) (strin
 
 	contestID, err := strconv.Atoi(parts[2])
 	if err != nil {
-		return "", fmt.Errorf("некорректный contest_id: %w", err)
+		return "", fmt.Errorf("invalid contest_id: %w", err)
 	}
 	tourNumber, err := strconv.Atoi(parts[3])
 	if err != nil {
-		return "", fmt.Errorf("некорректный tour_number: %w", err)
+		return "", fmt.Errorf("invalid tour_number: %w", err)
 	}
 	newStartTime, err := strconv.Atoi(parts[4])
 	if err != nil {
-		return "", fmt.Errorf("некорректный start_time: %w", err)
+		return "", fmt.Errorf("invalid start_time: %w", err)
 	}
 
 	timetable, err := h.timetable.MoveTimetableTour(ctx, contestID, tourNumber, newStartTime)
@@ -208,7 +208,7 @@ func (h *TimetableHandle) handleNext(ctx context.Context, parts []string) (strin
 
 	contestID, err := strconv.Atoi(parts[2])
 	if err != nil {
-		return "", fmt.Errorf("некорректный contest_id: %w", err)
+		return "", fmt.Errorf("invalid contest_id: %w", err)
 	}
 
 	tour, err := h.timetable.GetFirstNotStartedTimetableTour(ctx, contestID)
@@ -224,16 +224,16 @@ func parseTourConfigs(rawTours []string) ([]regattapkg.TourConfig, error) {
 	for _, rawTour := range rawTours {
 		parts := strings.Split(rawTour, ":")
 		if len(parts) < 2 || len(parts) > 3 {
-			return nil, fmt.Errorf("некорректная настройка тура %q, ожидается start:duration[:started]", rawTour)
+			return nil, fmt.Errorf("invalid tour config %q, expected start:duration[:started]", rawTour)
 		}
 
 		startTime, err := strconv.Atoi(parts[0])
 		if err != nil {
-			return nil, fmt.Errorf("некорректный start_time в %q: %w", rawTour, err)
+			return nil, fmt.Errorf("invalid start_time in %q: %w", rawTour, err)
 		}
 		duration, err := strconv.Atoi(parts[1])
 		if err != nil {
-			return nil, fmt.Errorf("некорректный duration в %q: %w", rawTour, err)
+			return nil, fmt.Errorf("invalid duration in %q: %w", rawTour, err)
 		}
 
 		started := false
@@ -260,7 +260,7 @@ func parseStarted(value string) (bool, error) {
 	case "false", "0", "no", "not_started", "pending":
 		return false, nil
 	default:
-		return false, fmt.Errorf("некорректное значение started %q", value)
+		return false, fmt.Errorf("invalid started value %q", value)
 	}
 }
 
@@ -290,15 +290,17 @@ func formatTour(tour regattapkg.TourConfig) string {
 func formatTimetableError(err error) string {
 	switch {
 	case errors.Is(err, regattasvc.ErrInvalidTimetable):
-		return "Некорректное расписание: " + err.Error()
+		return "Invalid timetable: " + err.Error()
 	case errors.Is(err, regattasvc.ErrTimetableAlreadyExists):
-		return "Расписание уже существует. Используйте /timetable update, чтобы заменить его."
+		return "Timetable already exists. Use /timetable update to replace it."
 	case errors.Is(err, regattasvc.ErrTimetableNotFound):
-		return "Расписание не найдено."
+		return "Timetable not found."
 	case errors.Is(err, regattasvc.ErrTourNotFound):
-		return "Тур не найден."
+		return "Tour not found."
+	case errors.Is(err, regattasvc.ErrTourAlreadyStarted):
+		return "Tour already started."
 	default:
-		return "Команда расписания завершилась с ошибкой: " + err.Error()
+		return "Timetable command failed: " + err.Error()
 	}
 }
 

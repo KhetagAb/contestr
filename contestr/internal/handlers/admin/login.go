@@ -1,10 +1,11 @@
 package admin
 
 import (
-	"contestr/internal/auth"
-	"contestr/internal/generated/server"
 	"errors"
 	"net/http"
+
+	"contestr/internal/auth"
+	"contestr/internal/generated/server"
 
 	"github.com/labstack/echo/v4"
 )
@@ -20,21 +21,21 @@ func NewLoginHandle(auth *auth.Service) *LoginHandle {
 func (h *LoginHandle) PostAdminAuthLogin(ctx echo.Context) error {
 	if !h.auth.Enabled() {
 		return ctx.JSON(http.StatusServiceUnavailable, server.Error{
-			Message: "авторизация администратора отключена",
+			Message: "admin authentication is disabled",
 		})
 	}
 
 	var req server.AdminLoginRequest
 	if err := ctx.Bind(&req); err != nil {
 		return ctx.JSON(http.StatusBadRequest, server.Error{
-			Message: "некорректное тело запроса",
+			Message: "invalid request body",
 		})
 	}
 
 	if err := h.auth.ValidateCredentials(req.Username, req.Password); err != nil {
 		if errors.Is(err, auth.ErrInvalidCredentials) {
 			return ctx.JSON(http.StatusUnauthorized, server.Error{
-				Message: "некорректный логин или пароль",
+				Message: "invalid username or password",
 			})
 		}
 		return ctx.JSON(http.StatusServiceUnavailable, server.Error{
@@ -45,7 +46,7 @@ func (h *LoginHandle) PostAdminAuthLogin(ctx echo.Context) error {
 	token, expiresIn, err := h.auth.IssueToken(req.Username)
 	if err != nil {
 		return ctx.JSON(http.StatusInternalServerError, server.Error{
-			Message: "не удалось выпустить токен",
+			Message: "failed to issue token",
 		})
 	}
 

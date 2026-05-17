@@ -1,9 +1,10 @@
 package middleware
 
 import (
-	"contestr/internal/auth"
 	"net/http"
 	"strings"
+
+	"contestr/internal/auth"
 
 	"github.com/labstack/echo/v4"
 )
@@ -22,14 +23,14 @@ func AdminJWT(authService *auth.Service) echo.MiddlewareFunc {
 			header := c.Request().Header.Get("Authorization")
 			if header == "" {
 				return c.JSON(http.StatusUnauthorized, map[string]string{
-					"message": "отсутствует заголовок Authorization",
+					"message": "missing authorization header",
 				})
 			}
 
 			claims, err := authService.ParseToken(header)
 			if err != nil {
 				return c.JSON(http.StatusUnauthorized, map[string]string{
-					"message": "некорректный или истёкший токен",
+					"message": "invalid or expired token",
 				})
 			}
 

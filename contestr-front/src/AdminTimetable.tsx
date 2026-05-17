@@ -1,5 +1,5 @@
-import { type FormEvent, useMemo, useState } from "react";
-import { Plus, RefreshCw, Save, Trash2 } from "lucide-react";
+import { type FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Play, Plus, RefreshCw, Save, Trash2 } from "lucide-react";
 import { adminAuthHeaders } from "./adminAuth";
 import { CONTESTS } from "./consts";
 
@@ -18,12 +18,91 @@ type ErrorResponse = {
     message?: string;
 };
 
+type Status = "idle" | "loading" | "success" | "error";
+
+const ERROR_TRANSLATIONS: Record<string, string> = {
+    "bad request": "Некорректный запрос.",
+    "conflict": "Конфликт состояния.",
+    "contest not found": "Контест не найден. Сначала дождитесь синхронизации контеста.",
+    "contest id must be a positive integer.": "ID контеста должен быть положительным целым числом.",
+    "failed to create timetable": "Не удалось создать расписание.",
+    "failed to delete timetable": "Не удалось удалить расписание.",
+    "failed to get contest": "Не удалось получить контест.",
+    "failed to get first not started tour": "Не удалось получить первый незапущенный тур.",
+    "failed to get timetable": "Не удалось получить расписание.",
+    "failed to issue token": "Не удалось выпустить токен.",
+    "failed to move tour": "Не удалось перенести тур.",
+    "failed to start tour": "Не удалось запустить тур.",
+    "failed to update timetable": "Не удалось обновить расписание.",
+    "failed to update timetable after starting tour": "Не удалось обновить расписание после запуска тура.",
+    "forbidden": "Доступ запрещён.",
+    "internal server error": "Внутренняя ошибка сервера.",
+    "invalid or expired token": "Токен некорректен или истёк.",
+    "invalid request body": "Некорректное тело запроса.",
+    "invalid timetable": "Некорректное расписание.",
+    "missing authorization header": "Не передан заголовок авторизации.",
+    "not found": "Не найдено.",
+    "timetable already exists": "Расписание уже существует.",
+    "timetable not found": "Расписание не найдено.",
+    "tour already started": "Тур уже запущен.",
+    "tour not found": "Тур не найден.",
+    "tour not found in timetable": "Тур не найден в расписании.",
+    "tour number must be positive and start time must be a non-negative integer.": "Номер тура должен быть положительным, а время начала - неотрицательным целым числом.",
+    "unauthorized": "Не авторизован.",
+};
+
+function translateAdminMessage(message?: string) {
+    const value = message?.trim();
+    if (!value) {
+        return "Неизвестная ошибка.";
+    }
+
+    if (/[А-Яа-яЁё]/.test(value)) {
+        return value;
+    }
+
+    const key = value.toLowerCase();
+    const directTranslation = ERROR_TRANSLATIONS[key];
+    if (directTranslation) {
+        return directTranslation;
+    }
+
+    if (key.startsWith("invalid timetable:")) {
+        const details = key.slice("invalid timetable:".length).trim();
+        if (details.includes("start time must be non-negative")) {
+            return "Некорректное расписание: время старта должно быть неотрицательным.";
+        }
+        if (details.includes("duration must be positive")) {
+            return "Некорректное расписание: длительность тура должна быть положительной.";
+        }
+        if (details.includes("overlap")) {
+            return "Некорректное расписание: туры не должны пересекаться.";
+        }
+        return "Некорректное расписание.";
+    }
+
+    if (key.includes("only the first not started tour can be started")) {
+        return "Можно запустить только первый незапущенный тур.";
+    }
+    if (key.includes("contest has not started yet")) {
+        return "Контест ещё не начался.";
+    }
+    if (key.startsWith("failed to get contest")) {
+        return "Контест не найден. Сначала дождитесь синхронизации контеста.";
+    }
+    if (key.startsWith("failed to ")) {
+        return "Не удалось выполнить действие.";
+    }
+
+    return "Не удалось выполнить действие.";
+}
+
 async function readError(response: Response) {
     try {
         const body = (await response.json()) as ErrorResponse;
-        return body.message || response.statusText;
+        return translateAdminMessage(body.message || response.statusText);
     } catch {
-        return response.statusText;
+        return translateAdminMessage(response.statusText);
     }
 }
 
@@ -47,6 +126,10 @@ function nextTourDefaults(tours: TourConfig[]): TourConfig {
     };
 }
 
+function isValidContestId(value: number) {
+    return Number.isInteger(value) && value > 0;
+}
+
 export default function AdminTimetable() {
     const defaultContestId = CONTESTS[0]?.id?.toString() ?? "";
     const [contestId, setContestId] = useState(defaultContestId);
@@ -54,30 +137,39 @@ export default function AdminTimetable() {
     const [moveTourNumber, setMoveTourNumber] = useState("1");
     const [moveStartTime, setMoveStartTime] = useState("0");
     const [nextTour, setNextTour] = useState<TourConfig | null>(null);
-    const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+    const [status, setStatus] = useState<Status>("idle");
     const [message, setMessage] = useState("");
+    const loadRequestId = useRef(0);
 
     const numericContestId = useMemo(() => Number(contestId), [contestId]);
-    const canSubmit = Number.isInteger(numericContestId) && numericContestId > 0;
+    const canSubmit = isValidContestId(numericContestId);
+    const firstPendingTourIndex = useMemo(() => tours.findIndex((tour) => !tour.started), [tours]);
 
-    const setResult = (nextStatus: typeof status, nextMessage: string) => {
+    const setResult = useCallback((nextStatus: Status, nextMessage: string) => {
         setStatus(nextStatus);
         setMessage(nextMessage);
-    };
+    }, []);
 
-    const loadTimetable = async () => {
-        if (!canSubmit) {
+    const loadTimetable = useCallback(async (targetContestId = numericContestId) => {
+        if (!isValidContestId(targetContestId)) {
             setResult("error", "ID контеста должен быть положительным целым числом.");
             return;
         }
 
+        const requestId = loadRequestId.current + 1;
+        loadRequestId.current = requestId;
+
         setStatus("loading");
         setMessage("");
         setNextTour(null);
+        setTours([]);
 
-        const response = await fetch(`/api/admin/timetables/${numericContestId}`, {
+        const response = await fetch(`/api/admin/timetables/${targetContestId}`, {
             headers: adminAuthHeaders(),
         });
+        if (requestId !== loadRequestId.current) {
+            return;
+        }
 
         if (response.status === 404) {
             setTours([]);
@@ -90,9 +182,25 @@ export default function AdminTimetable() {
         }
 
         const timetable = (await response.json()) as ToursTimetable;
+        if (requestId !== loadRequestId.current) {
+            return;
+        }
         setTours((timetable.tour_times || []).map(normalizeTour));
         setResult("success", "Расписание загружено.");
-    };
+    }, [numericContestId, setResult]);
+
+    useEffect(() => {
+        if (!canSubmit) {
+            loadRequestId.current += 1;
+            setTours([]);
+            setNextTour(null);
+            setStatus("idle");
+            setMessage("");
+            return;
+        }
+
+        void loadTimetable(numericContestId);
+    }, [canSubmit, loadTimetable, numericContestId]);
 
     const saveTimetable = async (event?: FormEvent) => {
         event?.preventDefault();
@@ -188,6 +296,36 @@ export default function AdminTimetable() {
         setResult("success", "Тур перенесён.");
     };
 
+    const startTour = async (index: number) => {
+        if (!canSubmit) {
+            setResult("error", "ID контеста должен быть положительным целым числом.");
+            return;
+        }
+
+        const tourNumber = index + 1;
+        if (!window.confirm(`Запустить тур ${tourNumber} сейчас? Время этого и следующих туров будет сдвинуто.`)) {
+            return;
+        }
+
+        setStatus("loading");
+        setMessage("");
+
+        const response = await fetch(`/api/admin/timetables/${numericContestId}/tours/${tourNumber}/start`, {
+            method: "POST",
+            headers: adminAuthHeaders(),
+        });
+
+        if (!response.ok) {
+            setResult("error", await readError(response));
+            return;
+        }
+
+        const timetable = (await response.json()) as ToursTimetable;
+        setTours((timetable.tour_times || []).map(normalizeTour));
+        setNextTour(null);
+        setResult("success", `Тур ${tourNumber} запущен.`);
+    };
+
     const loadNextTour = async () => {
         if (!canSubmit) {
             setResult("error", "ID контеста должен быть положительным целым числом.");
@@ -228,7 +366,7 @@ export default function AdminTimetable() {
         <section className="admin-timetable">
             <div className="admin-section-head">
                 <h2>Расписание туров</h2>
-                <button type="button" className="admin-icon-btn" onClick={loadTimetable} disabled={status === "loading"}>
+                <button type="button" className="admin-icon-btn" onClick={() => loadTimetable()} disabled={status === "loading"}>
                     <RefreshCw size={16} />
                     Загрузить
                 </button>
@@ -259,7 +397,7 @@ export default function AdminTimetable() {
                         <span>#</span>
                         <span>Старт, сек</span>
                         <span>Длительность, сек</span>
-                        <span>Запущен</span>
+                        <span>Статус</span>
                         <span />
                     </div>
                     {tours.map((tour, index) => (
@@ -277,14 +415,23 @@ export default function AdminTimetable() {
                                 value={tour.duration}
                                 onChange={(event) => updateTour(index, { duration: Number(event.target.value) })}
                             />
-                            <input
-                                type="checkbox"
-                                checked={tour.started}
-                                onChange={(event) => updateTour(index, { started: event.target.checked })}
-                            />
-                            <button type="button" className="admin-row-btn" onClick={() => removeTour(index)}>
-                                <Trash2 size={16} />
-                            </button>
+                            <span className={`admin-status-badge ${tour.started ? "admin-status-badge--done" : "admin-status-badge--pending"}`}>
+                                {tour.started ? "Запущен" : "Ожидает"}
+                            </span>
+                            <div className="admin-row-actions">
+                                <button
+                                    type="button"
+                                    className="admin-row-btn admin-start-btn"
+                                    onClick={() => startTour(index)}
+                                    disabled={status === "loading" || tour.started || index !== firstPendingTourIndex}
+                                >
+                                    <Play size={16} />
+                                    Начать
+                                </button>
+                                <button type="button" className="admin-row-btn" onClick={() => removeTour(index)}>
+                                    <Trash2 size={16} />
+                                </button>
+                            </div>
                         </div>
                     ))}
                 </div>

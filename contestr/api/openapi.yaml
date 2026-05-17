@@ -167,6 +167,38 @@ paths:
         404:
           $ref: '#/components/responses/ErrorResponse'
 
+  /api/admin/timetables/{contest_id}/tours/{tour_number}/start:
+    post:
+      operationId: postAdminTimetableTourStart
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: contest_id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: tour_number
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          description: Расписание после ручного запуска выбранного тура
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ToursTimetable'
+        400:
+          $ref: '#/components/responses/ErrorResponse'
+        401:
+          $ref: '#/components/responses/ErrorResponse'
+        404:
+          $ref: '#/components/responses/ErrorResponse'
+        409:
+          $ref: '#/components/responses/ErrorResponse'
+
   /api/admin/timetables/{contest_id}/first-not-started:
     get:
       operationId: getAdminTimetableFirstNotStarted

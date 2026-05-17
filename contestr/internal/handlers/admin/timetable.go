@@ -18,6 +18,7 @@ type TimetableService interface {
 	UpdateTimetable(ctx context.Context, timetable regattapkg.ToursTimetable) (*regattapkg.ToursTimetable, error)
 	DeleteTimetable(ctx context.Context, contestID int) error
 	MoveTimetableTour(ctx context.Context, contestID int, tourNumber int, newStartTime int) (*regattapkg.ToursTimetable, error)
+	StartTimetableTour(ctx context.Context, contestID int, tourNumber int) (*regattapkg.ToursTimetable, error)
 	GetFirstNotStartedTimetableTour(ctx context.Context, contestID int) (*regattapkg.TourConfig, error)
 }
 
@@ -47,7 +48,7 @@ func (h *TimetableHandle) GetAdminTimetable(ctx echo.Context, contestId int) err
 func (h *TimetableHandle) PutAdminTimetable(ctx echo.Context, contestId int) error {
 	var timetable regattapkg.ToursTimetable
 	if err := ctx.Bind(&timetable); err != nil {
-		return ctx.JSON(http.StatusBadRequest, server.Error{Message: "некорректное тело запроса"})
+		return ctx.JSON(http.StatusBadRequest, server.Error{Message: "invalid request body"})
 	}
 	timetable.ContestId = contestId
 
@@ -80,10 +81,19 @@ func (h *TimetableHandle) DeleteAdminTimetable(ctx echo.Context, contestId int) 
 func (h *TimetableHandle) PatchAdminTimetableTourMove(ctx echo.Context, contestId int, tourNumber int) error {
 	var req moveTimetableTourRequest
 	if err := ctx.Bind(&req); err != nil {
-		return ctx.JSON(http.StatusBadRequest, server.Error{Message: "некорректное тело запроса"})
+		return ctx.JSON(http.StatusBadRequest, server.Error{Message: "invalid request body"})
 	}
 
 	timetable, err := h.timetable.MoveTimetableTour(ctx.Request().Context(), contestId, tourNumber, req.StartTime)
+	if err != nil {
+		return writeTimetableError(ctx, err)
+	}
+
+	return ctx.JSON(http.StatusOK, timetable)
+}
+
+func (h *TimetableHandle) PostAdminTimetableTourStart(ctx echo.Context, contestId int, tourNumber int) error {
+	timetable, err := h.timetable.StartTimetableTour(ctx.Request().Context(), contestId, tourNumber)
 	if err != nil {
 		return writeTimetableError(ctx, err)
 	}
@@ -104,9 +114,9 @@ func writeTimetableError(ctx echo.Context, err error) error {
 	switch {
 	case errors.Is(err, regattasvc.ErrInvalidTimetable):
 		return ctx.JSON(http.StatusBadRequest, server.Error{Message: err.Error()})
-	case errors.Is(err, regattasvc.ErrTimetableAlreadyExists):
+	case errors.Is(err, regattasvc.ErrTimetableAlreadyExists), errors.Is(err, regattasvc.ErrTourAlreadyStarted):
 		return ctx.JSON(http.StatusConflict, server.Error{Message: err.Error()})
-	case errors.Is(err, regattasvc.ErrTimetableNotFound), errors.Is(err, regattasvc.ErrTourNotFound):
+	case errors.Is(err, regattasvc.ErrTimetableNotFound), errors.Is(err, regattasvc.ErrContestNotFound), errors.Is(err, regattasvc.ErrTourNotFound):
 		return ctx.JSON(http.StatusNotFound, server.Error{Message: err.Error()})
 	default:
 		return ctx.JSON(http.StatusInternalServerError, server.Error{Message: err.Error()})
