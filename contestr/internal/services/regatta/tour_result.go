@@ -67,11 +67,15 @@ func (t *TourResult) ParticipantScore(participant Participant) ParticipantResult
 			continue
 		}
 
+		endTime := t.StartTime + t.DurationInSeconds
 		score += SolvePoints
-		logger.Infof(context.Background(), "Participant %v solved problem %v: +5 points", participant, problem)
-		if participantSolveTime <= t.EndTime {
+		logger.Infof(context.Background(),
+			"Participant %v solved problem %v: +5 points", participant, problem)
+		if participantSolveTime <= endTime {
 			score += SolveInTimePoints
-			logger.Infof(context.Background(), "Participant %v solved problem %v in time (%v <= %v): +5 points", participant, problem, participantSolveTime, t.EndTime)
+			logger.Infof(context.Background(),
+				"Participant %v solved problem %v in time (%v <= %v): +5 points",
+				participant, problem, participantSolveTime, endTime)
 		}
 
 		overtookCount := 0
@@ -99,7 +103,7 @@ func (t *TourResult) ParticipantScore(participant Participant) ParticipantResult
 		result[problemCode] = ProblemResult{
 			problemCode:        problemCode,
 			score:              score,
-			lastSubmissionTime: participantSolveTime - t.StarTime,
+			lastSubmissionTime: participantSolveTime - t.StartTime,
 		}
 	}
 

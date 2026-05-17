@@ -20,21 +20,21 @@ func NewLoginHandle(auth *auth.Service) *LoginHandle {
 func (h *LoginHandle) PostAdminAuthLogin(ctx echo.Context) error {
 	if !h.auth.Enabled() {
 		return ctx.JSON(http.StatusServiceUnavailable, server.Error{
-			Message: "admin authentication is disabled",
+			Message: "авторизация администратора отключена",
 		})
 	}
 
 	var req server.AdminLoginRequest
 	if err := ctx.Bind(&req); err != nil {
 		return ctx.JSON(http.StatusBadRequest, server.Error{
-			Message: "invalid request body",
+			Message: "некорректное тело запроса",
 		})
 	}
 
 	if err := h.auth.ValidateCredentials(req.Username, req.Password); err != nil {
 		if errors.Is(err, auth.ErrInvalidCredentials) {
 			return ctx.JSON(http.StatusUnauthorized, server.Error{
-				Message: "invalid username or password",
+				Message: "некорректный логин или пароль",
 			})
 		}
 		return ctx.JSON(http.StatusServiceUnavailable, server.Error{
@@ -45,7 +45,7 @@ func (h *LoginHandle) PostAdminAuthLogin(ctx echo.Context) error {
 	token, expiresIn, err := h.auth.IssueToken(req.Username)
 	if err != nil {
 		return ctx.JSON(http.StatusInternalServerError, server.Error{
-			Message: "failed to issue token",
+			Message: "не удалось выпустить токен",
 		})
 	}
 

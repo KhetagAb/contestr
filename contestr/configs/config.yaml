@@ -31,6 +31,9 @@ ejudge:
 contest_sync:
   interval: 1m
 
+timetable_sync:
+  interval: 1s
+
 contests:
   registry:
     ejudge:

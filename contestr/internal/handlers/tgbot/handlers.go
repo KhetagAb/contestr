@@ -24,11 +24,12 @@ func NewHandlers(
 	start *StartHandle,
 	regattaStartTour *RegattaStartTourHandle,
 	help *HelpHandle,
+	timetable *TimetableHandle,
 	message *MessageHandle,
 	syncContests *SyncContestsHandle,
 ) *Handlers {
 	return &Handlers{
-		handlers: []Handler{start, help, regattaStartTour, message, syncContests},
+		handlers: []Handler{start, help, regattaStartTour, timetable, syncContests, message},
 	}
 }
 

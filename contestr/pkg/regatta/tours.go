@@ -13,12 +13,10 @@ type Problem = int
 type Group = []Participant
 
 type Tour struct {
-	Name  string `bson:"name"`
-	Index int    `bson:"index"`
-	// TODO refactor
-	StarTime          int `bson:"start_time"`
-	EndTime           int `bson:"end_time"`
-	DurationInSeconds int `bson:"duration_in_seconds"`
+	Name              string `bson:"name"`
+	Index             int    `bson:"index"`
+	StartTime         int    `bson:"start_time"`
+	DurationInSeconds int    `bson:"duration_in_seconds"`
 
 	Groups       map[Participant]Group `bson:"groups"`
 	GroupSize    int                   `bson:"group_size"`
@@ -52,13 +50,13 @@ func ParticipantsToGroupNumbersMapping(groups [][]string) map[Participant]int {
 }
 
 type ContestStandings struct {
-	ContestId             int          `json:"contest_id,omitempty"`
-	ContestName           string       `json:"contest_name,omitempty"`
-	Rows                  []ContestRow `json:"rows,omitempty"`
-	ContestStartTime      time.Time    `json:"contest_start_time,omitempty"`
-	CurrentTime           time.Time    `json:"current_time,omitempty"`
-	CurrentTourStartTime  int          `json:"current_tour_start_time,omitempty"`
-	CurrentTourDuration   int          `json:"current_tour_duration,omitempty"`
+	ContestId            int          `json:"contest_id,omitempty"`
+	ContestName          string       `json:"contest_name,omitempty"`
+	Rows                 []ContestRow `json:"rows,omitempty"`
+	ContestStartTime     time.Time    `json:"contest_start_time,omitempty"`
+	CurrentTime          time.Time    `json:"current_time,omitempty"`
+	CurrentTourStartTime int          `json:"current_tour_start_time,omitempty"`
+	CurrentTourDuration  int          `json:"current_tour_duration,omitempty"`
 }
 
 type ProblemResult struct {
@@ -74,5 +72,28 @@ type ContestRow struct {
 	SolvedProblems int             `json:"solved_problems"`
 	TeamNumber     int             `json:"team_number"`
 	TotalScore     int             `json:"total_score"`
+}
 
+type TourConfig struct {
+	StartTime int  `bson:"start_time" json:"start_time"`
+	Duration  int  `bson:"duration" json:"duration"`
+	Started   bool `bson:"started" json:"started"`
+}
+
+type ToursTimetable struct {
+	ContestId int          `bson:"contest_id" json:"contest_id"`
+	TourTimes []TourConfig `bson:"tour_times" json:"tour_times"`
+}
+
+func (t *ToursTimetable) FirstNotStartedTour() (int, TourConfig, bool) {
+	if t == nil {
+		return 0, TourConfig{}, false
+	}
+
+	for i, tour := range t.TourTimes {
+		if !tour.Started {
+			return i + 1, tour, true
+		}
+	}
+	return 0, TourConfig{}, false
 }

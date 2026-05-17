@@ -22,14 +22,14 @@ func AdminJWT(authService *auth.Service) echo.MiddlewareFunc {
 			header := c.Request().Header.Get("Authorization")
 			if header == "" {
 				return c.JSON(http.StatusUnauthorized, map[string]string{
-					"message": "missing authorization header",
+					"message": "отсутствует заголовок Authorization",
 				})
 			}
 
 			claims, err := authService.ParseToken(header)
 			if err != nil {
 				return c.JSON(http.StatusUnauthorized, map[string]string{
-					"message": "invalid or expired token",
+					"message": "некорректный или истёкший токен",
 				})
 			}
 

@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from "react";
 import { adminAuthHeaders, clearAdminToken, getAdminToken, setAdminToken } from "./adminAuth";
+import AdminTimetable from "./AdminTimetable";
 import { Sidebar } from "./cont_compon/SideBar.tsx";
 import "./App.css";
 import "./AdminLogin.css";
@@ -106,19 +107,22 @@ export default function AdminLogin() {
         <>
             <Sidebar />
             <div className="admin-login-content">
-                <div className="admin-login-panel">
+                <div className={`admin-login-panel ${loggedInAs ? "admin-console-panel" : ""}`}>
                     {loggedInAs ? (
-                        <div className="admin-login-form-box">
-                            <p className="admin-login-greeting">
-                                Вы вошли как <span className="h1_pink">{loggedInAs}</span>
-                            </p>
-                            <button type="button" className="admin-login-btn" onClick={handleLogout}>
-                                Выйти
-                            </button>
-                            <a href="/" className="admin-login-link">
-                                На главную
-                            </a>
-                        </div>
+                        <>
+                            <div className="admin-login-form-box">
+                                <p className="admin-login-greeting">
+                                    Вы вошли как <span className="h1_pink">{loggedInAs}</span>
+                                </p>
+                                <button type="button" className="admin-login-btn" onClick={handleLogout}>
+                                    Выйти
+                                </button>
+                                <a href="/" className="admin-login-link">
+                                    На главную
+                                </a>
+                            </div>
+                            <AdminTimetable />
+                        </>
                     ) : (
                         <>
                             <h1 className="admin-login-title">Авторизация</h1>

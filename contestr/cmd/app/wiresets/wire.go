@@ -15,6 +15,7 @@ import (
 	"contestr/internal/services/contest_registry"
 	"contestr/internal/services/contest_sync"
 	"contestr/internal/services/regatta"
+	"contestr/internal/services/timetable_sync"
 	"contestr/internal/transport"
 	"contestr/pkg/config"
 	"context"
@@ -41,6 +42,10 @@ func GetContestSyncInterval(cfg *configs.Config) time.Duration {
 	return cfg.ContestSync.Interval
 }
 
+func GetTimetableSyncInterval(cfg *configs.Config) timetable_sync.Interval {
+	return timetable_sync.Interval(cfg.TimetableSync.Interval)
+}
+
 var All = wire.NewSet(
 	NewContextProvider,
 	config.NewConfig,
@@ -51,6 +56,8 @@ var All = wire.NewSet(
 	cfhandlers.NewContestHandle,
 	adminhandlers.NewLoginHandle,
 	adminhandlers.NewMeHandle,
+	wire.Bind(new(adminhandlers.TimetableService), new(*regatta.Regatta)),
+	adminhandlers.NewTimetableHandle,
 	handlers.NewHandlers,
 	auth.NewService,
 	transport.NewHTTPServer,
@@ -58,6 +65,8 @@ var All = wire.NewSet(
 	tgbot.NewStartHandle,
 	wire.Bind(new(tgbot.Regatta), new(*regatta.Regatta)),
 	tgbot.NewRegattaStartTourHandle,
+	wire.Bind(new(tgbot.TimetableService), new(*regatta.Regatta)),
+	tgbot.NewTimetableHandle,
 	wire.Bind(new(tgbot.ContestSyncService), new(*contest_sync.ContestSyncService)),
 	tgbot.NewSyncContestsHandle,
 	tgbot.NewHelpHandle,
@@ -67,9 +76,11 @@ var All = wire.NewSet(
 
 	repository.NewMongoClient,
 	repository.NewMongoTourRepository,
+	repository.NewTourTimetableRepository,
 	repository.NewMongoContestRepository,
 	repository.NewMongoCodeforcesHandleRepository,
 	wire.Bind(new(regatta.TourRepository), new(*repository.MongoTourRepository)),
+	wire.Bind(new(regatta.TimetableRepository), new(*repository.TourTimetableRepository)),
 	wire.Bind(new(regatta.ContestRepository), new(*repository.MongoContestRepository)),
 	wire.Bind(new(repository.ContestRepository), new(*repository.MongoContestRepository)),
 	wire.Bind(new(repository.CodeforcesHandleRepository), new(*repository.MongoCodeforcesHandleRepository)),
@@ -85,6 +96,9 @@ var All = wire.NewSet(
 
 	GetContestSyncInterval,
 	contest_sync.NewContestSyncService,
+	GetTimetableSyncInterval,
+	wire.Bind(new(timetable_sync.RegattaService), new(*regatta.Regatta)),
+	timetable_sync.NewTimetableSyncService,
 
 	regatta.NewRegatta,
 

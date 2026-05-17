@@ -13,6 +13,7 @@ type Handlers struct {
 	regattaContestHandle *regatta.ContestHandle
 	adminLoginHandle     *admin.LoginHandle
 	adminMeHandle        *admin.MeHandle
+	adminTimetableHandle *admin.TimetableHandle
 }
 
 func (h *Handlers) GetRegattaContestStandings(ctx echo.Context, contestId int) error {
@@ -24,12 +25,14 @@ func NewHandlers(
 	regattaContestHandle *regatta.ContestHandle,
 	adminLoginHandle *admin.LoginHandle,
 	adminMeHandle *admin.MeHandle,
+	adminTimetableHandle *admin.TimetableHandle,
 ) *Handlers {
 	return &Handlers{
 		contestHandle:        contestHandle,
 		regattaContestHandle: regattaContestHandle,
 		adminLoginHandle:     adminLoginHandle,
 		adminMeHandle:        adminMeHandle,
+		adminTimetableHandle: adminTimetableHandle,
 	}
 }
 
@@ -43,4 +46,24 @@ func (h *Handlers) PostAdminAuthLogin(ctx echo.Context) error {
 
 func (h *Handlers) GetAdminMe(ctx echo.Context) error {
 	return h.adminMeHandle.GetAdminMe(ctx)
+}
+
+func (h *Handlers) GetAdminTimetable(ctx echo.Context, contestId int) error {
+	return h.adminTimetableHandle.GetAdminTimetable(ctx, contestId)
+}
+
+func (h *Handlers) PutAdminTimetable(ctx echo.Context, contestId int) error {
+	return h.adminTimetableHandle.PutAdminTimetable(ctx, contestId)
+}
+
+func (h *Handlers) DeleteAdminTimetable(ctx echo.Context, contestId int) error {
+	return h.adminTimetableHandle.DeleteAdminTimetable(ctx, contestId)
+}
+
+func (h *Handlers) PatchAdminTimetableTourMove(ctx echo.Context, contestId int, tourNumber int) error {
+	return h.adminTimetableHandle.PatchAdminTimetableTourMove(ctx, contestId, tourNumber)
+}
+
+func (h *Handlers) GetAdminTimetableFirstNotStarted(ctx echo.Context, contestId int) error {
+	return h.adminTimetableHandle.GetAdminTimetableFirstNotStarted(ctx, contestId)
 }

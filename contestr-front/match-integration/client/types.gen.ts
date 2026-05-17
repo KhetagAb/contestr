@@ -64,7 +64,7 @@ export type CreateActivityRequest = {
     description?: string;
     sport_section_id: number;
     /**
-     * Core-идентификатор создателя активности
+     * Идентификатор создателя активности в ядре
      */
     creator_id: number;
     /**
@@ -83,7 +83,7 @@ export type UpdateActivityRequest = {
      */
     description?: string;
     /**
-     * Core-идентификатор создателя активности
+     * Идентификатор создателя активности в ядре
      */
     creator_id?: number;
     enroll_deadline?: string;
@@ -120,7 +120,7 @@ export type RegisterPlayerResponses = {
      */
     200: {
         /**
-         * Core-идентификатор
+         * Идентификатор в ядре
          */
         id: number;
     };
@@ -129,7 +129,7 @@ export type RegisterPlayerResponses = {
      */
     201: {
         /**
-         * Core-идентификатор
+         * Идентификатор в ядре
          */
         id: number;
     };

@@ -5,7 +5,7 @@ import (
 )
 
 const (
-	SWAP_BORDER_PROBABILITY = 0.4
+	SwapBorderProbability = 0.4
 )
 
 func FormGroups(ratedParticipants []string, groupSize int) [][]string {
@@ -13,7 +13,7 @@ func FormGroups(ratedParticipants []string, groupSize int) [][]string {
 	result := make([][]string, 0, n/groupSize+1)
 
 	for i := 0; i < n-1; i++ {
-		if rand.Float64() <= SWAP_BORDER_PROBABILITY {
+		if rand.Float64() <= SwapBorderProbability {
 			ratedParticipants[i], ratedParticipants[i+1] = ratedParticipants[i+1], ratedParticipants[i]
 		}
 	}

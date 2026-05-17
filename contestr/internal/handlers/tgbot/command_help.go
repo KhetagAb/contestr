@@ -1,9 +1,11 @@
 package tgbot
 
 import (
-	"contestr/pkg/logger"
 	"context"
 	"fmt"
+
+	"contestr/pkg/logger"
+
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
 )
@@ -18,7 +20,6 @@ func (h *HelpHandle) Register() (bot.HandlerType, string, bot.MatchType, bot.Han
 	return bot.HandlerTypeMessageText, "help", bot.MatchTypeCommand, h.HandleHelp
 }
 
-// HandleHelp обрабатывает команду /help
 func (h *HelpHandle) HandleHelp(ctx context.Context, b *bot.Bot, update *models.Update) {
 	chatID := update.Message.Chat.ID
 	userID := fmt.Sprint(update.Message.From.ID)

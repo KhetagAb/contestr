@@ -1,6 +1,6 @@
 openapi: 3.0.0
 info:
-  title: Contests API
+  title: API контестов
   description: Ручки для получения данных о контестах
   version: 1.0.0
 paths:
@@ -62,6 +62,132 @@ paths:
               schema:
                 $ref: '#/components/schemas/AdminMeResponse'
         401:
+          $ref: '#/components/responses/ErrorResponse'
+
+  /api/admin/timetables/{contest_id}:
+    get:
+      operationId: getAdminTimetable
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: contest_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          description: Расписание туров контеста
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ToursTimetable'
+        401:
+          $ref: '#/components/responses/ErrorResponse'
+        404:
+          $ref: '#/components/responses/ErrorResponse'
+    put:
+      operationId: putAdminTimetable
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: contest_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ToursTimetable'
+      responses:
+        200:
+          description: Сохранённое расписание туров контеста
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ToursTimetable'
+        400:
+          $ref: '#/components/responses/ErrorResponse'
+        401:
+          $ref: '#/components/responses/ErrorResponse'
+    delete:
+      operationId: deleteAdminTimetable
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: contest_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        204:
+          description: Расписание удалено
+        401:
+          $ref: '#/components/responses/ErrorResponse'
+        404:
+          $ref: '#/components/responses/ErrorResponse'
+
+  /api/admin/timetables/{contest_id}/tours/{tour_number}/move:
+    patch:
+      operationId: patchAdminTimetableTourMove
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: contest_id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: tour_number
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MoveTimetableTourRequest'
+      responses:
+        200:
+          description: Расписание после переноса выбранного тура и всех последующих туров
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ToursTimetable'
+        400:
+          $ref: '#/components/responses/ErrorResponse'
+        401:
+          $ref: '#/components/responses/ErrorResponse'
+        404:
+          $ref: '#/components/responses/ErrorResponse'
+
+  /api/admin/timetables/{contest_id}/first-not-started:
+    get:
+      operationId: getAdminTimetableFirstNotStarted
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: contest_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          description: Первый незапущенный тур в порядке расписания
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TourConfig'
+        401:
+          $ref: '#/components/responses/ErrorResponse'
+        404:
           $ref: '#/components/responses/ErrorResponse'
 
 components:
@@ -211,4 +337,39 @@ components:
           type: string
         ok:
           type: boolean
+    TourConfig:
+      type: object
+      required:
+        - start_time
+        - duration
+        - started
+      properties:
+        start_time:
+          type: integer
+          description: Время начала тура в секундах от старта контеста
+        duration:
+          type: integer
+          description: Длительность тура в секундах
+        started:
+          type: boolean
+    ToursTimetable:
+      type: object
+      required:
+        - contest_id
+        - tour_times
+      properties:
+        contest_id:
+          type: integer
+        tour_times:
+          type: array
+          items:
+            $ref: '#/components/schemas/TourConfig'
+    MoveTimetableTourRequest:
+      type: object
+      required:
+        - start_time
+      properties:
+        start_time:
+          type: integer
+          description: Новое время начала выбранного тура в секундах от старта контеста
 

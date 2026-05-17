@@ -23,17 +23,20 @@ type ContestRepository interface {
 }
 
 type Regatta struct {
-	tourRepository TourRepository
-	contestRepo    ContestRepository
+	tourRepository      TourRepository
+	contestRepo         ContestRepository
+	timetableRepository TimetableRepository
 }
 
 func NewRegatta(
 	tourRepository TourRepository,
 	contestRepo ContestRepository,
+	timetableRepository TimetableRepository,
 ) *Regatta {
 	return &Regatta{
-		tourRepository: tourRepository,
-		contestRepo:    contestRepo,
+		tourRepository:      tourRepository,
+		contestRepo:         contestRepo,
+		timetableRepository: timetableRepository,
 	}
 }
 
@@ -133,7 +136,7 @@ func (s *Regatta) GetContestResult(ctx context.Context, contestID int) (regatta.
 
 	if len(tours) > 0 {
 		lastTour := tours[len(tours)-1]
-		standings.CurrentTourStartTime = int(contest.StartTime.Unix()) + lastTour.StarTime
+		standings.CurrentTourStartTime = int(contest.StartTime.Unix()) + lastTour.StartTime
 		standings.CurrentTourDuration = lastTour.DurationInSeconds / 60
 	}
 

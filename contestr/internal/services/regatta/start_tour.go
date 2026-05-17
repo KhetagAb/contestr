@@ -38,16 +38,16 @@ func (s *Regatta) StartTour(ctx context.Context, contestId int, duration time.Du
 
 	groups := util.FormGroups(ratedParticipants, GroupSize)
 	tourIdx := len(tours) + 1
+	durationSeconds := int(duration.Seconds())
 
 	startTourInSecondsFromStart := int(contestStandings.CurrentTime.Sub(contestStandings.ContestStartTime).Seconds())
-	endTourInSecondsFromStart := int((contestStandings.CurrentTime.Sub(contestStandings.ContestStartTime) + duration).Seconds())
-	logger.Infof(ctx, "Tour from start: %v, ends: %v (contest start: %v)", startTourInSecondsFromStart, endTourInSecondsFromStart, contestStandings.ContestStartTime)
+	logger.Infof(ctx, "Tour from start: %v, ends: %v (contest start: %v)", startTourInSecondsFromStart,
+		startTourInSecondsFromStart+durationSeconds, contestStandings.ContestStartTime)
 	tour := regatta.Tour{
 		Name:              fmt.Sprintf("Tour №%v of contest %v", tourIdx, contestId),
 		Index:             tourIdx,
-		StarTime:          startTourInSecondsFromStart,
-		EndTime:           endTourInSecondsFromStart,
-		DurationInSeconds: int(duration.Seconds()),
+		StartTime:         startTourInSecondsFromStart,
+		DurationInSeconds: durationSeconds,
 		Groups:            ConvertGroups(groups),
 		GroupSize:         GroupSize,
 		Problems:          []int{2*tourIdx - 1, 2 * tourIdx},
