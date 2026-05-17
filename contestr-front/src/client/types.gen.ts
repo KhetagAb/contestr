@@ -56,7 +56,7 @@ export type GetRegattaContestStandingsData = {
         contest_id?: number;
     };
     query?: never;
-    url: '/regatta/contests/{contest_id}';
+    url: '/api/regatta/contests/{contest_id}';
 };
 
 export type GetRegattaContestStandingsResponses = {
@@ -73,7 +73,7 @@ export type GetRegattaContestStandingsResponses = {
          */
         contest_id: number;
         /**
-         * Время начала последнего тура
+         * Время начала последнего тура (Unix timestamp в секундах)
          */
         current_tour_start_time: number;
         /**
@@ -92,7 +92,7 @@ export type GetContestData = {
         contest_id?: number;
     };
     query?: never;
-    url: '/plugins/whoami/whoami.php';
+    url: '/api/plugins/whoami/whoami.php';
 };
 
 export type GetContestResponses = {
@@ -110,7 +110,7 @@ export type GetContest2Data = {
         contest_id?: number;
     };
     query?: never;
-    url: '/cfcontest/{contest_id}';
+    url: '/api/cfcontest/{contest_id}';
 };
 
 export type GetContest2Responses = {
@@ -128,7 +128,7 @@ export type GetHelloData = {
     query?: {
         name?: string;
     };
-    url: '/hello';
+    url: '/api/hello';
 };
 
 export type GetHelloResponses = {
@@ -141,5 +141,5 @@ export type GetHelloResponses = {
 export type GetHelloResponse = GetHelloResponses[keyof GetHelloResponses];
 
 export type ClientOptions = {
-    baseUrl: `${string}://${string}` | (string & {});
+    baseUrl: `${string}://openapi.yaml` | (string & {});
 };

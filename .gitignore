@@ -27,6 +27,9 @@ vendor/
 # secrets
 *.env
 
+# Local docker overrides (e.g. publish 127.0.0.1:8080 for Vite dev)
+docker-compose.override.yml
+
 # generated sources
 *.gen.go
 *_gen.go

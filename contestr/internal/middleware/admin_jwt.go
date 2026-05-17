@@ -12,10 +12,10 @@ func AdminJWT(authService *auth.Service) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			path := c.Request().URL.Path
-			if !strings.HasPrefix(path, "/admin") {
+			if !strings.HasPrefix(path, "/api/admin") {
 				return next(c)
 			}
-			if c.Request().Method == http.MethodPost && path == "/admin/auth/login" {
+			if c.Request().Method == http.MethodPost && path == "/api/admin/auth/login" {
 				return next(c)
 			}
 

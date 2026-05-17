@@ -4,7 +4,7 @@ info:
   description: Ручки для получения данных о контестах
   version: 1.0.0
 paths:
-  /regatta/contests/{contest_id}:
+  /api/regatta/contests/{contest_id}:
     get:
       operationId: getRegattaContestStandings
       parameters:
@@ -18,7 +18,7 @@ paths:
 
   # TODO
   # whoami=user_id
-  /plugins/whoami/whoami.php:
+  /api/plugins/whoami/whoami.php:
     get:
       operationId: getContest
       parameters:
@@ -29,7 +29,7 @@ paths:
       responses:
         200:
           $ref: '#/components/responses/GetContestResponse'
-  /cfcontest/{contest_id}:
+  /api/cfcontest/{contest_id}:
     get:
       operationId: getContest
       parameters:
@@ -40,7 +40,7 @@ paths:
       responses:
         200:
           $ref: '#/components/responses/GetContestResponse'
-  /hello:
+  /api/hello:
     get:
       operationId: getHello
       parameters:

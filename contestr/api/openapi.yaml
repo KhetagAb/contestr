@@ -4,7 +4,7 @@ info:
   description: Ручки для получения данных о контестах
   version: 1.0.0
 paths:
-  /regatta/contests/{contest_id}:
+  /api/regatta/contests/{contest_id}:
     get:
       operationId: getRegattaContestStandings
       parameters:
@@ -16,7 +16,7 @@ paths:
         200:
           $ref: '#/components/responses/RegattaContestStandings'
 
-  /cfcontest/{contest_id}:
+  /api/cfcontest/{contest_id}:
     get:
       operationId: getContest
       parameters:
@@ -28,7 +28,7 @@ paths:
         200:
           $ref: '#/components/responses/GetContestResponse'
 
-  /admin/auth/login:
+  /api/admin/auth/login:
     post:
       operationId: postAdminAuthLogin
       requestBody:
@@ -49,7 +49,7 @@ paths:
         503:
           $ref: '#/components/responses/ErrorResponse'
 
-  /admin/me:
+  /api/admin/me:
     get:
       operationId: getAdminMe
       security:

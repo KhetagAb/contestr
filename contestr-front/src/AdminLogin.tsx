@@ -19,7 +19,7 @@ type ErrorResponse = {
 };
 
 async function fetchAdminMe(): Promise<{ ok: true; username: string } | { ok: false; message: string }> {
-    const meRes = await fetch("/admin/me", { headers: adminAuthHeaders() });
+    const meRes = await fetch("/api/admin/me", { headers: adminAuthHeaders() });
     const meBody = (await meRes.json()) as MeResponse & ErrorResponse;
     if (!meRes.ok || !meBody.ok) {
         return { ok: false, message: meBody.message ?? "Сессия недействительна" };
@@ -63,7 +63,7 @@ export default function AdminLogin() {
         setMessage("");
 
         try {
-            const loginRes = await fetch("/admin/auth/login", {
+            const loginRes = await fetch("/api/admin/auth/login", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ username, password }),
@@ -107,58 +107,56 @@ export default function AdminLogin() {
             <Sidebar />
             <div className="admin-login-content">
                 <div className="admin-login-panel">
-                    <h1 className="admin-login-title">Авторизация</h1>
-                    {!loggedInAs && (
-                        <p className="admin-login-subtitle">Введите логин и пароль</p>
-                    )}
-
                     {loggedInAs ? (
-                        <>
+                        <div className="admin-login-form-box">
                             <p className="admin-login-greeting">
                                 Вы вошли как <span className="h1_pink">{loggedInAs}</span>
                             </p>
-                            <div className="admin-login-actions">
-                                <button type="button" className="admin-login-btn" onClick={handleLogout}>
-                                    Выйти
-                                </button>
-                                <a href="/" className="admin-login-link">
-                                    На главную
-                                </a>
-                            </div>
-                        </>
+                            <button type="button" className="admin-login-btn" onClick={handleLogout}>
+                                Выйти
+                            </button>
+                            <a href="/" className="admin-login-link">
+                                На главную
+                            </a>
+                        </div>
                     ) : (
                         <>
+                            <h1 className="admin-login-title">Авторизация</h1>
                             <form onSubmit={handleSubmit} className="admin-login-form">
-                                <label className="admin-login-field">
-                                    <span>Логин</span>
-                                    <input
-                                        type="text"
-                                        value={username}
-                                        onChange={(e) => setUsername(e.target.value)}
-                                        autoComplete="username"
-                                        required
-                                    />
-                                </label>
-                                <label className="admin-login-field">
-                                    <span>Пароль</span>
-                                    <input
-                                        type="password"
-                                        value={password}
-                                        onChange={(e) => setPassword(e.target.value)}
-                                        autoComplete="current-password"
-                                        required
-                                    />
-                                </label>
-                                <button type="submit" className="admin-login-btn" disabled={status === "loading"}>
-                                    {status === "loading" ? "Проверка…" : "Войти"}
-                                </button>
+                                <div className="admin-login-form-box">
+                                    {message && status === "error" && (
+                                        <p
+                                            className="admin-login-message admin-login-message--error"
+                                            role="alert"
+                                        >
+                                            Ошибка: {message}
+                                        </p>
+                                    )}
+                                    <label className="admin-login-field">
+                                        <span>Логин</span>
+                                        <input
+                                            type="text"
+                                            value={username}
+                                            onChange={(e) => setUsername(e.target.value)}
+                                            autoComplete="username"
+                                            required
+                                        />
+                                    </label>
+                                    <label className="admin-login-field">
+                                        <span>Пароль</span>
+                                        <input
+                                            type="password"
+                                            value={password}
+                                            onChange={(e) => setPassword(e.target.value)}
+                                            autoComplete="current-password"
+                                            required
+                                        />
+                                    </label>
+                                    <button type="submit" className="admin-login-btn" disabled={status === "loading"}>
+                                        {status === "loading" ? "Проверка…" : "Войти"}
+                                    </button>
+                                </div>
                             </form>
-
-                            {message && (
-                                <p className={`admin-login-message admin-login-message--${status}`}>
-                                    {message}
-                                </p>
-                            )}
                         </>
                     )}
                 </div>

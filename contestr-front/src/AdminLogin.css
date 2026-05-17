@@ -1,5 +1,13 @@
 .admin-login-content {
-    padding-top: var(--space-xs);
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+    min-height: 100dvh;
+    width: 100%;
+    box-sizing: border-box;
+    padding: var(--space-m);
 }
 
 .admin-login-panel {
@@ -7,24 +15,25 @@
 }
 
 .admin-login-title {
-    margin: 0 0 var(--space-xs);
+    margin: 0 0 0.65rem;
     color: #bf9298;
     font-size: var(--fs-h1);
-    text-align: left;
-}
-
-.admin-login-subtitle {
-    margin: 0 0 var(--space-l);
-    font-family: "Anonymous Pro", sans-serif;
-    font-size: var(--fs-p);
-    color: #6b6a68;
-    text-align: left;
+    text-align: center;
 }
 
 .admin-login-form {
+    margin: 0;
+}
+
+.admin-login-form-box {
     display: flex;
     flex-direction: column;
     gap: var(--space-s);
+    padding: var(--space-m);
+    border: 1px solid #e0dcd0;
+    border-radius: 0.75rem;
+    background: #fff;
+    box-shadow: 0 2px 12px rgba(79, 78, 78, 0.06);
 }
 
 .admin-login-field {
@@ -62,7 +71,7 @@
 
 .admin-login-btn {
     width: 100%;
-    margin-top: var(--space-xs);
+    margin-top: 0;
     padding: 0.75rem 1.25rem;
     border: none;
     border-radius: 0.65rem;
@@ -82,32 +91,36 @@
 }
 
 .admin-login-message {
-    margin: var(--space-s) 0 0;
-    font-family: "Anonymous Pro", sans-serif;
-    font-size: var(--fs-p);
-    text-align: left;
-    color: #8b5a62;
+    margin: 0;
+    font-family: "Montserrat Alternates", sans-serif;
+    font-size: var(--fs-button);
+    font-weight: 600;
+    text-align: center;
+}
+
+.admin-login-message--error {
+    padding: 0.75rem 1rem;
+    border-radius: 0.65rem;
+    border: 1px solid #e58995;
+    background: #fce8ec;
+    color: #a63d52;
+    box-shadow: 0 2px 8px rgba(166, 61, 82, 0.12);
 }
 
 .admin-login-greeting {
     font-family: "Anonymous Pro", sans-serif;
     font-size: var(--fs-p);
     color: #6b6a68;
-    margin: 0 0 var(--space-m);
-    text-align: left;
-}
-
-.admin-login-actions {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: var(--space-s);
+    margin: 0;
+    text-align: center;
 }
 
 .admin-login-link {
+    display: block;
     font-family: "Montserrat Alternates", sans-serif;
     font-size: var(--fs-button);
     color: #6b6a68;
+    text-align: center;
     text-decoration: none;
 }
 

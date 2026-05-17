@@ -20,28 +20,28 @@ export type Options<TData extends TDataShape = TDataShape, ThrowOnError extends 
 
 export const getRegattaContestStandings = <ThrowOnError extends boolean = false>(options?: Options<GetRegattaContestStandingsData, ThrowOnError>) => {
     return (options?.client ?? _heyApiClient).get<GetRegattaContestStandingsResponses, unknown, ThrowOnError>({
-        url: '/regatta/contests/{contest_id}',
+        url: '/api/regatta/contests/{contest_id}',
         ...options
     });
 };
 
 export const getContest = <ThrowOnError extends boolean = false>(options?: Options<GetContestData, ThrowOnError>) => {
     return (options?.client ?? _heyApiClient).get<GetContestResponses, unknown, ThrowOnError>({
-        url: '/plugins/whoami/whoami.php',
+        url: '/api/plugins/whoami/whoami.php',
         ...options
     });
 };
 
 export const getContest2 = <ThrowOnError extends boolean = false>(options?: Options<GetContest2Data, ThrowOnError>) => {
     return (options?.client ?? _heyApiClient).get<GetContest2Responses, unknown, ThrowOnError>({
-        url: '/cfcontest/{contest_id}',
+        url: '/api/cfcontest/{contest_id}',
         ...options
     });
 };
 
 export const getHello = <ThrowOnError extends boolean = false>(options?: Options<GetHelloData, ThrowOnError>) => {
     return (options?.client ?? _heyApiClient).get<GetHelloResponses, unknown, ThrowOnError>({
-        url: '/hello',
+        url: '/api/hello',
         ...options
     });
 };
