@@ -1,7 +1,8 @@
 services:
   nginx:
     build:
-      context: ./contestr-front
+      context: .
+      dockerfile: contestr-front/Dockerfile
     restart: unless-stopped
     depends_on:
       - server

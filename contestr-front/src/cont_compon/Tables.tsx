@@ -11,33 +11,12 @@ import {
 // import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
 import { SlArrowDown, SlArrowUp } from "react-icons/sl";
-// import type { ProblemResult, RegattaContestRow } from "../client";
-// import { getRegattaContestStandingsOptions } from "../client/@tanstack/react-query.gen";
-// import { useSearchParam } from "react-use";
-// import { CONTEST_IDS } from "../consts";
-// import { useQuery } from "@tanstack/react-query";
-// import { getRegattaContestStandingsOptions } from "../client/@tanstack/react-query.gen";
+import type { ProblemResult, RegattaContestRow } from "../client";
 import { useCurRegattaData } from "../data";
-
-// Временный тип, если отключен импорт типов
-type ProblemResult = {
-  problem_code: string;
-  score: number;
-  last_submission_time?: number;
-};
-
-type RegattaContestRow = {
-  user_id: number;
-  team_number: number;
-  display_name: string;
-  total_score: number;
-  solved_problems: number;
-  problem_results: ProblemResult[];
-};
 
 const columnHelper = createColumnHelper<RegattaContestRow>();
 
-const hightlighted_user_id = 0;
+const hightlighted_user_id = "0";
 
 const columns = [
   columnHelper.accessor("team_number", {

@@ -1,9 +1,9 @@
 import { defineConfig } from '@hey-api/openapi-ts';
 
-/** Contestr API — источник: contestr/api/openapi.yaml */
+/** Match integration API (отдельная спека) */
 export default defineConfig({
-  input: '../contestr/api/openapi.yaml',
-  output: 'src/client',
+  input: 'match-integration/openapi.yaml',
+  output: 'match-integration/client',
   plugins: [
     '@hey-api/client-fetch',
     '@tanstack/react-query',

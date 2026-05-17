@@ -35,3 +35,6 @@ docker-compose.override.yml
 *_gen.go
 /contestr/secrets/
 node_modules
+
+# OpenAPI TS client (contestr/api/openapi.yaml → npm run generate-client)
+contestr-front/src/client/

@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
 // import { createPortal } from "react-dom";
 import { FiFileText } from "react-icons/fi";
 // import { LuTrophy } from "react-icons/lu";
@@ -20,28 +20,11 @@ const Submenu = ({
                  }: {
     isOpen: boolean;
     children: React.ReactNode;
-}) => {
-    const ref = useRef<HTMLDivElement>(null);
-    const [height, setHeight] = useState("0px");
-
-    useEffect(() => {
-        if (ref.current) {
-            if (isOpen) {
-                setHeight(ref.current.scrollHeight + "px");
-            } else {
-                setHeight("0px");
-            }
-        }
-    }, [isOpen]);
-
-    return (
-        <div className="submenu-wrapper" style={{ maxHeight: height }}>
-            <div ref={ref} className="submenu">
-                {children}
-            </div>
-        </div>
-    );
-};
+}) => (
+    <div className={`submenu-wrapper${isOpen ? " submenu-wrapper--open" : ""}`}>
+        {children}
+    </div>
+);
 
 // // Универсальный тултип через портал
 // const SubTooltip = ({
@@ -86,7 +69,7 @@ export const Sidebar = () => {
 
             <div className="icon-wrap">
                 {/* Контесты */}
-                <div 
+                <div
                     className="menu-item-container"
                     onMouseEnter={() => setHoveredMenu("contests")}
                     onMouseLeave={() => setHoveredMenu(null)}
