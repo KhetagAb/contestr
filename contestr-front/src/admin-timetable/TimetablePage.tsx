@@ -1,6 +1,6 @@
 import { Save, Undo2 } from "lucide-react";
 import { ContestContextBar } from "./ContestContextBar";
-import { confirmStartNow } from "./ConfirmDialogs";
+import { confirmAdvance } from "./ConfirmDialogs";
 import { EmptySchedule } from "./EmptySchedule";
 import { NextTourBanner } from "./NextTourBanner";
 import { ScheduleAxis } from "./ScheduleAxis";
@@ -17,19 +17,24 @@ export default function TimetablePage() {
     };
 
     const handleStartNow = async () => {
-        const n = tt.view?.next_tour_number;
-        if (!n || !confirmStartNow(n)) {
+        if (!confirmAdvance()) {
             return;
         }
-        await tt.startNextTour();
+        await tt.advance();
     };
 
     const handleSave = async () => {
         await tt.saveTimetable();
     };
 
-    const showTimeline = tt.draftTours.length > 0 || tt.hasSchedule;
-    const showEmpty = !showTimeline && tt.loadState !== "loading";
+    const showTimeline =
+        tt.canEditSchedule && (tt.displaySegments.length > 0 || tt.hasSchedule);
+    const showEmpty = tt.canEditSchedule && !showTimeline && tt.loadState !== "loading";
+    const scheduleLocked = !tt.canEditSchedule;
+    const showBanner =
+        tt.canEditSchedule &&
+        tt.hasSchedule &&
+        tt.view != null;
 
     return (
         <section className="admin-timetable tt-page">
@@ -37,16 +42,25 @@ export default function TimetablePage() {
                 contestId={tt.contestId}
                 onContestChange={handleContestChange}
                 view={tt.view}
-                hasSchedule={tt.hasSchedule}
-                busy={tt.busy}
-                onAutoStartChange={(enabled) => void tt.setAutoStartEnabled(enabled)}
             />
 
-            {tt.view && tt.view.next_tour_number && (
-                <NextTourBanner view={tt.view} busy={tt.busy} onStartNow={() => void handleStartNow()} />
+            {showBanner && (
+                <NextTourBanner
+                    view={tt.view!}
+                    busy={tt.busy}
+                    onStartNow={() => void handleStartNow()}
+                    showAutostart={tt.hasSchedule}
+                    onAutoStartChange={(enabled) => void tt.setAutoStartEnabled(enabled)}
+                />
             )}
 
-            {tt.loadState === "loading" && !showTimeline && (
+            {scheduleLocked && (
+                <p className="tt-message tt-message--info">
+                    Выберите контест, чтобы настроить расписание туров.
+                </p>
+            )}
+
+            {tt.canEditSchedule && tt.loadState === "loading" && !showTimeline && (
                 <p className="tt-message tt-message--info">Загрузка…</p>
             )}
 
@@ -57,13 +71,14 @@ export default function TimetablePage() {
             {showTimeline && (
                 <div className="tt-schedule-panel">
                     <ScheduleAxis
-                        tours={tt.draftTours}
+                        segments={tt.displaySegments}
                         view={tt.view}
                         dirty={tt.dirty}
                         busy={tt.busy}
-                        onDurationChange={tt.setDuration}
-                        onRemove={tt.removeTour}
-                        onAddTour={tt.addTour}
+                        onPendingDurationChange={tt.setPendingDuration}
+                        onPendingKindChange={tt.setPendingKind}
+                        onPendingRemove={tt.removeSlot}
+                        onAddSlot={tt.addSlot}
                     />
                     <footer className="tt-footer admin-toolbar">
                         <button

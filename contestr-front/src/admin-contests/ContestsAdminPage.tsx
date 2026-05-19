@@ -1,0 +1,430 @@
+import { useEffect, useRef, useState, type FormEvent } from "react";
+import { Check, Plus, Save, Trash2, Upload, X } from "lucide-react";
+import { useAdminContests } from "./useAdminContests";
+import { formatImportSuccessMessage } from "./messages";
+import "./ContestsAdminPage.css";
+
+function PanelStatus({
+    message,
+    kind,
+}: {
+    message: string;
+    kind: "error" | "success" | "info";
+}) {
+    if (!message) {
+        return null;
+    }
+    if (kind === "error") {
+        return (
+            <p
+                className="admin-login-message admin-login-message--error cf-panel-status cf-panel-status--bottom"
+                role="alert"
+            >
+                Ошибка: {message}
+            </p>
+        );
+    }
+    return (
+        <p
+            className={`cf-panel-status cf-panel-status--bottom cf-panel-status--${kind}`}
+            role="status"
+            aria-live="polite"
+        >
+            {message}
+        </p>
+    );
+}
+
+export default function ContestsAdminPage() {
+    const ac = useAdminContests();
+    const [showAddForm, setShowAddForm] = useState(false);
+    const [newContestId, setNewContestId] = useState("");
+    const [newContestName, setNewContestName] = useState("");
+    const [showImportList, setShowImportList] = useState(false);
+    const [importText, setImportText] = useState("");
+    const [newHandle, setNewHandle] = useState("");
+    const [newName, setNewName] = useState("");
+    const newHandleInputRef = useRef<HTMLInputElement>(null);
+
+    const closeAddForm = () => {
+        setShowAddForm(false);
+        setNewContestId("");
+        setNewContestName("");
+    };
+
+    const handleAddContest = (e: FormEvent) => {
+        e.preventDefault();
+        const id = Number(newContestId);
+        if (!Number.isInteger(id) || id <= 0) {
+            return;
+        }
+        void ac.addContest(id, newContestName).then(() => {
+            closeAddForm();
+        });
+    };
+
+    const selected = ac.contests.find((c) => c.contest_id === ac.selectedContestId);
+
+    const closeImportList = () => {
+        setShowImportList(false);
+        setImportText("");
+    };
+
+    useEffect(() => {
+        closeImportList();
+        setNewHandle("");
+        setNewName("");
+    }, [ac.selectedContestId]);
+
+    const handleAddParticipant = () => {
+        if (ac.appendDraftRow(newHandle, newName)) {
+            setNewHandle("");
+            setNewName("");
+            requestAnimationFrame(() => {
+                newHandleInputRef.current?.focus();
+            });
+        }
+    };
+
+    const handleApplyImport = () => {
+        const result = ac.importHandlesFromList(importText);
+        if (!result.ok) {
+            ac.showHandlesMessage(
+                result.detail || result.invalidLines[0] || "Не удалось разобрать список",
+                "error",
+            );
+            return;
+        }
+
+        let text = formatImportSuccessMessage(result.entriesCount, result.skippedOtherContest);
+        if (result.invalidLines.length > 0) {
+            text += `. Ошибок в строках: ${result.invalidLines.length}`;
+        }
+        ac.showHandlesMessage(text, "success");
+        setImportText("");
+        setShowImportList(false);
+    };
+
+    return (
+        <section className="cf-admin-page">
+            <div className="cf-admin-grid">
+                <div className="cf-admin-panel cf-admin-panel--contests">
+                    <h3 className="cf-admin-panel-title">Зарегистрированные контесты</h3>
+
+                    <div className="cf-contest-list-wrap">
+                        {ac.loadState === "loading" && (
+                            <p className="cf-admin-hint">Загрузка…</p>
+                        )}
+
+                        {ac.loadState !== "loading" && (
+                            <ul className="cf-contest-list" role="list">
+                                {ac.contests.length === 0 && (
+                                    <li className="cf-contest-list__empty">Список пуст</li>
+                                )}
+                                {ac.contests.map((c) => (
+                                    <li key={c.contest_id} className="cf-contest-list__row">
+                                        <button
+                                            type="button"
+                                            className={`cf-contest-list-item${
+                                                ac.selectedContestId === c.contest_id
+                                                    ? " cf-contest-list-item--active"
+                                                    : ""
+                                            }`}
+                                            onClick={() => ac.setSelectedContestId(c.contest_id)}
+                                            disabled={ac.busy}
+                                        >
+                                            <span className="cf-contest-list-item__name">{c.name}</span>
+                                            <span className="cf-contest-list-item__meta">
+                                                ID {c.contest_id} · {c.system}
+                                            </span>
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className="cf-icon-btn"
+                                            title="Удалить контест"
+                                            disabled={ac.busy}
+                                            onClick={() => {
+                                                if (
+                                                    window.confirm(
+                                                        `Удалить контест «${c.name}» (ID ${c.contest_id})?`,
+                                                    )
+                                                ) {
+                                                    void ac.deleteContest(c.contest_id);
+                                                }
+                                            }}
+                                        >
+                                            <Trash2 size={18} aria-hidden />
+                                        </button>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+                    </div>
+
+                    <footer
+                        className="cf-contest-panel-footer"
+                    >
+                        {showAddForm ? (
+                            <form className="cf-add-contest-inline" onSubmit={handleAddContest}>
+                                <input
+                                    type="number"
+                                    className="cf-add-contest-inline__input"
+                                    min={1}
+                                    required
+                                    autoFocus
+                                    value={newContestId}
+                                    onChange={(e) => setNewContestId(e.target.value)}
+                                    disabled={ac.busy}
+                                    placeholder="ID"
+                                    aria-label="ID контеста на Codeforces"
+                                />
+                                <input
+                                    type="text"
+                                    className="cf-add-contest-inline__input cf-add-contest-inline__input--wide"
+                                    value={newContestName}
+                                    onChange={(e) => setNewContestName(e.target.value)}
+                                    disabled={ac.busy}
+                                    placeholder="Название"
+                                    aria-label="Название (необязательно)"
+                                />
+                                <button
+                                    type="submit"
+                                    className="cf-add-contest-inline__btn cf-add-contest-inline__btn--submit"
+                                    title="Добавить"
+                                    aria-label="Добавить контест"
+                                    disabled={ac.busy}
+                                >
+                                    <Check size={15} aria-hidden />
+                                </button>
+                                <button
+                                    type="button"
+                                    className="cf-add-contest-inline__btn"
+                                    title="Отмена"
+                                    aria-label="Отмена"
+                                    disabled={ac.busy}
+                                    onClick={closeAddForm}
+                                >
+                                    <X size={15} aria-hidden />
+                                </button>
+                            </form>
+                        ) : (
+                            <button
+                                type="button"
+                                className="cf-secondary-btn cf-secondary-btn--compact"
+                                disabled={ac.busy || ac.loadState === "loading"}
+                                onClick={() => setShowAddForm(true)}
+                            >
+                                <Plus size={16} aria-hidden />
+                                Добавить контест
+                            </button>
+                        )}
+                    </footer>
+
+                    <PanelStatus
+                        message={ac.contestsMessage}
+                        kind={ac.contestsMessageKind}
+                    />
+                </div>
+
+                <div className="cf-admin-panel cf-admin-panel--handles">
+                    <h3 className="cf-admin-panel-title">
+                        {selected
+                            ? `Зарегистрированные участники: ${selected.name}`
+                            : "Зарегистрированные участники"}
+                    </h3>
+
+                    {!selected && (
+                        <p className="cf-admin-hint">
+                            Выберите контест слева, чтобы настроить зарегистрированных на контест
+                            участников
+                        </p>
+                    )}
+
+                    {selected && (
+                        <>
+                            {ac.handlesLoadState === "loading" && (
+                                <p className="cf-admin-hint">Загрузка участников…</p>
+                            )}
+
+                            <div className="cf-handles-table-wrap">
+                                <table className="cf-handles-table">
+                                    <colgroup>
+                                        <col className="cf-handles-table__col-handle" />
+                                        <col className="cf-handles-table__col-name" />
+                                        <col className="cf-handles-table__col-actions" />
+                                    </colgroup>
+                                    <thead>
+                                        <tr>
+                                            <th className="cf-handles-table__head-cell">Хэндл</th>
+                                            <th className="cf-handles-table__head-cell">Имя</th>
+                                            <th aria-label="Действия" />
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {ac.draftHandles.map((row, index) => (
+                                            <tr key={index}>
+                                                <td>
+                                                    <input
+                                                        type="text"
+                                                        value={row.handle}
+                                                        onChange={(e) =>
+                                                            ac.updateDraftRow(
+                                                                index,
+                                                                "handle",
+                                                                e.target.value,
+                                                            )
+                                                        }
+                                                        disabled={ac.busy}
+                                                    />
+                                                </td>
+                                                <td>
+                                                    <input
+                                                        type="text"
+                                                        value={row.name}
+                                                        onChange={(e) =>
+                                                            ac.updateDraftRow(
+                                                                index,
+                                                                "name",
+                                                                e.target.value,
+                                                            )
+                                                        }
+                                                        disabled={ac.busy}
+                                                    />
+                                                </td>
+                                                <td className="cf-handles-table__actions">
+                                                    {row.handle &&
+                                                    ac.handles.some((h) => h.handle === row.handle) ? (
+                                                        <button
+                                                            type="button"
+                                                            className="cf-icon-btn cf-icon-btn--plain"
+                                                            title="Удалить из БД"
+                                                            disabled={ac.busy}
+                                                            onClick={() => {
+                                                                if (
+                                                                    window.confirm(
+                                                                        `Удалить маппинг для ${row.handle}?`,
+                                                                    )
+                                                                ) {
+                                                                    void ac.deleteHandle(row.handle);
+                                                                }
+                                                            }}
+                                                        >
+                                                            <Trash2 size={16} aria-hidden />
+                                                        </button>
+                                                    ) : (
+                                                        <button
+                                                            type="button"
+                                                            className="cf-icon-btn cf-icon-btn--plain"
+                                                            title="Убрать строку"
+                                                            disabled={ac.busy}
+                                                            onClick={() => ac.removeDraftRow(index)}
+                                                        >
+                                                            <Trash2 size={16} aria-hidden />
+                                                        </button>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                        <tr className="cf-handles-table__row--add">
+                                            <td>
+                                                <input
+                                                    ref={newHandleInputRef}
+                                                    type="text"
+                                                    value={newHandle}
+                                                    onChange={(e) => setNewHandle(e.target.value)}
+                                                    disabled={ac.busy}
+                                                    aria-label="Хэндл"
+                                                />
+                                            </td>
+                                            <td>
+                                                <input
+                                                    type="text"
+                                                    value={newName}
+                                                    onChange={(e) => setNewName(e.target.value)}
+                                                    onKeyDown={(e) => {
+                                                        if (e.key === "Enter") {
+                                                            e.preventDefault();
+                                                            handleAddParticipant();
+                                                        }
+                                                    }}
+                                                    disabled={ac.busy}
+                                                    aria-label="Имя участника"
+                                                />
+                                            </td>
+                                            <td className="cf-handles-table__actions" />
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+
+                            {showImportList && (
+                                <div className="cf-import-list">
+                                    <p className="cf-admin-hint cf-import-list__hint">
+                                        Вставьте регистрацию участников из codeforces
+                                    </p>
+                                    <textarea
+                                        className="cf-import-list__textarea"
+                                        value={importText}
+                                        onChange={(e) => setImportText(e.target.value)}
+                                        disabled={ac.busy}
+                                        rows={6}
+                                        spellCheck={false}
+                                        placeholder={`${selected.contest_id} | student01 | xxxxx | Иванов Иван`}
+                                    />
+                                    <div className="cf-import-list__actions">
+                                        <button
+                                            type="button"
+                                            className="cf-primary-btn cf-primary-btn--compact"
+                                            disabled={ac.busy || !importText.trim()}
+                                            onClick={handleApplyImport}
+                                        >
+                                            Применить к таблице
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className="cf-secondary-btn cf-secondary-btn--compact"
+                                            disabled={ac.busy}
+                                            onClick={closeImportList}
+                                        >
+                                            Отмена
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            <footer className="cf-handles-panel-footer">
+                                {!showImportList && (
+                                    <button
+                                        type="button"
+                                        className="cf-secondary-btn cf-secondary-btn--compact"
+                                        onClick={() => setShowImportList(true)}
+                                        disabled={ac.busy}
+                                    >
+                                        <Upload size={16} aria-hidden />
+                                        Импорт
+                                    </button>
+                                )}
+                                <button
+                                    type="button"
+                                    className="cf-handles-save-btn"
+                                    title="Сохранить"
+                                    aria-label="Сохранить участников"
+                                    onClick={() => void ac.saveHandles()}
+                                    disabled={ac.busy || !ac.handlesDirty}
+                                >
+                                    <Save size={16} aria-hidden />
+                                </button>
+                            </footer>
+
+                            <PanelStatus
+                                message={ac.handlesMessage}
+                                kind={ac.handlesMessageKind}
+                            />
+                        </>
+                    )}
+                </div>
+            </div>
+
+        </section>
+    );
+}

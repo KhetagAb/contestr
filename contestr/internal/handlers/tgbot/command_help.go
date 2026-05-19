@@ -44,7 +44,6 @@ func (h *HelpHandle) HandleHelp(ctx context.Context, b *bot.Bot, update *models.
 func handleHelpCommand(_ context.Context, _ string) (string, error) {
 	return "Доступные команды:\n" +
 			"/help - Показать это сообщение\n" +
-			"/start_tour <contest_id> <duration_in_minutes> - Начать тур в регате\n" +
 			"/sync_contests - Запустить внеочередное обновление контестов из codeforces/ejudge\n" +
 			"",
 		nil

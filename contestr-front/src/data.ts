@@ -4,9 +4,14 @@ import { useSearchParam } from "react-use";
 
 export const useCurRegattaData = () => {
     const contestId = parseInt(useSearchParam("contestId") || "", 10);
-    return useQuery(getRegattaContestStandingsOptions({
-        path: {
-            contest_id: contestId
-        }
-    }))
-}
+    const enabled = Number.isFinite(contestId) && contestId > 0;
+    return useQuery({
+        ...getRegattaContestStandingsOptions({
+            path: {
+                contest_id: contestId,
+            },
+        }),
+        enabled,
+        refetchInterval: enabled ? 5_000 : false,
+    });
+};

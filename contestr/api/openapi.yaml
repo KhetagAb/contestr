@@ -4,6 +4,160 @@ info:
   description: Ручки для получения данных о контестах
   version: 1.0.0
 paths:
+  /api/contests:
+    get:
+      operationId: getContests
+      responses:
+        200:
+          description: Список зарегистрированных контестов
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RegisteredContestItem'
+
+  /api/admin/contests:
+    get:
+      operationId: getAdminContests
+      security:
+        - bearerAuth: []
+      responses:
+        200:
+          description: Список зарегистрированных контестов
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RegisteredContestItem'
+        401:
+          $ref: '#/components/responses/ErrorResponse'
+    post:
+      operationId: postAdminContest
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateContestRequest'
+      responses:
+        201:
+          description: Контест зарегистрирован
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegisteredContestItem'
+        400:
+          $ref: '#/components/responses/ErrorResponse'
+        401:
+          $ref: '#/components/responses/ErrorResponse'
+        409:
+          $ref: '#/components/responses/ErrorResponse'
+        502:
+          $ref: '#/components/responses/ErrorResponse'
+
+  /api/admin/contests/{contest_id}:
+    delete:
+      operationId: deleteAdminContest
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: contest_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        204:
+          description: Контест удалён из реестра
+        401:
+          $ref: '#/components/responses/ErrorResponse'
+        404:
+          $ref: '#/components/responses/ErrorResponse'
+
+  /api/admin/contests/{contest_id}/handles:
+    get:
+      operationId: getAdminContestHandles
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: contest_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          description: Маппинги handle → имя
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CodeforcesHandleItem'
+        401:
+          $ref: '#/components/responses/ErrorResponse'
+        404:
+          $ref: '#/components/responses/ErrorResponse'
+    put:
+      operationId: putAdminContestHandles
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: contest_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PutCodeforcesHandlesRequest'
+      responses:
+        200:
+          description: Сохранённые маппинги
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CodeforcesHandleItem'
+        400:
+          $ref: '#/components/responses/ErrorResponse'
+        401:
+          $ref: '#/components/responses/ErrorResponse'
+        404:
+          $ref: '#/components/responses/ErrorResponse'
+
+  /api/admin/contests/{contest_id}/handles/{handle}:
+    delete:
+      operationId: deleteAdminContestHandle
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: contest_id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: handle
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        204:
+          description: Маппинг удалён
+        401:
+          $ref: '#/components/responses/ErrorResponse'
+        404:
+          $ref: '#/components/responses/ErrorResponse'
+
   /api/regatta/contests/{contest_id}:
     get:
       operationId: getRegattaContestStandings
@@ -133,9 +287,9 @@ paths:
         404:
           $ref: '#/components/responses/ErrorResponse'
 
-  /api/admin/timetables/{contest_id}/tours/{tour_number}/start:
-    post:
-      operationId: postAdminTimetableTourStart
+  /api/admin/timetables/{contest_id}/active-tour/duration:
+    patch:
+      operationId: patchAdminTimetableActiveTourDuration
       security:
         - bearerAuth: []
       parameters:
@@ -144,14 +298,40 @@ paths:
           required: true
           schema:
             type: integer
-        - name: tour_number
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateActiveTourDurationRequest'
+      responses:
+        200:
+          description: Расписание после изменения длительности активного тура
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TimetableView'
+        400:
+          $ref: '#/components/responses/ErrorResponse'
+        401:
+          $ref: '#/components/responses/ErrorResponse'
+        404:
+          $ref: '#/components/responses/ErrorResponse'
+
+  /api/admin/timetables/{contest_id}/advance:
+    post:
+      operationId: postAdminTimetableAdvance
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: contest_id
           in: path
           required: true
           schema:
             type: integer
       responses:
         200:
-          description: Расписание после ручного запуска выбранного тура
+          description: Расписание после продвижения (завершение активного сегмента и/или старт следующего слота)
           content:
             application/json:
               schema:
@@ -185,6 +365,7 @@ components:
               - current_tour_start_time
               - current_tour_duration
               - rows
+              - events
             properties:
               contest_name:
                 type: string
@@ -202,6 +383,10 @@ components:
                 type: array
                 items:
                   $ref: '#/components/schemas/RegattaContestRow'
+              events:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RegattaEvent'
 
     GetContestResponse:
       description: Информацию о результатах контеста
@@ -250,6 +435,40 @@ components:
         user_id:
           type: string
           description: Идентификатор студента
+    RegattaEvent:
+      type: object
+      required:
+        - type
+        - time_sec
+        - participant_id
+        - display_name
+        - problem_code
+        - points
+      properties:
+        type:
+          type: string
+          enum:
+            - problem_solved
+        time_sec:
+          type: integer
+          description: Время посылки в секундах от старта контеста
+        participant_id:
+          type: string
+        display_name:
+          type: string
+        problem_code:
+          type: string
+        team_number:
+          type: integer
+        points:
+          type: integer
+          description: Баллы, полученные за это решение
+        solved_in_time:
+          type: boolean
+          description: Бонус за решение в срок тура
+        first_in_group:
+          type: boolean
+          description: Бонус за первое решение в группе
     ProblemResult:
       type: object
       required:
@@ -312,55 +531,123 @@ components:
           type: string
         ok:
           type: boolean
-    TourConfig:
+    ScheduleSlot:
       type: object
       required:
-        - start_time
         - duration
-        - started
+        - kind
       properties:
-        start_time:
-          type: integer
-          description: Время начала тура в секундах от старта контеста
         duration:
           type: integer
-          description: Длительность тура в секундах
-        started:
-          type: boolean
+          minimum: 1
+          description: Длительность слота в секундах
+        kind:
+          type: string
+          enum: [tour, pause]
+    UpdateActiveTourDurationRequest:
+      type: object
+      required:
+        - duration
+      properties:
+        duration:
+          type: integer
+          minimum: 1
+          description: Новая длительность активного тура или перерыва в секундах
     SaveTimetableRequest:
       type: object
       required:
-        - tour_durations
+        - pending_slots
         - auto_start_enabled
       properties:
-        tour_durations:
+        pending_slots:
           type: array
           items:
-            type: integer
-            minimum: 1
-          description: Длительности туров в секундах, по порядку
+            $ref: '#/components/schemas/ScheduleSlot'
         auto_start_enabled:
           type: boolean
           description: Автозапуск туров по расписанию для этого контеста
-    TourMeta:
+    TimelineSegment:
       type: object
       required:
-        - tour_number
+        - kind
+        - duration
+        - start_time
         - status
+        - editable
       properties:
-        tour_number:
+        sequence:
           type: integer
+          nullable: true
+        pending_index:
+          type: integer
+          nullable: true
+        kind:
+          type: string
+          enum: [tour, pause]
+        round:
+          type: integer
+          nullable: true
+        duration:
+          type: integer
+        start_time:
+          type: integer
+          description: Секунды от старта контеста
         status:
           type: string
-          enum: [planned, next, starting, started]
+          enum: [past, active, next, starting, future]
+        editable:
+          type: boolean
+    RegisteredContestItem:
+      type: object
+      required:
+        - contest_id
+        - name
+        - system
+      properties:
+        contest_id:
+          type: integer
+        name:
+          type: string
+        system:
+          type: string
+          example: codeforces
+    CreateContestRequest:
+      type: object
+      required:
+        - contest_id
+      properties:
+        contest_id:
+          type: integer
+        name:
+          type: string
+          description: Необязательное отображаемое имя; по умолчанию берётся с Codeforces
+    CodeforcesHandleItem:
+      type: object
+      required:
+        - handle
+        - name
+      properties:
+        handle:
+          type: string
+        name:
+          type: string
+    PutCodeforcesHandlesRequest:
+      type: object
+      required:
+        - handles
+      properties:
+        handles:
+          type: array
+          items:
+            $ref: '#/components/schemas/CodeforcesHandleItem'
     TimetableView:
       type: object
       required:
         - contest_id
         - server_now
         - elapsed_seconds
-        - tour_times
-        - tours_meta
+        - timeline_segments
+        - pending_slots
         - auto_start_enabled
         - auto_start_available
       properties:
@@ -374,14 +661,14 @@ components:
           format: date-time
         elapsed_seconds:
           type: integer
-        tour_times:
+        timeline_segments:
           type: array
           items:
-            $ref: '#/components/schemas/TourConfig'
-        tours_meta:
+            $ref: '#/components/schemas/TimelineSegment'
+        pending_slots:
           type: array
           items:
-            $ref: '#/components/schemas/TourMeta'
+            $ref: '#/components/schemas/ScheduleSlot'
         next_tour_number:
           type: integer
           nullable: true

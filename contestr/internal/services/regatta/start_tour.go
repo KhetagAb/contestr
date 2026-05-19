@@ -6,53 +6,75 @@ import (
 	"contestr/pkg/util"
 	"context"
 	"fmt"
-	"time"
 )
 
 const GroupSize = 3
 
-func (s *Regatta) StartTour(ctx context.Context, contestId int, duration time.Duration) (string, error) {
+type StartTourOptions struct {
+	IsPause bool
+}
+
+func (s *Regatta) StartTour(ctx context.Context, contestId int, durationSeconds int, opts StartTourOptions) (string, error) {
 	if contestId <= 0 {
 		return "", fmt.Errorf("invalid contest ID: %d", contestId)
 	}
-	if duration <= 0 {
-		return "", fmt.Errorf("invalid duration: %v", duration)
+	if durationSeconds <= 0 {
+		return "", fmt.Errorf("invalid duration: %d seconds", durationSeconds)
 	}
 
-	logger.Infof(ctx, "Starting tour on contest %d, duration=%v", contestId, duration)
+	logger.Infof(ctx, "Starting segment on contest %d, duration=%ds pause=%v", contestId, durationSeconds, opts.IsPause)
 
-	tours, err := s.tourRepository.FindByContestID(ctx, contestId)
+	tours, err := s.loadToursSorted(ctx, contestId)
 	if err != nil {
-		return "", fmt.Errorf("failed to find tours for contest %d: %w", contestId, err)
+		return "", err
 	}
 
-	contestStandings, err := s.GetContestResult(ctx, contestId)
-	if err != nil {
-		return "", fmt.Errorf("failed to get contest standings: %w", err)
+	sequence := len(tours) + 1
+	round := 0
+	var groups map[Participant]Group
+	var groupNumbers map[Participant]int
+	var problems []int
+	groupSize := 0
+
+	if !opts.IsPause {
+		participantsMap, err := s.contestRepo.GetParticipants(ctx, contestId)
+		if err != nil {
+			return "", fmt.Errorf("failed to get participants: %w", err)
+		}
+		if len(participantsMap) == 0 {
+			return "", fmt.Errorf("contest %d has no participants", contestId)
+		}
+
+		ratedParticipants := make([]Participant, 0, len(participantsMap))
+		for id := range participantsMap {
+			ratedParticipants = append(ratedParticipants, id)
+		}
+
+		formed := util.FormGroups(ratedParticipants, GroupSize)
+		groups = ConvertGroups(formed)
+		groupNumbers = regatta.ParticipantsToGroupNumbersMapping(formed)
+		groupSize = GroupSize
+
+		round = regatta.CompetitiveRoundCount(tours) + 1
+		problems = []int{2*round - 1, 2 * round}
 	}
 
-	var ratedParticipants []Participant
-	for _, row := range contestStandings.Rows {
-		ratedParticipants = append(ratedParticipants, row.UserID)
+	name := fmt.Sprintf("Tour №%d of contest %d", round, contestId)
+	if opts.IsPause {
+		name = fmt.Sprintf("Pause of contest %d (seq %d)", contestId, sequence)
 	}
 
-	groups := util.FormGroups(ratedParticipants, GroupSize)
-	tourIdx := len(tours) + 1
-	durationSeconds := int(duration.Seconds())
-
-	startTourInSecondsFromStart := int(contestStandings.CurrentTime.Sub(contestStandings.ContestStartTime).Seconds())
-	logger.Infof(ctx, "Tour from start: %v, ends: %v (contest start: %v)", startTourInSecondsFromStart,
-		startTourInSecondsFromStart+durationSeconds, contestStandings.ContestStartTime)
 	tour := regatta.Tour{
-		Name:              fmt.Sprintf("Tour №%v of contest %v", tourIdx, contestId),
-		Index:             tourIdx,
-		StartTime:         startTourInSecondsFromStart,
+		Name:              name,
+		Sequence:          sequence,
+		Round:             round,
+		IsPause:           opts.IsPause,
 		DurationInSeconds: durationSeconds,
-		Groups:            ConvertGroups(groups),
-		GroupSize:         GroupSize,
-		Problems:          []int{2*tourIdx - 1, 2 * tourIdx},
+		Groups:            groups,
+		GroupSize:         groupSize,
+		Problems:          problems,
 		ContestID:         contestId,
-		GroupNumbers:      regatta.ParticipantsToGroupNumbersMapping(groups),
+		GroupNumbers:      groupNumbers,
 	}
 
 	create, err := s.tourRepository.Create(ctx, &tour)

@@ -2,6 +2,9 @@ const ERROR_TRANSLATIONS: Record<string, string> = {
     "bad request": "Некорректный запрос.",
     conflict: "Конфликт состояния.",
     "contest not found": "Контест не найден. Сначала дождитесь синхронизации контеста.",
+    "contest already registered": "Этот контест уже зарегистрирован.",
+    "contest not registered": "Контест не зарегистрирован.",
+    "handle mapping not found": "Маппинг handle не найден.",
     "failed to create timetable": "Не удалось создать расписание.",
     "failed to delete timetable": "Не удалось удалить расписание.",
     "failed to get contest": "Не удалось получить контест.",
@@ -16,6 +19,8 @@ const ERROR_TRANSLATIONS: Record<string, string> = {
     "invalid or expired token": "Токен некорректен или истёк.",
     "invalid request body": "Некорректное тело запроса.",
     "invalid timetable": "Некорректное расписание.",
+    "manual start disabled while auto start is enabled":
+        "Ручной запуск недоступен при включённом автозапуске. Отключите автозапуск.",
     "missing authorization header": "Не передан заголовок авторизации.",
     "not found": "Не найдено.",
     "timetable already exists": "Расписание уже существует.",
@@ -47,11 +52,17 @@ export function translateAdminMessage(message?: string) {
         if (details.includes("duration must be positive")) {
             return "Некорректное расписание: длительность тура должна быть положительной.";
         }
+        if (details.includes("overlap")) {
+            return "Некорректное расписание: туры пересекаются по времени.";
+        }
         return "Некорректное расписание.";
     }
 
     if (key.includes("only the first not started tour can be started")) {
         return "Можно запустить только первый незапущенный тур.";
+    }
+    if (key.includes("manual start disabled while auto start is enabled")) {
+        return "Ручной запуск недоступен при включённом автозапуске. Отключите автозапуск.";
     }
     if (key.includes("contest has not started yet")) {
         return "Контест ещё не начался.";

@@ -14,8 +14,9 @@ type Group = []Participant
 
 type Tour struct {
 	Name              string `bson:"name"`
-	Index             int    `bson:"index"`
-	StartTime         int    `bson:"start_time"`
+	Sequence          int    `bson:"sequence"`
+	Round             int    `bson:"round"`
+	IsPause           bool   `bson:"is_pause"`
 	DurationInSeconds int    `bson:"duration_in_seconds"`
 
 	Groups       map[Participant]Group `bson:"groups"`
@@ -30,7 +31,7 @@ func (t *Tour) ProblemsIDsToNameMapping(problems []Problem) map[Problem]string {
 
 	for index, problem := range problems {
 		letter := 'A' + rune(index)
-		mapping[problem] = strconv.Itoa(t.Index) + fmt.Sprintf("%c", letter)
+		mapping[problem] = strconv.Itoa(t.Round) + fmt.Sprintf("%c", letter)
 	}
 
 	return mapping
@@ -43,20 +44,21 @@ func ParticipantsToGroupNumbersMapping(groups [][]string) map[Participant]int {
 		for _, participantID := range group {
 			result[participantID] = idx + 1
 		}
-		idx += 1
 	}
 
 	return result
 }
 
 type ContestStandings struct {
-	ContestId            int          `json:"contest_id,omitempty"`
-	ContestName          string       `json:"contest_name,omitempty"`
-	Rows                 []ContestRow `json:"rows,omitempty"`
-	ContestStartTime     time.Time    `json:"contest_start_time,omitempty"`
-	CurrentTime          time.Time    `json:"current_time,omitempty"`
-	CurrentTourStartTime int          `json:"current_tour_start_time,omitempty"`
-	CurrentTourDuration  int          `json:"current_tour_duration,omitempty"`
+	ContestId            int            `json:"contest_id,omitempty"`
+	ContestName          string         `json:"contest_name,omitempty"`
+	Rows                 []ContestRow   `json:"rows,omitempty"`
+	Events               []RegattaEvent `json:"events,omitempty"`
+	ContestStartTime     time.Time      `json:"contest_start_time,omitempty"`
+	CurrentTime          time.Time      `json:"current_time,omitempty"`
+	CurrentTourStartTime int            `json:"current_tour_start_time,omitempty"`
+	CurrentTourDuration  int            `json:"current_tour_duration,omitempty"`
+	IsPauseBreak         bool           `json:"is_pause_break,omitempty"`
 }
 
 type ProblemResult struct {
@@ -74,27 +76,27 @@ type ContestRow struct {
 	TotalScore     int             `json:"total_score"`
 }
 
-type TourConfig struct {
-	StartTime int  `bson:"start_time" json:"start_time"`
-	Duration  int  `bson:"duration" json:"duration"`
-	Started   bool `bson:"started" json:"started"`
+type ScheduleSlot struct {
+	Duration int    `bson:"duration" json:"duration"`
+	Kind     string `bson:"kind" json:"kind"`
 }
 
 type ToursTimetable struct {
-	ContestId        int          `bson:"contest_id" json:"contest_id"`
-	TourTimes        []TourConfig `bson:"tour_times" json:"tour_times"`
-	AutoStartEnabled bool         `bson:"auto_start_enabled" json:"auto_start_enabled"`
+	ContestId        int            `bson:"contest_id" json:"contest_id"`
+	PendingSlots     []ScheduleSlot `bson:"pending_slots" json:"pending_slots"`
+	AutoStartEnabled bool           `bson:"auto_start_enabled" json:"auto_start_enabled"`
 }
 
-func (t *ToursTimetable) FirstNotStartedTour() (int, TourConfig, bool) {
-	if t == nil {
-		return 0, TourConfig{}, false
+func (t *ToursTimetable) HeadSlot() (ScheduleSlot, bool) {
+	if t == nil || len(t.PendingSlots) == 0 {
+		return ScheduleSlot{}, false
 	}
+	return t.PendingSlots[0], true
+}
 
-	for i, tour := range t.TourTimes {
-		if !tour.Started {
-			return i + 1, tour, true
-		}
+func (t *ToursTimetable) PopHead() {
+	if t == nil || len(t.PendingSlots) == 0 {
+		return
 	}
-	return 0, TourConfig{}, false
+	t.PendingSlots = t.PendingSlots[1:]
 }

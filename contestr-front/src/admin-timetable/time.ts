@@ -1,4 +1,4 @@
-import type { TourConfig } from "../client/types.gen";
+import type { ScheduleSlot, TimelineSegment, TimetableView } from "../client/types.gen";
 
 function pad2(n: number) {
     return String(n).padStart(2, "0");
@@ -8,7 +8,6 @@ function formatHHMMParts(h: number, m: number): string {
     return `${pad2(h)}:${pad2(m)}`;
 }
 
-/** Секунды от нулевой точки → «ЧЧ:ММ» (секунды отбрасываются). */
 export function formatClockHHMM(seconds: number): string {
     const totalMinutes = Math.floor(Math.max(0, seconds) / 60);
     const h = Math.floor(totalMinutes / 60) % 24;
@@ -16,7 +15,6 @@ export function formatClockHHMM(seconds: number): string {
     return formatHHMMParts(h, m);
 }
 
-/** Абсолютное время старта тура по ISO старта контеста и смещению в секундах. */
 export function formatTourClock(contestStartIso: string | undefined, offsetSeconds: number): string {
     if (!contestStartIso) {
         return formatClockHHMM(offsetSeconds);
@@ -29,32 +27,21 @@ export function formatTourClock(contestStartIso: string | undefined, offsetSecon
     return formatHHMMParts(at.getHours(), at.getMinutes());
 }
 
-/** Секунды от старта → «+N мин.» (для подсказок и т.п.). */
-export function formatOffset(seconds: number): string {
-    const sign = seconds < 0 ? "-" : "+";
-    const minutes = Math.floor(Math.abs(seconds) / 60);
-    return `${sign}${minutes} мин.`;
-}
-
-/** Длительность тура для отображения: «30 мин.» */
 export function formatDuration(seconds: number): string {
     const minutes = Math.max(1, Math.round(Math.max(0, seconds) / 60));
     return `${minutes} мин.`;
 }
 
-/** Длительность без точки: «30 мин» */
 export function formatDurationCompact(seconds: number): string {
     const minutes = Math.max(1, Math.round(Math.max(0, seconds) / 60));
     return `${minutes} мин`;
 }
 
-/** Число минут для поля ввода (без суффикса). */
 export function formatDurationInputValue(seconds: number): string {
     const minutes = Math.max(1, Math.round(Math.max(0, seconds) / 60));
     return String(minutes);
 }
 
-/** Парсит целое число минут. */
 export function parseDurationInput(input: string): number | null {
     const trimmed = input.trim().replace(/\s*мин\.?$/i, "").trim();
     if (!/^\d+$/.test(trimmed)) {
@@ -67,9 +54,12 @@ export function parseDurationInput(input: string): number | null {
     return minutes * 60;
 }
 
-/** Прошедшее время контеста «ЧЧ:ММ» (секунды отбрасываются). */
 export function formatElapsed(seconds: number): string {
-    return formatClockHHMM(seconds);
+    const total = Math.max(0, Math.floor(seconds));
+    const h = Math.floor(total / 3600);
+    const m = Math.floor((total % 3600) / 60);
+    const s = total % 60;
+    return `${pad2(h)}:${pad2(m)}:${pad2(s)}`;
 }
 
 export function formatContestClock(iso?: string): string {
@@ -80,58 +70,75 @@ export function formatContestClock(iso?: string): string {
     if (Number.isNaN(date.getTime())) {
         return "—";
     }
-    return date.toLocaleString("ru-RU", {
-        day: "2-digit",
-        month: "2-digit",
-        hour: "2-digit",
-        minute: "2-digit",
-    });
+    const dd = pad2(date.getDate());
+    const mm = pad2(date.getMonth() + 1);
+    const yy = pad2(date.getFullYear() % 100);
+    const hh = pad2(date.getHours());
+    const min = pad2(date.getMinutes());
+    const ss = pad2(date.getSeconds());
+    return `${dd}.${mm}.${yy}, ${hh}:${min}:${ss}`;
 }
 
-/** Пересчёт start_time: запущенные не трогаем, цепочка от первого незапущенного. */
-export function rebuildChain(tourTimes: TourConfig[]): TourConfig[] {
-    const tours = tourTimes.map((t) => ({ ...t }));
-    if (tours.length === 0) {
-        return tours;
-    }
-
-    let anchor = tours.length;
-    for (let i = 0; i < tours.length; i++) {
-        if (!tours[i].started) {
-            anchor = i;
-            break;
-        }
-    }
-
-    if (anchor >= tours.length) {
-        return tours;
-    }
-
-    if (anchor === 0) {
-        tours[0].start_time = 0;
-    } else {
-        const prev = tours[anchor - 1];
-        tours[anchor].start_time = prev.start_time + prev.duration;
-    }
-
-    for (let i = anchor + 1; i < tours.length; i++) {
-        const prev = tours[i - 1];
-        tours[i].start_time = prev.start_time + prev.duration;
-    }
-
-    return tours;
-}
-
-export function defaultTourDuration(previous?: TourConfig): number {
+export function defaultSlotDuration(previous?: ScheduleSlot): number {
     return previous?.duration && previous.duration > 0 ? previous.duration : 1800;
 }
 
-export function createTourFromPrevious(previous?: TourConfig): TourConfig {
-    const duration = defaultTourDuration(previous);
-    const start_time = previous ? previous.start_time + previous.duration : 0;
-    return { start_time, duration, started: false };
+export function createSlotFromPrevious(previous?: ScheduleSlot): ScheduleSlot {
+    return { duration: defaultSlotDuration(previous), kind: "tour" };
 }
 
-export function toursFingerprint(tours: TourConfig[]): string {
-    return JSON.stringify(tours.map((t) => ({ duration: t.duration, started: t.started })));
+export function pendingSlotsFingerprint(slots: ScheduleSlot[]): string {
+    return JSON.stringify(slots.map((s) => ({ duration: s.duration, kind: s.kind })));
+}
+
+function competitiveRoundsInFact(segments: TimelineSegment[]): number {
+    return segments.filter((s) => s.sequence != null && s.kind === "tour").length;
+}
+
+/** Черновик pending-слотов на оси (пока не сохранён). */
+export function buildDraftTimelineSegments(
+    view: TimetableView,
+    draftPending: ScheduleSlot[],
+): TimelineSegment[] {
+    const fact = (view.timeline_segments ?? []).filter((s) => s.sequence != null);
+    let anchor = 0;
+    for (const seg of fact) {
+        anchor = Math.max(anchor, seg.start_time + seg.duration);
+    }
+
+    let cursor = anchor;
+    let competitive = competitiveRoundsInFact(fact);
+    const pendingSegments: TimelineSegment[] = [];
+
+    for (let i = 0; i < draftPending.length; i++) {
+        const slot = draftPending[i];
+        const kind = slot.kind === "pause" ? "pause" : "tour";
+        let round: number | null = null;
+        if (kind === "tour") {
+            competitive += 1;
+            round = competitive;
+        }
+        pendingSegments.push({
+            pending_index: i,
+            kind,
+            round,
+            duration: slot.duration,
+            start_time: cursor,
+            status: "future",
+            editable: true,
+        });
+        cursor += slot.duration;
+    }
+
+    return [...fact, ...pendingSegments];
+}
+
+export function segmentLabel(segment: TimelineSegment): string {
+    if (segment.kind === "pause") {
+        return "Перерыв";
+    }
+    if (segment.round != null && segment.round > 0) {
+        return `Тур ${segment.round}`;
+    }
+    return "Тур";
 }

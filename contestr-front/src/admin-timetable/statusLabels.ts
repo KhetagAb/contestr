@@ -1,29 +1,18 @@
-import type { TourMeta } from "../client/types.gen";
+import type { TimelineSegment } from "../client/types.gen";
 
-export function statusLabel(status: TourMeta["status"]): string {
+export function statusLabel(status: TimelineSegment["status"]): string {
     switch (status) {
-        case "started":
-            return "Запущен";
+        case "past":
+            return "Завершён";
+        case "active":
+            return "Идёт";
         case "next":
             return "Следующий";
         case "starting":
             return "Запускается…";
-        case "planned":
+        case "future":
             return "Запланирован";
         default:
             return status;
-    }
-}
-
-export function statusClass(status: TourMeta["status"]): string {
-    switch (status) {
-        case "started":
-            return "tt-status--started";
-        case "next":
-            return "tt-status--next";
-        case "starting":
-            return "tt-status--starting";
-        default:
-            return "tt-status--planned";
     }
 }

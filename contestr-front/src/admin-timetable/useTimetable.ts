@@ -1,37 +1,35 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { adminAuthHeaders } from "../adminAuth";
-import type { TimetableView, TourConfig } from "../client/types.gen";
-import { CONTESTS } from "../consts";
+import type { ScheduleSlot, TimetableView } from "../client/types.gen";
+import { useContests } from "../useContests";
 import { readApiError } from "./errors";
 import { DURATION_TEMPLATE_MINUTES } from "./durationTemplate";
 import {
-    createTourFromPrevious,
-    rebuildChain,
-    toursFingerprint,
+    buildDraftTimelineSegments,
+    createSlotFromPrevious,
+    pendingSlotsFingerprint,
 } from "./time";
 
 const POLL_INTERVAL_MS = 10_000;
 
 type LoadState = "idle" | "loading" | "error";
 
-function normalizeTour(tour: TourConfig): TourConfig {
+function normalizeSlot(slot: ScheduleSlot): ScheduleSlot {
     return {
-        start_time: Number(tour.start_time) || 0,
-        duration: Number(tour.duration) || 0,
-        started: Boolean(tour.started),
+        duration: Number(slot.duration) || 0,
+        kind: slot.kind === "pause" ? "pause" : "tour",
     };
 }
 
-function normalizeTours(tours: TourConfig[]): TourConfig[] {
-    return rebuildChain(tours.map(normalizeTour));
+function normalizeSlots(slots: ScheduleSlot[]): ScheduleSlot[] {
+    return slots.map(normalizeSlot);
 }
 
 export function useTimetable() {
-    const defaultContestId = CONTESTS[0]?.id ?? 0;
-    const [contestId, setContestId] = useState<number>(defaultContestId);
+    const { contests } = useContests();
+    const [contestId, setContestId] = useState<number>(0);
     const [view, setView] = useState<TimetableView | null>(null);
-    const [draftTours, setDraftTours] = useState<TourConfig[]>([]);
-    const [savedTours, setSavedTours] = useState<TourConfig[]>([]);
+    const [draftPending, setDraftPending] = useState<ScheduleSlot[]>([]);
     const [savedFingerprint, setSavedFingerprint] = useState("");
     const [loadState, setLoadState] = useState<LoadState>("idle");
     const [actionLoading, setActionLoading] = useState(false);
@@ -41,23 +39,60 @@ export function useTimetable() {
     const loadRequestId = useRef(0);
 
     const contest = useMemo(
-        () => CONTESTS.find((c) => c.id === contestId),
-        [contestId],
+        () => contests.find((c) => c.contest_id === contestId),
+        [contestId, contests],
     );
+
+    const canEditSchedule = contestId > 0;
+
+    const resetScheduleState = useCallback(() => {
+        setView(null);
+        setDraftPending([]);
+        setSavedFingerprint("");
+        setHasSchedule(false);
+        setLoadState("idle");
+        setMessage("");
+    }, []);
+
+    useEffect(() => {
+        if (contests.length === 0) {
+            setContestId(0);
+            resetScheduleState();
+            return;
+        }
+        if (!contests.some((c) => c.contest_id === contestId)) {
+            setContestId(contests[0].contest_id);
+        }
+    }, [contests, contestId, resetScheduleState]);
+
+    useEffect(() => {
+        if (!canEditSchedule) {
+            resetScheduleState();
+        }
+    }, [canEditSchedule, resetScheduleState]);
 
     const dirty = useMemo(
-        () => toursFingerprint(draftTours) !== savedFingerprint,
-        [draftTours, savedFingerprint],
+        () => pendingSlotsFingerprint(draftPending) !== savedFingerprint,
+        [draftPending, savedFingerprint],
     );
 
+    const displaySegments = useMemo(() => {
+        if (!view) {
+            return [];
+        }
+        if (!dirty) {
+            return view.timeline_segments ?? [];
+        }
+        return buildDraftTimelineSegments(view, draftPending);
+    }, [view, dirty, draftPending]);
+
     const applyView = useCallback((next: TimetableView) => {
-        const tours = normalizeTours(next.tour_times ?? []);
-        const hasTours = tours.length > 0;
+        const pending = normalizeSlots(next.pending_slots ?? []);
+        const has = (next.timeline_segments?.length ?? 0) > 0 || pending.length > 0;
         setView(next);
-        setDraftTours(tours);
-        setSavedTours(tours);
-        setSavedFingerprint(toursFingerprint(tours));
-        setHasSchedule(hasTours);
+        setDraftPending(pending);
+        setSavedFingerprint(pendingSlotsFingerprint(pending));
+        setHasSchedule(has);
     }, []);
 
     const loadTimetable = useCallback(
@@ -109,8 +144,8 @@ export function useTimetable() {
         if (dirty || !hasSchedule || !view?.contest_start_time) {
             return false;
         }
-        return draftTours.some((t) => !t.started);
-    }, [dirty, draftTours, hasSchedule, view?.contest_start_time]);
+        return (view.pending_slots?.length ?? 0) > 0;
+    }, [dirty, hasSchedule, view?.contest_start_time, view?.pending_slots?.length]);
 
     useEffect(() => {
         if (!shouldPoll) {
@@ -122,57 +157,62 @@ export function useTimetable() {
         return () => window.clearInterval(id);
     }, [loadTimetable, shouldPoll]);
 
-    const setDuration = useCallback(
-        (index: number, duration: number) => {
-            setDraftTours((current) => {
-                const next = current.map((t, i) =>
-                    i === index ? { ...t, duration } : { ...t },
-                );
-                return rebuildChain(next);
-            });
-            setMessage("");
-        },
-        [],
-    );
-
-    const addTour = useCallback(() => {
-        setDraftTours((current) => {
-            const last = current[current.length - 1];
-            return rebuildChain([...current, createTourFromPrevious(last)]);
-        });
+    const setPendingDuration = useCallback((pendingIndex: number, duration: number) => {
+        setDraftPending((current) =>
+            current.map((s, i) => (i === pendingIndex ? { ...s, duration } : s)),
+        );
         setMessage("");
     }, []);
 
-    const removeTour = useCallback((index: number) => {
-        setDraftTours((current) => rebuildChain(current.filter((_, i) => i !== index)));
+    const setPendingKind = useCallback((pendingIndex: number, kind: ScheduleSlot["kind"]) => {
+        setDraftPending((current) =>
+            current.map((s, i) => (i === pendingIndex ? { ...s, kind } : s)),
+        );
+        setMessage("");
+    }, []);
+
+    const addSlot = useCallback(() => {
+        if (contestId <= 0) {
+            return;
+        }
+        setDraftPending((current) => {
+            const last = current[current.length - 1];
+            return [...current, createSlotFromPrevious(last)];
+        });
+        setMessage("");
+    }, [contestId]);
+
+    const removeSlot = useCallback((pendingIndex: number) => {
+        setDraftPending((current) => current.filter((_, i) => i !== pendingIndex));
         setMessage("");
     }, []);
 
     const revertChanges = useCallback(() => {
-        setDraftTours(normalizeTours(savedTours.map((t) => ({ ...t }))));
+        if (!view) {
+            return;
+        }
+        setDraftPending(normalizeSlots(view.pending_slots ?? []));
         setMessage("");
-    }, [savedTours]);
+    }, [view]);
 
     const applyDurationTemplate = useCallback(() => {
-        const tours: TourConfig[] = [];
-        for (const minutes of DURATION_TEMPLATE_MINUTES) {
-            const prev = tours[tours.length - 1];
-            tours.push({
-                start_time: prev ? prev.start_time + prev.duration : 0,
-                duration: minutes * 60,
-                started: false,
-            });
+        if (contestId <= 0) {
+            return;
         }
-        setDraftTours(rebuildChain(tours));
+        const slots: ScheduleSlot[] = DURATION_TEMPLATE_MINUTES.map((minutes) => ({
+            duration: minutes * 60,
+            kind: "tour" as const,
+        }));
+        setDraftPending(slots);
         setMessage("");
-    }, []);
+    }, [contestId]);
 
     const saveTimetable = useCallback(async () => {
         setActionLoading(true);
         setMessage("");
 
         const payload = {
-            tour_durations: draftTours.map((t) => t.duration),
+            pending_slots: draftPending,
             auto_start_enabled: view?.auto_start_enabled ?? true,
         };
 
@@ -197,7 +237,7 @@ export function useTimetable() {
         applyView(body);
         setMessage("");
         return true;
-    }, [applyView, contestId, draftTours, view?.auto_start_enabled]);
+    }, [applyView, contestId, draftPending, view?.auto_start_enabled]);
 
     const setAutoStartEnabled = useCallback(
         async (enabled: boolean) => {
@@ -209,7 +249,7 @@ export function useTimetable() {
             setMessage("");
 
             const payload = {
-                tour_durations: draftTours.map((t) => t.duration),
+                pending_slots: draftPending,
                 auto_start_enabled: enabled,
             };
 
@@ -235,24 +275,17 @@ export function useTimetable() {
             setMessage("");
             return true;
         },
-        [applyView, contestId, draftTours, hasSchedule],
+        [applyView, contestId, draftPending, hasSchedule],
     );
 
-    const startNextTour = useCallback(async () => {
-        const tourNumber = view?.next_tour_number;
-        if (!tourNumber) {
-            setMessageKind("error");
-            setMessage("Нет тура для запуска.");
-            return false;
-        }
-
+    const advance = useCallback(async () => {
         setActionLoading(true);
         setMessage("");
 
-        const response = await fetch(
-            `/api/admin/timetables/${contestId}/tours/${tourNumber}/start`,
-            { method: "POST", headers: adminAuthHeaders() },
-        );
+        const response = await fetch(`/api/admin/timetables/${contestId}/advance`, {
+            method: "POST",
+            headers: adminAuthHeaders(),
+        });
 
         setActionLoading(false);
 
@@ -266,7 +299,7 @@ export function useTimetable() {
         applyView(body);
         setMessage("");
         return true;
-    }, [applyView, contestId, view?.next_tour_number]);
+    }, [applyView, contestId]);
 
     const busy = loadState === "loading" || actionLoading;
 
@@ -275,21 +308,24 @@ export function useTimetable() {
         setContestId,
         contest,
         view,
-        draftTours,
+        displaySegments,
+        draftPending,
         dirty,
         loadState,
         busy,
         message,
         messageKind,
         hasSchedule,
+        canEditSchedule,
         loadTimetable,
-        setDuration,
-        addTour,
-        removeTour,
+        setPendingDuration,
+        setPendingKind,
+        addSlot,
+        removeSlot,
         applyDurationTemplate,
         revertChanges,
         saveTimetable,
         setAutoStartEnabled,
-        startNextTour,
+        advance,
     };
 }

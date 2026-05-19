@@ -6,8 +6,17 @@ import (
 	"contestr/pkg/regatta"
 	"context"
 	"fmt"
+	"strings"
 	"time"
 )
+
+// normalizeCFHandle strips gym-group prefix from handles (e.g. "g44870=user" -> "user").
+func normalizeCFHandle(handle string) string {
+	if i := strings.LastIndex(handle, "="); i >= 0 {
+		return handle[i+1:]
+	}
+	return handle
+}
 
 type CodeforcesAdapter struct {
 	service   *Service
@@ -66,12 +75,13 @@ func (a *CodeforcesAdapter) FetchContest(ctx context.Context, contestID int) (*r
 	submissions := make([]regatta.ContestSubmission, 0)
 
 	for _, row := range standings.Rows {
-		var handle string
+		var rawHandle string
 		if len(row.Party.Members) > 0 {
-			handle = row.Party.Members[0].Handle
+			rawHandle = row.Party.Members[0].Handle
 		} else {
-			handle = fmt.Sprintf("team_%d", contestID)
+			rawHandle = fmt.Sprintf("team_%d", contestID)
 		}
+		handle := normalizeCFHandle(rawHandle)
 
 		if !allowedHandles[handle] {
 			continue

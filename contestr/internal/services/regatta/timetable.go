@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
 	"time"
 
 	"contestr/pkg/regatta"
@@ -12,12 +13,15 @@ import (
 )
 
 var (
-	ErrTimetableNotFound      = errors.New("timetable not found")
-	ErrTimetableAlreadyExists = errors.New("timetable already exists")
-	ErrContestNotFound        = errors.New("contest not found")
-	ErrTourNotFound           = errors.New("tour not found in timetable")
-	ErrTourAlreadyStarted     = errors.New("tour already started")
-	ErrInvalidTimetable       = errors.New("invalid timetable")
+	ErrTimetableNotFound           = errors.New("timetable not found")
+	ErrTimetableAlreadyExists      = errors.New("timetable already exists")
+	ErrContestNotFound             = errors.New("contest not found")
+	ErrTourNotFound                = errors.New("tour not found in timetable")
+	ErrInvalidTimetable            = errors.New("invalid timetable")
+	ErrManualStartWithAutostart    = errors.New("manual start disabled while auto start is enabled")
+	ErrNothingToAdvance            = errors.New("nothing to advance")
+	ErrContestNotStarted           = errors.New("contest has not started yet")
+	ErrNoActiveTour                = errors.New("no active tour or pause")
 )
 
 type TimetableRepository interface {
@@ -27,7 +31,13 @@ type TimetableRepository interface {
 	DeleteByContestID(ctx context.Context, contestID int) error
 }
 
-// LoadTimetable returns the persisted timetable for a contest.
+type AdvanceMode int
+
+const (
+	AdvanceManual AdvanceMode = iota
+	AdvanceAuto
+)
+
 func (s *Regatta) LoadTimetable(ctx context.Context, contestID int) (*regatta.ToursTimetable, error) {
 	timetable, err := s.timetableRepository.GetByContestID(ctx, contestID)
 	if err != nil {
@@ -39,10 +49,8 @@ func (s *Regatta) LoadTimetable(ctx context.Context, contestID int) (*regatta.To
 	return timetable, nil
 }
 
-// insertTimetable creates a timetable document; fails if one already exists.
 func (s *Regatta) insertTimetable(ctx context.Context, timetable regatta.ToursTimetable) (*regatta.ToursTimetable, error) {
-	regatta.RebuildChain(timetable.TourTimes)
-	if err := validateTourChain(timetable); err != nil {
+	if err := validatePendingSlots(timetable.PendingSlots); err != nil {
 		return nil, err
 	}
 
@@ -62,10 +70,8 @@ func (s *Regatta) insertTimetable(ctx context.Context, timetable regatta.ToursTi
 	return &timetable, nil
 }
 
-// ReplaceTimetable overwrites an existing timetable document.
 func (s *Regatta) ReplaceTimetable(ctx context.Context, timetable regatta.ToursTimetable) (*regatta.ToursTimetable, error) {
-	regatta.RebuildChain(timetable.TourTimes)
-	if err := validateTourChain(timetable); err != nil {
+	if err := validatePendingSlots(timetable.PendingSlots); err != nil {
 		return nil, err
 	}
 
@@ -80,7 +86,6 @@ func (s *Regatta) ReplaceTimetable(ctx context.Context, timetable regatta.ToursT
 	return &timetable, nil
 }
 
-// RemoveTimetable deletes the timetable for a contest.
 func (s *Regatta) RemoveTimetable(ctx context.Context, contestID int) error {
 	if contestID <= 0 {
 		return fmt.Errorf("%w: contest_id must be positive", ErrInvalidTimetable)
@@ -96,36 +101,210 @@ func (s *Regatta) RemoveTimetable(ctx context.Context, contestID int) error {
 	return nil
 }
 
-// StartScheduledTour manually starts the first not-started tour at the current contest time.
-func (s *Regatta) StartScheduledTour(ctx context.Context, contestID int, tourNumber int) (*regatta.ToursTimetable, error) {
-	if contestID <= 0 {
-		return nil, fmt.Errorf("%w: contest_id must be positive", ErrInvalidTimetable)
+func (s *Regatta) contestAdvanceLock(contestID int) *sync.Mutex {
+	s.advanceLockMu.Lock()
+	defer s.advanceLockMu.Unlock()
+	if s.advanceLocks == nil {
+		s.advanceLocks = make(map[int]*sync.Mutex)
 	}
-	if tourNumber <= 0 {
-		return nil, fmt.Errorf("%w: tour_number must be positive", ErrInvalidTimetable)
+	mu, ok := s.advanceLocks[contestID]
+	if !ok {
+		mu = &sync.Mutex{}
+		s.advanceLocks[contestID] = mu
+	}
+	return mu
+}
+
+func (s *Regatta) AdvanceTimetable(
+	ctx context.Context,
+	contestID int,
+	mode AdvanceMode,
+	opts TimetableViewOptions,
+) error {
+	if contestID <= 0 {
+		return fmt.Errorf("%w: contest_id must be positive", ErrInvalidTimetable)
+	}
+
+	if mode == AdvanceManual && opts.ServerAutoStartAvailable {
+		timetable, err := s.LoadTimetable(ctx, contestID)
+		if err == nil && timetable.AutoStartEnabled {
+			return ErrManualStartWithAutostart
+		}
+	}
+
+	mu := s.contestAdvanceLock(contestID)
+	mu.Lock()
+	defer mu.Unlock()
+
+	contest, err := s.contestRepo.GetByContestID(ctx, contestID)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return ErrContestNotFound
+		}
+		return fmt.Errorf("failed to get contest %d: %w", contestID, err)
+	}
+
+	elapsed := int(time.Now().Sub(contest.StartTime).Seconds())
+	if elapsed < 0 {
+		return ErrContestNotStarted
 	}
 
 	timetable, err := s.LoadTimetable(ctx, contestID)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	position := tourNumber - 1
-	if position >= len(timetable.TourTimes) {
-		return nil, ErrTourNotFound
+	tours, err := s.loadToursSorted(ctx, contestID)
+	if err != nil {
+		return err
 	}
 
-	firstNotStartedTourNumber, _, ok := timetable.FirstNotStartedTour()
+	var changed bool
+
+	if mode == AdvanceManual {
+		if _, active := regatta.ActiveSequence(tours, elapsed); active {
+			if err := s.finishActiveSegment(ctx, contestID, tours, elapsed, true); err != nil {
+				return err
+			}
+			changed = true
+			tours, err = s.loadToursSorted(ctx, contestID)
+			if err != nil {
+				return err
+			}
+		}
+	} else {
+		finished, err := s.tryFinishActiveSegment(ctx, contestID, tours, elapsed)
+		if err != nil {
+			return err
+		}
+		if finished {
+			changed = true
+			tours, err = s.loadToursSorted(ctx, contestID)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	started, err := s.tryStartPendingHead(ctx, contestID, timetable, tours, elapsed, mode)
+	if err != nil {
+		return err
+	}
+	if started {
+		changed = true
+		if err := s.timetableRepository.Update(ctx, timetable); err != nil {
+			return fmt.Errorf("failed to update timetable: %w", err)
+		}
+	}
+
+	if !changed {
+		return ErrNothingToAdvance
+	}
+
+	return nil
+}
+
+func (s *Regatta) tryFinishActiveSegment(
+	ctx context.Context,
+	contestID int,
+	tours []regatta.Tour,
+	elapsed int,
+) (bool, error) {
+	activeSeq, ok := regatta.ActiveSequence(tours, elapsed)
 	if !ok {
-		return nil, ErrTourNotFound
+		return false, nil
 	}
-	if firstNotStartedTourNumber != tourNumber {
-		return nil, fmt.Errorf("%w: only the first not started tour can be started", ErrInvalidTimetable)
+	offsets := regatta.SegmentOffsets(tours)
+	end := offsets[activeSeq].End
+	if elapsed < end {
+		return false, nil
+	}
+	return true, s.shortenActiveToElapsed(ctx, contestID, tours, activeSeq, elapsed)
+}
+
+func (s *Regatta) finishActiveSegment(
+	ctx context.Context,
+	contestID int,
+	tours []regatta.Tour,
+	elapsed int,
+	force bool,
+) error {
+	activeSeq, ok := regatta.ActiveSequence(tours, elapsed)
+	if !ok {
+		return nil
+	}
+	if !force {
+		return nil
+	}
+	return s.shortenActiveToElapsed(ctx, contestID, tours, activeSeq, elapsed)
+}
+
+func (s *Regatta) shortenActiveToElapsed(
+	ctx context.Context,
+	contestID int,
+	tours []regatta.Tour,
+	activeSeq int,
+	elapsed int,
+) error {
+	elapsedIn := regatta.ElapsedInSegment(tours, activeSeq, elapsed)
+	if elapsedIn <= 0 {
+		return nil
+	}
+	return s.tourRepository.UpdateDuration(ctx, contestID, activeSeq, elapsedIn)
+}
+
+func (s *Regatta) tryStartPendingHead(
+	ctx context.Context,
+	contestID int,
+	timetable *regatta.ToursTimetable,
+	tours []regatta.Tour,
+	elapsed int,
+	mode AdvanceMode,
+) (bool, error) {
+	slot, ok := timetable.HeadSlot()
+	if !ok {
+		return false, nil
 	}
 
-	tour := timetable.TourTimes[position]
-	if tour.Started {
-		return nil, ErrTourAlreadyStarted
+	if _, active := regatta.ActiveSequence(tours, elapsed); active {
+		return false, nil
+	}
+
+	anchor := regatta.TimelineAnchorEnd(tours)
+	start := regatta.BuildPendingStarts(anchor, timetable.PendingSlots)[0]
+
+	if mode == AdvanceAuto && elapsed < start {
+		return false, nil
+	}
+
+	isPause := regatta.NormalizeSlotKind(slot.Kind) == regatta.ScheduleSlotKindPause
+	if _, err := s.StartTour(ctx, contestID, slot.Duration, StartTourOptions{IsPause: isPause}); err != nil {
+		return false, err
+	}
+
+	timetable.PopHead()
+	return true, nil
+}
+
+func (s *Regatta) loadToursSorted(ctx context.Context, contestID int) ([]regatta.Tour, error) {
+	tours, err := s.tourRepository.FindByContestID(ctx, contestID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to find tours: %w", err)
+	}
+	return regatta.SortToursBySequence(tours), nil
+}
+
+func (s *Regatta) UpdateActiveTourDuration(
+	ctx context.Context,
+	contestID int,
+	durationSeconds int,
+	opts TimetableViewOptions,
+) (*regatta.TimetableView, error) {
+	if contestID <= 0 {
+		return nil, fmt.Errorf("%w: contest_id must be positive", ErrInvalidTimetable)
+	}
+	if durationSeconds <= 0 {
+		return nil, fmt.Errorf("%w: duration must be positive", ErrInvalidTimetable)
 	}
 
 	contest, err := s.contestRepo.GetByContestID(ctx, contestID)
@@ -136,66 +315,56 @@ func (s *Regatta) StartScheduledTour(ctx context.Context, contestID int, tourNum
 		return nil, fmt.Errorf("failed to get contest %d: %w", contestID, err)
 	}
 
-	startTime := int(time.Since(contest.StartTime).Seconds())
-	if startTime < 0 {
-		return nil, fmt.Errorf("%w: contest has not started yet", ErrInvalidTimetable)
+	elapsed := int(time.Now().Sub(contest.StartTime).Seconds())
+	if elapsed < 0 {
+		return nil, ErrContestNotStarted
 	}
 
-	shiftToursFromIndex(timetable, position, startTime)
-	timetable.TourTimes[position].Started = true
-
-	if err := validateTourChain(*timetable); err != nil {
+	tours, err := s.loadToursSorted(ctx, contestID)
+	if err != nil {
 		return nil, err
 	}
 
-	if _, err := s.StartTour(ctx, contestID, time.Duration(tour.Duration)*time.Second); err != nil {
-		if errors.Is(err, mongo.ErrNoDocuments) {
-			return nil, ErrContestNotFound
-		}
+	activeSeq, ok := regatta.ActiveSequence(tours, elapsed)
+	if !ok {
+		return nil, ErrNoActiveTour
+	}
+
+	elapsedIn := regatta.ElapsedInSegment(tours, activeSeq, elapsed)
+	if durationSeconds < elapsedIn {
+		return nil, fmt.Errorf(
+			"%w: duration cannot be less than elapsed time in segment (%ds)",
+			ErrInvalidTimetable,
+			elapsedIn,
+		)
+	}
+
+	if err := s.tourRepository.UpdateDuration(ctx, contestID, activeSeq, durationSeconds); err != nil {
+		return nil, fmt.Errorf("failed to update tour duration: %w", err)
+	}
+
+	timetable, err := s.LoadTimetable(ctx, contestID)
+	if errors.Is(err, ErrTimetableNotFound) {
+		return s.buildTimetableView(ctx, contestID, &regatta.ToursTimetable{
+			ContestId:    contestID,
+			PendingSlots: []regatta.ScheduleSlot{},
+		}, opts)
+	}
+	if err != nil {
 		return nil, err
 	}
 
-	if err := s.timetableRepository.Update(ctx, timetable); err != nil {
-		return nil, fmt.Errorf("failed to update timetable after starting tour: %w", err)
-	}
-
-	return timetable, nil
+	return s.buildTimetableView(ctx, contestID, timetable, opts)
 }
 
-func shiftToursFromIndex(timetable *regatta.ToursTimetable, position int, newStartTime int) {
-	delta := newStartTime - timetable.TourTimes[position].StartTime
-	for i := position; i < len(timetable.TourTimes); i++ {
-		timetable.TourTimes[i].StartTime += delta
-	}
-}
-
-func validateTourChain(timetable regatta.ToursTimetable) error {
-	if timetable.ContestId <= 0 {
-		return fmt.Errorf("%w: contest_id must be positive", ErrInvalidTimetable)
-	}
-
-	for i, tour := range timetable.TourTimes {
-		if tour.StartTime < 0 {
-			return fmt.Errorf("%w: tour %d start_time must be non-negative", ErrInvalidTimetable, i+1)
+func validatePendingSlots(slots []regatta.ScheduleSlot) error {
+	for i, slot := range slots {
+		if slot.Duration <= 0 {
+			return fmt.Errorf("%w: slot %d duration must be positive", ErrInvalidTimetable, i+1)
 		}
-		if tour.Duration <= 0 {
-			return fmt.Errorf("%w: tour %d duration must be positive", ErrInvalidTimetable, i+1)
-		}
-		if i > 0 {
-			prevTour := timetable.TourTimes[i-1]
-			if prevTour.StartTime+prevTour.Duration > tour.StartTime {
-				return fmt.Errorf("%w: tours %d and %d overlap", ErrInvalidTimetable, i, i+1)
-			}
-		}
-	}
-
-	return nil
-}
-
-func validateTourDurations(durations []int) error {
-	for i, duration := range durations {
-		if duration <= 0 {
-			return fmt.Errorf("%w: tour %d duration must be positive", ErrInvalidTimetable, i+1)
+		kind := regatta.NormalizeSlotKind(slot.Kind)
+		if kind != regatta.ScheduleSlotKindTour && kind != regatta.ScheduleSlotKindPause {
+			return fmt.Errorf("%w: slot %d invalid kind %q", ErrInvalidTimetable, i+1, slot.Kind)
 		}
 	}
 	return nil

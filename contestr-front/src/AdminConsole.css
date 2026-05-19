@@ -1,0 +1,33 @@
+.admin-console {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-m);
+    width: 100%;
+}
+
+.admin-console-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+
+.admin-console-tab {
+    padding: 0.5rem 1rem;
+    border: 1px solid #e0dcd0;
+    border-radius: 0.5rem;
+    background: #fff;
+    color: #4f4e4e;
+    font-family: "Montserrat Alternates", sans-serif;
+    font-size: 0.95rem;
+    cursor: pointer;
+}
+
+.admin-console-tab--active {
+    border-color: #e58995;
+    background: #fff5f6;
+    color: #bf9298;
+}
+
+.admin-console-body {
+    width: 100%;
+}

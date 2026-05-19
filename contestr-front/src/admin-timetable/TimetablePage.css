@@ -11,7 +11,7 @@
     margin-bottom: var(--space-xs);
 }
 
-.tt-context-bar__top {
+.tt-context-bar__row {
     display: flex;
     flex-wrap: wrap;
     align-items: center;
@@ -23,16 +23,9 @@
     display: flex;
     flex-wrap: wrap;
     align-items: center;
+    justify-content: flex-end;
     gap: var(--space-s);
     margin-left: auto;
-}
-
-.tt-title {
-    margin: 0;
-    line-height: 2.75rem;
-    color: #4f4e4e;
-    font-size: var(--fs-h2, 1.25rem);
-    font-family: "Montserrat Alternates", sans-serif;
 }
 
 .tt-contest-select {
@@ -77,18 +70,13 @@
     color: #6b6a68;
 }
 
-.tt-context-bar__meta {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.35rem;
-}
-
 .tt-contest-start {
     margin: 0;
+    line-height: 2.75rem;
     font-family: "Anonymous Pro", sans-serif;
     font-size: var(--fs-button);
     color: #6b6a68;
+    white-space: nowrap;
 }
 
 .tt-autostart-toggle {
@@ -244,9 +232,18 @@
     color: #4f4e4e;
 }
 
-.tt-start-now-btn {
+.tt-next-banner__actions {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.75rem 1rem;
     flex-shrink: 0;
     margin-left: auto;
+}
+
+.tt-start-now-btn {
+    flex-shrink: 0;
 }
 
 /* ——— шкала времени ——— */
@@ -257,11 +254,21 @@
 }
 
 .tt-axis {
+    /* Палитра шкалы — в тон #FBF8F3, #f0ede6, #e0dcd0 и мягкому #bdd7bf */
+    --tt-tour-past-bg: #a8b8a6;
+    --tt-tour-past-fg: #526352;
+    --tt-tour-active-bg: #bdd7bf;
+    --tt-tour-active-fg: #526352;
+    --tt-tour-future-bg: #e8dfd0;
+    --tt-tour-future-fg: #6b6a68;
+    --tt-tour-gap: 2px;
+    --tt-tour-radius: 0.4rem;
+
     margin-bottom: 0;
     padding: 0.85rem 1rem 0.65rem;
     border: 1px solid #e0dcd0;
     border-radius: 0.65rem;
-    background: linear-gradient(180deg, #fff 0%, #fbf8f3 100%);
+    background: #fff;
     transition: border-color 0.2s ease;
 }
 
@@ -278,9 +285,10 @@
 
 .tt-axis__scale {
     --tt-segment-min: 3.35rem;
-    display: flex;
-    flex-direction: column;
-    gap: 0.2rem;
+    display: grid;
+    grid-template-rows: auto auto auto;
+    row-gap: 0.2rem;
+    align-items: stretch;
     min-width: max(100%, calc(var(--tt-segment-min) * var(--tt-tour-count, 1)));
     overflow-x: auto;
     overflow-y: visible;
@@ -298,38 +306,19 @@
     border-radius: 999px;
 }
 
-.tt-axis__track-wrap {
-    position: relative;
-    padding: 0;
-    flex-shrink: 0;
-}
-
-.tt-axis__track {
-    position: relative;
-    height: 4.85rem;
-    border-radius: 0.35rem;
-    background: #f0ede6;
-    box-shadow: inset 0 1px 2px rgba(79, 78, 78, 0.06);
-}
-
 .tt-axis__block {
-    position: absolute;
-    top: 0;
-    bottom: 0;
     min-width: 2px;
-    border-right: 1px solid rgba(255, 255, 255, 0.35);
+    min-height: 4.85rem;
+    border: 0.5px solid rgba(0, 0, 0, 0.45);
+    border-radius: var(--tt-tour-radius);
     box-sizing: border-box;
-    overflow: visible;
+    overflow: hidden;
     z-index: 1;
 }
 
 .tt-axis__block:hover,
 .tt-axis__block--editing {
     z-index: 3;
-}
-
-.tt-axis__block:first-of-type {
-    border-radius: 0.35rem 0 0 0.35rem;
 }
 
 .tt-axis__block-inner {
@@ -353,6 +342,10 @@
 
 .tt-axis__block-inner[data-actions="3"] {
     --tt-actions-reserve: 1.75rem;
+}
+
+.tt-axis__block-inner[data-actions="4"] {
+    --tt-actions-reserve: 2.2rem;
 }
 
 .tt-axis__block-head {
@@ -403,22 +396,35 @@
     height: 1em;
 }
 
-.tt-axis__block.tt-status--next .tt-axis__status-icon {
-    color: #fbf8f3;
+.tt-axis__block.tt-visual--past .tt-axis__status-icon,
+.tt-axis__block.tt-visual--past .tt-axis__block-title,
+.tt-axis__block.tt-visual--past .tt-axis__duration-text {
+    color: var(--tt-tour-past-fg);
 }
 
-.tt-axis__block.tt-status--started .tt-axis__status-icon {
-    color: #2d4a30;
+.tt-axis__block.tt-visual--active .tt-axis__status-icon,
+.tt-axis__block.tt-visual--active .tt-axis__block-title,
+.tt-axis__block.tt-visual--active .tt-axis__duration-text {
+    color: var(--tt-tour-active-fg);
 }
 
-.tt-axis__block.tt-status--starting .tt-axis__status-icon,
-.tt-axis__block.tt-status--planned .tt-axis__status-icon {
-    color: #4f4e4e;
+.tt-axis__block.tt-visual--next .tt-axis__status-icon,
+.tt-axis__block.tt-visual--next .tt-axis__block-title,
+.tt-axis__block.tt-visual--next .tt-axis__duration-text,
+.tt-axis__block.tt-visual--starting .tt-axis__status-icon,
+.tt-axis__block.tt-visual--starting .tt-axis__block-title,
+.tt-axis__block.tt-visual--starting .tt-axis__duration-text,
+.tt-axis__block.tt-visual--future .tt-axis__status-icon,
+.tt-axis__block.tt-visual--future .tt-axis__block-title,
+.tt-axis__block.tt-visual--future .tt-axis__duration-text {
+    color: var(--tt-tour-future-fg);
 }
 
-.tt-axis__block.tt-status--next .tt-axis__block-title,
-.tt-axis__block.tt-status--next .tt-axis__duration-text {
-    color: #fbf8f3;
+/* Следующий тур — тот же фон, что у остальных запланированных; отличие только в иконке */
+.tt-axis__block.tt-visual--next,
+.tt-axis__block.tt-visual--starting,
+.tt-axis__block.tt-visual--future {
+    background: var(--tt-tour-future-bg);
 }
 
 .tt-axis__block-duration {
@@ -434,12 +440,32 @@
     font-size: 0.65rem;
 }
 
-.tt-axis__block.tt-status--next .tt-duration-edit {
-    color: rgba(251, 248, 243, 0.85);
+.tt-axis__block.tt-visual--past .tt-duration-edit {
+    color: color-mix(in srgb, var(--tt-tour-past-fg) 75%, transparent);
 }
 
-.tt-axis__block.tt-status--next .tt-duration-edit:hover {
-    color: #fbf8f3;
+.tt-axis__block.tt-visual--past .tt-duration-edit:hover {
+    color: var(--tt-tour-past-fg);
+}
+
+.tt-axis__block.tt-visual--active .tt-duration-edit {
+    color: color-mix(in srgb, var(--tt-tour-active-fg) 75%, transparent);
+}
+
+.tt-axis__block.tt-visual--active .tt-duration-edit:hover {
+    color: var(--tt-tour-active-fg);
+}
+
+.tt-axis__block.tt-visual--next .tt-duration-edit,
+.tt-axis__block.tt-visual--starting .tt-duration-edit,
+.tt-axis__block.tt-visual--future .tt-duration-edit {
+    color: color-mix(in srgb, var(--tt-tour-future-fg) 75%, transparent);
+}
+
+.tt-axis__block.tt-visual--next .tt-duration-edit:hover,
+.tt-axis__block.tt-visual--starting .tt-duration-edit:hover,
+.tt-axis__block.tt-visual--future .tt-duration-edit:hover {
+    color: var(--tt-tour-future-fg);
 }
 
 .tt-axis__duration-text {
@@ -498,6 +524,34 @@
     }
 }
 
+.tt-chevrons-icon {
+    display: inline-flex;
+    align-items: center;
+    line-height: 0;
+}
+
+.tt-chevrons-icon__inner {
+    display: inline-block;
+    font-family: "Anonymous Pro", monospace;
+    font-size: 0.9em;
+    font-weight: 700;
+    letter-spacing: -0.1em;
+    animation: tt-chevrons-nudge 0.75s ease-in-out infinite;
+}
+
+@keyframes tt-chevrons-nudge {
+    0%,
+    100% {
+        transform: translateX(0);
+        opacity: 1;
+    }
+
+    50% {
+        transform: translateX(0.12em);
+        opacity: 0.72;
+    }
+}
+
 .tt-axis__block-actions {
     position: absolute;
     top: 0.18rem;
@@ -536,10 +590,6 @@
     cursor: not-allowed;
 }
 
-.tt-axis__block.tt-status--next .tt-axis__icon-btn {
-    color: rgba(251, 248, 243, 0.9);
-}
-
 .tt-axis__icon-btn:hover {
     color: #8b5a62;
 }
@@ -548,68 +598,40 @@
     color: #a63d52;
 }
 
-.tt-axis__block.tt-status--started {
-    background: #bdd7bf;
+.tt-axis__icon-btn--pause-on {
+    color: #7a6b52;
 }
 
-.tt-axis__block.tt-status--next {
-    background: #e58995;
+.tt-axis__icon-btn--pause:hover,
+.tt-axis__icon-btn--pause-on:hover {
+    color: #6b5a3e;
 }
 
-.tt-axis__block.tt-status--starting {
-    background: #e8dfd0;
+.tt-axis__block.tt-visual--past {
+    background: var(--tt-tour-past-bg);
 }
 
-.tt-axis__block.tt-status--planned {
-    background: #d8d4cb;
+.tt-axis__block.tt-visual--active {
+    background: var(--tt-tour-active-bg);
 }
 
-.tt-axis__now {
-    position: absolute;
-    top: -0.35rem;
-    bottom: -0.35rem;
-    z-index: 2;
-    transform: translateX(-50%);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    pointer-events: none;
-}
-
-.tt-axis__now-line {
-    flex: 1;
-    width: 2px;
-    border-radius: 1px;
-    background: #a63d52;
-    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.6);
-}
-
-.tt-axis__now-label {
-    font-family: "Montserrat Alternates", sans-serif;
-    font-size: 0.65rem;
-    font-weight: 600;
-    color: #a63d52;
-    text-transform: lowercase;
-    white-space: nowrap;
-}
-
-.tt-axis__ruler {
-    position: relative;
-    overflow: visible;
-}
-
-.tt-axis__ruler--above,
-.tt-axis__ruler--below {
-    min-height: 1.35rem;
+.tt-axis__block--in-progress {
+    background: linear-gradient(
+        to right,
+        var(--tt-from) 0%,
+        var(--tt-from) calc(var(--tt-fill) * 100%),
+        var(--tt-to) calc(var(--tt-fill) * 100%),
+        var(--tt-to) 100%
+    ) !important;
 }
 
 .tt-axis__mark {
-    position: absolute;
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 0.1rem;
-    transform: translateX(-50%);
+    min-height: 1.35rem;
+    overflow: visible;
 }
 
 .tt-axis__mark--above {
@@ -631,13 +653,15 @@
 }
 
 .tt-axis__mark--start {
-    transform: translateX(0);
     align-items: flex-start;
 }
 
 .tt-axis__mark--end {
-    transform: translateX(-100%);
     align-items: flex-end;
+}
+
+.tt-axis__mark--mid {
+    align-items: center;
 }
 
 .tt-axis__tick {
@@ -736,3 +760,40 @@
         line-height: 1.4;
     }
 }
+
+.tt-axis__block--pause {
+    background: #d4cfc4;
+}
+
+.tt-axis__pause-icon {
+    display: inline-flex;
+    flex-shrink: 0;
+    color: inherit;
+}
+
+.tt-axis__pause-icon--active,
+.tt-next-banner__pause-icon--active {
+    animation: tt-pause-blink 1.1s ease-in-out infinite;
+}
+
+.tt-axis__icon-btn--pause-on {
+    animation: tt-pause-blink 1.1s ease-in-out infinite;
+}
+
+@keyframes tt-pause-blink {
+    0%,
+    100% {
+        opacity: 1;
+    }
+
+    50% {
+        opacity: 0.3;
+    }
+}
+
+.tt-next-banner__pause-icon {
+    display: inline-flex;
+    line-height: 0;
+    color: #5c5348;
+}
+

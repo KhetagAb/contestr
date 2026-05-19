@@ -9,6 +9,7 @@ import {
 import type { RegattaContestRow, ProblemResult } from "../client";
 import {useMemo} from "react";
 import { useCurRegattaData } from "../data";
+import { formatGroupCode } from "../utils/groupCode";
 
 // Описываем тип строки таблицы (одна посылка)
 type RecentParcelRow = RegattaContestRow & ProblemResult;
@@ -54,8 +55,11 @@ export const createColumns = (tourDurationMinutes?: number) => {
         }),
 
         columnHelper.accessor("team_number", {
-            header: () => "№№ команды",
-            cell: (info) => info.getValue(),
+            header: () => "Команда",
+            cell: (info) => {
+                const n = info.getValue();
+                return <span title={`Группа ${n}`}>{formatGroupCode(n)}</span>;
+            },
         }),
 
         columnHelper.accessor("problem_code", {

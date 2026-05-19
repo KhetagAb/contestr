@@ -18,8 +18,8 @@ func (s *Regatta) GetTimetableView(ctx context.Context, contestID int, opts Time
 	timetable, err := s.LoadTimetable(ctx, contestID)
 	if errors.Is(err, ErrTimetableNotFound) {
 		return s.buildTimetableView(ctx, contestID, &regatta.ToursTimetable{
-			ContestId: contestID,
-			TourTimes: []regatta.TourConfig{},
+			ContestId:    contestID,
+			PendingSlots: []regatta.ScheduleSlot{},
 		}, opts)
 	}
 	if err != nil {
@@ -39,7 +39,7 @@ func (s *Regatta) buildTimetableView(
 	view := &regatta.TimetableView{
 		ContestId:          contestID,
 		ServerNow:          now,
-		TourTimes:          timetable.TourTimes,
+		PendingSlots:       timetable.PendingSlots,
 		AutoStartAvailable: opts.ServerAutoStartAvailable,
 		AutoStartEnabled:   opts.ServerAutoStartAvailable && timetable.AutoStartEnabled,
 	}
@@ -57,9 +57,13 @@ func (s *Regatta) buildTimetableView(
 		view.ElapsedSeconds = elapsed
 	}
 
-	meta, next := regatta.BuildToursMeta(timetable.TourTimes, view.ElapsedSeconds)
-	view.ToursMeta = meta
-	view.NextTourNumber = next
+	tours, err := s.loadToursSorted(ctx, contestID)
+	if err != nil {
+		return nil, err
+	}
+
+	view.TimelineSegments = regatta.BuildTimelineSegments(tours, timetable.PendingSlots, view.ElapsedSeconds)
+	view.NextTourNumber = regatta.NextCompetitiveRound(tours, timetable.PendingSlots)
 
 	return view, nil
 }
@@ -73,7 +77,7 @@ func (s *Regatta) SaveTimetable(
 	if contestID <= 0 {
 		return nil, ErrInvalidTimetable
 	}
-	if err := validateTourDurations(input.TourDurations); err != nil {
+	if err := validatePendingSlots(input.PendingSlots); err != nil {
 		return nil, err
 	}
 
@@ -82,10 +86,9 @@ func (s *Regatta) SaveTimetable(
 		return nil, err
 	}
 
-	merged := regatta.ApplyTimetableSchedule(existing, input.TourDurations)
 	timetable := regatta.ToursTimetable{
 		ContestId:        contestID,
-		TourTimes:        merged,
+		PendingSlots:     input.PendingSlots,
 		AutoStartEnabled: input.AutoStartEnabled,
 	}
 

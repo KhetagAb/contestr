@@ -1,11 +1,9 @@
-export function confirmStartNow(tourNumber: number) {
+export function confirmAdvance() {
     return window.confirm(
-        `Запустить тур ${tourNumber} сейчас?\n\nВремя этого и всех следующих туров сдвинется к текущему моменту.`,
+        "Запустить следующий слот сейчас?\n\nАктивный тур или перерыв будет укорочен до текущего момента.",
     );
 }
 
-export function confirmEditStartedDuration(tourNumber: number) {
-    return window.confirm(
-        `Изменить длительность запущенного тура ${tourNumber}?\n\nСдвинется конец тура и расписание всех следующих туров.`,
-    );
+export function confirmEditPendingDuration() {
+    return window.confirm("Изменить длительность слота в плане?");
 }

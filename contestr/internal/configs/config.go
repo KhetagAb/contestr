@@ -17,10 +17,9 @@ type (
 		Telegram      TelegramConfig        `mapstructure:"telegram"`
 		Codeforces    CodeforcesConfig      `mapstructure:"codeforces"`
 		Ejudge        EjudgeConfig          `mapstructure:"ejudge"`
-		ContestSync   ContestSyncConfig     `mapstructure:"contest_sync"`
-		TimetableSync TimetableSyncConfig   `mapstructure:"timetable_sync"`
-		Contests      ContestRegistryConfig `mapstructure:"contests"`
-		Admin         AdminConfig           `mapstructure:"admin"`
+		ContestSync   ContestSyncConfig   `mapstructure:"contest_sync"`
+		TimetableSync TimetableSyncConfig `mapstructure:"timetable_sync"`
+		Admin         AdminConfig         `mapstructure:"admin"`
 	}
 
 	AppConfig struct {
@@ -66,10 +65,6 @@ type (
 
 	TimetableSyncConfig struct {
 		Interval time.Duration `mapstructure:"interval"`
-	}
-
-	ContestRegistryConfig struct {
-		Registry map[string][]int `mapstructure:"registry"`
 	}
 
 	AdminConfig struct {

@@ -6,17 +6,28 @@ import {
     type LucideProps,
 } from "lucide-react";
 import type { ReactNode } from "react";
-import type { TourMeta } from "../client/types.gen";
+import type { TimelineSegment } from "../client/types.gen";
 import { statusLabel } from "./statusLabels";
+import type { TourVisualState } from "./tourVisualState";
 
 type StatusIconProps = {
-    status: TourMeta["status"];
+    status: TimelineSegment["status"];
+    visualState?: TourVisualState;
     size?: number;
     className?: string;
 };
 
+function MovingChevronsIcon({ className = "" }: { className?: string }) {
+    return (
+        <span className={`tt-chevrons-icon ${className}`.trim()} aria-hidden>
+            <span className="tt-chevrons-icon__inner">{">>"}</span>
+        </span>
+    );
+}
+
 export function TourStatusIcon({
     status,
+    visualState,
     size = 13,
     className = "",
 }: StatusIconProps) {
@@ -29,9 +40,12 @@ export function TourStatusIcon({
     };
 
     let icon: ReactNode;
-    switch (status) {
-        case "started":
+    switch (visualState ?? status) {
+        case "past":
             icon = <Check {...iconProps} strokeWidth={2.5} />;
+            break;
+        case "active":
+            icon = <MovingChevronsIcon className={className} />;
             break;
         case "next":
             icon = <CirclePlay {...iconProps} />;
@@ -43,6 +57,9 @@ export function TourStatusIcon({
                     className={`${className} tt-status-icon--spin`.trim()}
                 />
             );
+            break;
+        case "future":
+            icon = <Calendar {...iconProps} />;
             break;
         default:
             icon = <Calendar {...iconProps} />;

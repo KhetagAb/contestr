@@ -486,17 +486,36 @@ ul {
     white-space: nowrap;
 }
 
+.admin-user-popover-link,
 .admin-user-popover-btn {
+    display: block;
     width: 100%;
     padding: 0.65rem 1rem;
-    border: none;
     border-radius: 0.5rem;
-    background: #bf9298;
-    color: #fbf8f3;
     font-family: "Montserrat Alternates", sans-serif;
     font-size: var(--fs-button);
+    text-align: center;
+    text-decoration: none;
+    box-sizing: border-box;
     cursor: pointer;
-    transition: background 0.2s ease;
+    transition: background 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.admin-user-popover-link {
+    border: 1px solid #e0dcd0;
+    background: #fff;
+    color: #4f4e4e;
+}
+
+.admin-user-popover-link:hover {
+    border-color: #e58995;
+    color: #bf9298;
+}
+
+.admin-user-popover-btn {
+    border: none;
+    background: #bf9298;
+    color: #fbf8f3;
 }
 
 .admin-user-popover-btn:hover {

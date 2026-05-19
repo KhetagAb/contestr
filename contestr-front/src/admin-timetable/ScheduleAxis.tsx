@@ -1,22 +1,25 @@
 import { useMemo, type CSSProperties } from "react";
-import type { TimetableView, TourConfig } from "../client/types.gen";
+import type { TimelineSegment, TimetableView } from "../client/types.gen";
 import { AxisSegment } from "./AxisSegment";
-import { formatClockHHMM, formatTourClock } from "./time";
+import { computeActiveSegmentProgress } from "./tourProgress";
+import { formatTourClock } from "./time";
+import { useContestElapsed } from "./useContestElapsed";
 
 type Props = {
-    tours: TourConfig[];
+    segments: TimelineSegment[];
     view: TimetableView | null;
     dirty?: boolean;
     busy?: boolean;
-    onDurationChange: (index: number, duration: number) => void;
-    onRemove: (index: number) => void;
-    onAddTour: () => void;
+    onPendingDurationChange: (pendingIndex: number, duration: number) => void;
+    onPendingKindChange: (pendingIndex: number, kind: "tour" | "pause") => void;
+    onPendingRemove: (pendingIndex: number) => void;
+    onAddSlot: () => void;
 };
 
-function boundaryTicks(tours: TourConfig[]): number[] {
+function boundaryTicks(segments: TimelineSegment[]): number[] {
     const ticks = new Set<number>([0]);
-    for (const tour of tours) {
-        ticks.add(tour.start_time + tour.duration);
+    for (const segment of segments) {
+        ticks.add(segment.start_time + segment.duration);
     }
     return [...ticks].sort((a, b) => a - b);
 }
@@ -24,14 +27,9 @@ function boundaryTicks(tours: TourConfig[]): number[] {
 type AxisTickLayout = {
     seconds: number;
     showLabel: boolean;
-    /** Нечётные границы — подпись над шкалой; чётные — под шкалой. */
     above: boolean;
 };
 
-/**
- * Подписи в двух рядах: сначала чередование по индексу границы,
- * затем скрытие только при наложении на той же стороне (верх / низ).
- */
 function layoutAxisTickLabels(
     ticks: number[],
     totalEnd: number,
@@ -84,53 +82,82 @@ function tickMarkClass(isFirst: boolean, isLast: boolean, above: boolean): strin
     let cls = above ? "tt-axis__mark tt-axis__mark--above" : "tt-axis__mark tt-axis__mark--below";
     if (isFirst) {
         cls += " tt-axis__mark--start";
-    }
-    if (isLast) {
+    } else if (isLast) {
         cls += " tt-axis__mark--end";
+    } else {
+        cls += " tt-axis__mark--mid";
     }
     return cls;
 }
 
+function buildAxisGridTemplateColumns(segments: TimelineSegment[]): string {
+    return segments
+        .map((s, i) =>
+            i < segments.length - 1
+                ? `${s.duration}fr var(--tt-tour-gap)`
+                : `${s.duration}fr`,
+        )
+        .join(" ");
+}
+
+function segmentGridColumn(index: number): number {
+    return index * 2 + 1;
+}
+
+function tickGridPlacement(
+    tickIndex: number,
+    tickCount: number,
+    segmentCount: number,
+): Pick<CSSProperties, "gridColumn" | "justifySelf"> {
+    if (tickIndex === 0) {
+        return { gridColumn: 1, justifySelf: "start" };
+    }
+    if (tickIndex === tickCount - 1) {
+        return { gridColumn: segmentCount * 2 - 1, justifySelf: "end" };
+    }
+    return { gridColumn: tickIndex * 2, justifySelf: "center" };
+}
+
 export function ScheduleAxis({
-    tours,
+    segments,
     view,
     dirty = false,
     busy = false,
-    onDurationChange,
-    onRemove,
-    onAddTour,
+    onPendingDurationChange,
+    onPendingKindChange,
+    onPendingRemove,
+    onAddSlot,
 }: Props) {
+    const elapsed = useContestElapsed(view?.contest_start_time, view?.elapsed_seconds ?? 0);
+
     const layout = useMemo(() => {
-        if (tours.length === 0) {
+        if (segments.length === 0) {
             return null;
         }
-        const totalEnd = tours.reduce(
-            (max, t) => Math.max(max, t.start_time + t.duration),
+        const totalEnd = segments.reduce(
+            (max, s) => Math.max(max, s.start_time + s.duration),
             0,
         );
         if (totalEnd <= 0) {
             return null;
         }
 
-        const elapsed = view?.elapsed_seconds ?? 0;
-        const nowPct =
-            view?.contest_start_time && elapsed > 0
-                ? Math.min(100, (elapsed / totalEnd) * 100)
-                : null;
-
-        const ticks = boundaryTicks(tours);
+        const ticks = boundaryTicks(segments);
         const tickLabels = layoutAxisTickLabels(ticks, totalEnd, 5.5);
+        const activeProgress = computeActiveSegmentProgress(segments, elapsed);
 
-        return { totalEnd, nowPct, tickLabels };
-    }, [tours, view]);
+        return { tickLabels, activeProgress };
+    }, [segments, elapsed]);
 
     if (!layout) {
         return null;
     }
 
-    const totalEnd = layout.totalEnd;
+    const tickCount = layout.tickLabels.length;
+    const segmentCount = segments.length;
     const scaleStyle = {
-        "--tt-tour-count": tours.length,
+        "--tt-tour-count": segmentCount,
+        gridTemplateColumns: buildAxisGridTemplateColumns(segments),
     } as CSSProperties;
 
     return (
@@ -140,89 +167,78 @@ export function ScheduleAxis({
         >
             <p className="tt-axis__caption">Временная шкала туров</p>
             <div className="tt-axis__scale" style={scaleStyle}>
-                <div className="tt-axis__ruler tt-axis__ruler--above">
-                    {layout.tickLabels.map(({ seconds, showLabel, above }, i) => {
-                        if (!above || !showLabel) {
-                            return null;
-                        }
-                        const pct = (seconds / totalEnd) * 100;
-                        const isFirst = i === 0;
-                        const isLast = i === layout.tickLabels.length - 1;
-                        return (
-                            <div
-                                key={`above-${seconds}`}
-                                className={tickMarkClass(isFirst, isLast, true)}
-                                style={{ left: `${pct}%` }}
-                            >
-                                <span className="tt-axis__tick">
-                                    {formatTourClock(view?.contest_start_time, seconds)}
-                                </span>
-                                <span className="tt-axis__tick-stem" aria-hidden>
-                                    |
-                                </span>
-                            </div>
-                        );
-                    })}
-                </div>
-                <div className="tt-axis__track-wrap">
-                    <div className="tt-axis__track">
-                        {layout.nowPct !== null && (
-                            <div
-                                className="tt-axis__now"
-                                style={{ left: `${layout.nowPct}%` }}
-                                title={`Сейчас: ${formatClockHHMM(view?.elapsed_seconds ?? 0)}`}
-                            >
-                                <span className="tt-axis__now-line" />
-                                <span className="tt-axis__now-label">сейчас</span>
-                            </div>
-                        )}
-                        {tours.map((tour, index) => {
-                            const leftPct = (tour.start_time / totalEnd) * 100;
-                            const widthPct = (tour.duration / totalEnd) * 100;
-                            const isLast = index === tours.length - 1;
-                            return (
-                                <AxisSegment
-                                    key={index}
-                                    index={index}
-                                    tour={tour}
-                                    meta={view?.tours_meta[index]}
-                                    leftPct={leftPct}
-                                    widthPct={widthPct}
-                                    isLast={isLast}
-                                    busy={busy}
-                                    onDurationChange={onDurationChange}
-                                    onRemove={onRemove}
-                                    onAdd={isLast ? onAddTour : undefined}
-                                    contestStartTime={view?.contest_start_time}
-                                />
-                            );
-                        })}
-                    </div>
-                </div>
-                <div className="tt-axis__ruler tt-axis__ruler--below">
-                    {layout.tickLabels.map(({ seconds, showLabel, above }, i) => {
-                        if (above || !showLabel) {
-                            return null;
-                        }
-                        const pct = (seconds / totalEnd) * 100;
-                        const isFirst = i === 0;
-                        const isLast = i === layout.tickLabels.length - 1;
-                        return (
-                            <div
-                                key={`below-${seconds}`}
-                                className={tickMarkClass(isFirst, isLast, false)}
-                                style={{ left: `${pct}%` }}
-                            >
-                                <span className="tt-axis__tick-stem" aria-hidden>
-                                    |
-                                </span>
-                                <span className="tt-axis__tick">
-                                    {formatTourClock(view?.contest_start_time, seconds)}
-                                </span>
-                            </div>
-                        );
-                    })}
-                </div>
+                {layout.tickLabels.map(({ seconds, showLabel, above }, i) => {
+                    if (!above || !showLabel) {
+                        return null;
+                    }
+                    const isFirst = i === 0;
+                    const isLast = i === tickCount - 1;
+                    return (
+                        <div
+                            key={`above-${seconds}`}
+                            className={tickMarkClass(isFirst, isLast, true)}
+                            style={{
+                                gridRow: 1,
+                                ...tickGridPlacement(i, tickCount, segmentCount),
+                            }}
+                        >
+                            <span className="tt-axis__tick">
+                                {formatTourClock(view?.contest_start_time, seconds)}
+                            </span>
+                            <span className="tt-axis__tick-stem" aria-hidden>
+                                |
+                            </span>
+                        </div>
+                    );
+                })}
+                {segments.map((segment, index) => {
+                    const isLast = index === segments.length - 1;
+                    const active = layout.activeProgress;
+                    const isActive = active?.index === index;
+                    return (
+                        <AxisSegment
+                            key={`${segment.sequence ?? "p"}-${segment.pending_index ?? index}`}
+                            segment={segment}
+                            isLast={isLast}
+                            busy={busy}
+                            onDurationChange={
+                                segment.editable ? onPendingDurationChange : undefined
+                            }
+                            onKindChange={segment.editable ? onPendingKindChange : undefined}
+                            onRemove={segment.editable ? onPendingRemove : undefined}
+                            onAdd={isLast ? onAddSlot : undefined}
+                            contestStartTime={view?.contest_start_time}
+                            progressFill={isActive ? active.fill : undefined}
+                            progressColorFrom={isActive ? active.colorFrom : undefined}
+                            progressColorTo={isActive ? active.colorTo : undefined}
+                            gridColumn={segmentGridColumn(index)}
+                        />
+                    );
+                })}
+                {layout.tickLabels.map(({ seconds, showLabel, above }, i) => {
+                    if (above || !showLabel) {
+                        return null;
+                    }
+                    const isFirst = i === 0;
+                    const isLast = i === tickCount - 1;
+                    return (
+                        <div
+                            key={`below-${seconds}`}
+                            className={tickMarkClass(isFirst, isLast, false)}
+                            style={{
+                                gridRow: 3,
+                                ...tickGridPlacement(i, tickCount, segmentCount),
+                            }}
+                        >
+                            <span className="tt-axis__tick-stem" aria-hidden>
+                                |
+                            </span>
+                            <span className="tt-axis__tick">
+                                {formatTourClock(view?.contest_start_time, seconds)}
+                            </span>
+                        </div>
+                    );
+                })}
             </div>
         </section>
     );

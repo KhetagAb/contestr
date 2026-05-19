@@ -11,15 +11,13 @@ import (
 	"contestr/pkg/logger"
 	regattapkg "contestr/pkg/regatta"
 
-	"go.mongodb.org/mongo-driver/mongo"
 )
 
 type Interval time.Duration
 
 type RegattaService interface {
-	StartTour(ctx context.Context, contestID int, duration time.Duration) (string, error)
+	AdvanceTimetable(ctx context.Context, contestID int, mode regattasvc.AdvanceMode, opts regattasvc.TimetableViewOptions) error
 	LoadTimetable(ctx context.Context, contestID int) (*regattapkg.ToursTimetable, error)
-	ReplaceTimetable(ctx context.Context, timetable regattapkg.ToursTimetable) (*regattapkg.ToursTimetable, error)
 }
 
 type TimetableSyncService struct {
@@ -27,6 +25,7 @@ type TimetableSyncService struct {
 	contestRepo  repository.ContestRepository
 	regatta      RegattaService
 	syncInterval time.Duration
+	viewOpts     regattasvc.TimetableViewOptions
 }
 
 func NewTimetableSyncService(
@@ -34,6 +33,7 @@ func NewTimetableSyncService(
 	contestRepo repository.ContestRepository,
 	regatta RegattaService,
 	syncInterval Interval,
+	autoStartAvailable bool,
 ) *TimetableSyncService {
 	interval := time.Duration(syncInterval)
 	if interval <= 0 {
@@ -45,6 +45,9 @@ func NewTimetableSyncService(
 		contestRepo:  contestRepo,
 		regatta:      regatta,
 		syncInterval: interval,
+		viewOpts: regattasvc.TimetableViewOptions{
+			ServerAutoStartAvailable: autoStartAvailable,
+		},
 	}
 }
 
@@ -52,43 +55,34 @@ func (s *TimetableSyncService) Start(ctx context.Context) error {
 	ticker := time.NewTicker(s.syncInterval)
 	defer ticker.Stop()
 
-	s.StartDueTours(ctx)
+	s.AdvanceDue(ctx)
 
 	for {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
 		case <-ticker.C:
-			s.StartDueTours(ctx)
+			s.AdvanceDue(ctx)
 		}
 	}
 }
 
-func (s *TimetableSyncService) StartDueTours(ctx context.Context) {
-	now := time.Now()
+func (s *TimetableSyncService) AdvanceDue(ctx context.Context) {
 	contestsBySystem := s.registry.GetAllContests()
 
 	for system, contestIDs := range contestsBySystem {
 		for _, contestID := range contestIDs {
-			if err := s.startDueTour(ctx, contestID, now); err != nil {
-				logger.Errorf(ctx, "failed to start due timetable tour for contest %d (%s): %v", contestID, system, err)
+			if err := s.advanceContest(ctx, contestID); err != nil {
+				logger.Errorf(ctx, "failed to advance timetable for contest %d (%s): %v", contestID, system, err)
 			}
 		}
 	}
 }
 
-func (s *TimetableSyncService) startDueTour(ctx context.Context, contestID int, now time.Time) error {
+func (s *TimetableSyncService) advanceContest(ctx context.Context, contestID int) error {
 	timetable, err := s.regatta.LoadTimetable(ctx, contestID)
 	if err != nil {
 		if errors.Is(err, regattasvc.ErrTimetableNotFound) {
-			return nil
-		}
-		return err
-	}
-
-	contest, err := s.contestRepo.GetByContestID(ctx, contestID)
-	if err != nil {
-		if errors.Is(err, mongo.ErrNoDocuments) {
 			return nil
 		}
 		return err
@@ -98,26 +92,14 @@ func (s *TimetableSyncService) startDueTour(ctx context.Context, contestID int, 
 		return nil
 	}
 
-	tourNumber, tour, ok := timetable.FirstNotStartedTour()
-	if !ok {
+	err = s.regatta.AdvanceTimetable(ctx, contestID, regattasvc.AdvanceAuto, s.viewOpts)
+	if errors.Is(err, regattasvc.ErrNothingToAdvance) {
 		return nil
 	}
-
-	scheduledStart := contest.StartTime.Add(time.Duration(tour.StartTime) * time.Second)
-	if now.Before(scheduledStart) {
-		return nil
-	}
-
-	objectID, err := s.regatta.StartTour(ctx, contestID, time.Duration(tour.Duration)*time.Second)
 	if err != nil {
 		return err
 	}
 
-	timetable.TourTimes[tourNumber-1].Started = true
-	if _, err := s.regatta.ReplaceTimetable(ctx, *timetable); err != nil {
-		return err
-	}
-
-	logger.Infof(ctx, "started timetable tour %d for contest %d: object_id=%s", tourNumber, contestID, objectID)
+	logger.Infof(ctx, "advanced timetable for contest %d", contestID)
 	return nil
 }

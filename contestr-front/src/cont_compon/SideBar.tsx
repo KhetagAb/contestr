@@ -3,7 +3,7 @@ import { useState } from "react";
 import { FiFileText } from "react-icons/fi";
 // import { LuTrophy } from "react-icons/lu";
 // import { GiBalloonDog, GiLightBulb } from "react-icons/gi";
-import { CONTESTS } from "../consts";
+import { useContests } from "../useContests";
 import Clock from "./Time_cont.tsx";
 // import badminton from "./public/badminton.svg";
 // import football from "./public/football.svg";
@@ -68,6 +68,7 @@ type SidebarProps = {
 
 export const Sidebar = ({ adminSession }: SidebarProps) => {
     const [hoveredMenu, setHoveredMenu] = useState<string | null>(null);
+    const { contests, isLoading } = useContests();
 
     return (
         <aside className="sidebar-hover">
@@ -88,15 +89,21 @@ export const Sidebar = ({ adminSession }: SidebarProps) => {
                         <FiFileText size={35} />
                     </div>
                     <Submenu isOpen={hoveredMenu === "contests"}>
-                        {
-                            CONTESTS.map((item) => (
-                                <a key={item.id} className="submenu-item"
-                                href={`/?contestId=${item.id}`}>
-                                    <item.IconComponent className="subMenu-icon"></item.IconComponent>
-                                    <span className="submenu-item-text">{item.name}</span>
-                                </a>
-                            ))
-                        }
+                        {isLoading && (
+                            <span className="submenu-item submenu-item-text">Загрузка…</span>
+                        )}
+                        {!isLoading && contests.length === 0 && (
+                            <span className="submenu-item submenu-item-text">Контесты не настроены</span>
+                        )}
+                        {contests.map((item) => (
+                            <a
+                                key={item.contest_id}
+                                className="submenu-item"
+                                href={`/?contestId=${item.contest_id}`}
+                            >
+                                <span className="submenu-item-text">{item.name}</span>
+                            </a>
+                        ))}
                     </Submenu>
                 </div>
 
@@ -155,6 +162,9 @@ export const Sidebar = ({ adminSession }: SidebarProps) => {
                             <p className="admin-user-popover-greeting">
                                 Вы вошли как <span className="h1_pink">{adminSession.username}</span>
                             </p>
+                            <a href="/admin" className="admin-user-popover-link">
+                                Админ-панель
+                            </a>
                             <button
                                 type="button"
                                 className="admin-user-popover-btn"
