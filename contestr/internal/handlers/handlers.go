@@ -60,14 +60,6 @@ func (h *Handlers) DeleteAdminTimetable(ctx echo.Context, contestId int) error {
 	return h.adminTimetableHandle.DeleteAdminTimetable(ctx, contestId)
 }
 
-func (h *Handlers) PatchAdminTimetableTourMove(ctx echo.Context, contestId int, tourNumber int) error {
-	return h.adminTimetableHandle.PatchAdminTimetableTourMove(ctx, contestId, tourNumber)
-}
-
 func (h *Handlers) PostAdminTimetableTourStart(ctx echo.Context, contestId int, tourNumber int) error {
 	return h.adminTimetableHandle.PostAdminTimetableTourStart(ctx, contestId, tourNumber)
-}
-
-func (h *Handlers) GetAdminTimetableFirstNotStarted(ctx echo.Context, contestId int) error {
-	return h.adminTimetableHandle.GetAdminTimetableFirstNotStarted(ctx, contestId)
 }

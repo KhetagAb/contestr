@@ -83,7 +83,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ToursTimetable'
+                $ref: '#/components/schemas/TimetableView'
         401:
           $ref: '#/components/responses/ErrorResponse'
         404:
@@ -103,14 +103,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ToursTimetable'
+              $ref: '#/components/schemas/SaveTimetableRequest'
       responses:
         200:
           description: Сохранённое расписание туров контеста
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ToursTimetable'
+                $ref: '#/components/schemas/TimetableView'
         400:
           $ref: '#/components/responses/ErrorResponse'
         401:
@@ -128,42 +128,6 @@ paths:
       responses:
         204:
           description: Расписание удалено
-        401:
-          $ref: '#/components/responses/ErrorResponse'
-        404:
-          $ref: '#/components/responses/ErrorResponse'
-
-  /api/admin/timetables/{contest_id}/tours/{tour_number}/move:
-    patch:
-      operationId: patchAdminTimetableTourMove
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: contest_id
-          in: path
-          required: true
-          schema:
-            type: integer
-        - name: tour_number
-          in: path
-          required: true
-          schema:
-            type: integer
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/MoveTimetableTourRequest'
-      responses:
-        200:
-          description: Расписание после переноса выбранного тура и всех последующих туров
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ToursTimetable'
-        400:
-          $ref: '#/components/responses/ErrorResponse'
         401:
           $ref: '#/components/responses/ErrorResponse'
         404:
@@ -191,7 +155,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ToursTimetable'
+                $ref: '#/components/schemas/TimetableView'
         400:
           $ref: '#/components/responses/ErrorResponse'
         401:
@@ -199,29 +163,6 @@ paths:
         404:
           $ref: '#/components/responses/ErrorResponse'
         409:
-          $ref: '#/components/responses/ErrorResponse'
-
-  /api/admin/timetables/{contest_id}/first-not-started:
-    get:
-      operationId: getAdminTimetableFirstNotStarted
-      security:
-        - bearerAuth: []
-      parameters:
-        - name: contest_id
-          in: path
-          required: true
-          schema:
-            type: integer
-      responses:
-        200:
-          description: Первый незапущенный тур в порядке расписания
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/TourConfig'
-        401:
-          $ref: '#/components/responses/ErrorResponse'
-        404:
           $ref: '#/components/responses/ErrorResponse'
 
 components:
@@ -386,24 +327,67 @@ components:
           description: Длительность тура в секундах
         started:
           type: boolean
-    ToursTimetable:
+    SaveTimetableRequest:
+      type: object
+      required:
+        - tour_durations
+        - auto_start_enabled
+      properties:
+        tour_durations:
+          type: array
+          items:
+            type: integer
+            minimum: 1
+          description: Длительности туров в секундах, по порядку
+        auto_start_enabled:
+          type: boolean
+          description: Автозапуск туров по расписанию для этого контеста
+    TourMeta:
+      type: object
+      required:
+        - tour_number
+        - status
+      properties:
+        tour_number:
+          type: integer
+        status:
+          type: string
+          enum: [planned, next, starting, started]
+    TimetableView:
       type: object
       required:
         - contest_id
+        - server_now
+        - elapsed_seconds
         - tour_times
+        - tours_meta
+        - auto_start_enabled
+        - auto_start_available
       properties:
         contest_id:
+          type: integer
+        contest_start_time:
+          type: string
+          format: date-time
+        server_now:
+          type: string
+          format: date-time
+        elapsed_seconds:
           type: integer
         tour_times:
           type: array
           items:
             $ref: '#/components/schemas/TourConfig'
-    MoveTimetableTourRequest:
-      type: object
-      required:
-        - start_time
-      properties:
-        start_time:
+        tours_meta:
+          type: array
+          items:
+            $ref: '#/components/schemas/TourMeta'
+        next_tour_number:
           type: integer
-          description: Новое время начала выбранного тура в секундах от старта контеста
+          nullable: true
+        auto_start_enabled:
+          type: boolean
+        auto_start_available:
+          type: boolean
+          description: На сервере включён фоновый timetable_sync
 

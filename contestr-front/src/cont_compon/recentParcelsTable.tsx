@@ -13,28 +13,37 @@ import { useCurRegattaData } from "../data";
 // Описываем тип строки таблицы (одна посылка)
 type RecentParcelRow = RegattaContestRow & ProblemResult;
 
-export const createColumns = () => {
+const formatSeconds = (totalSeconds: number) => {
+    const seconds = Math.max(0, Math.floor(totalSeconds));
+    const hours = Math.floor(seconds / 3600);
+    const mins = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    return `${hours.toString().padStart(2, "0")}:${mins
+        .toString()
+        .padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+};
+
+export const createColumns = (tourDurationMinutes?: number) => {
     const columnHelper = createColumnHelper<RecentParcelRow>();
+    const tourDurationSec = (tourDurationMinutes ?? 0) * 60;
 
     return [
         columnHelper.accessor("last_submission_time", {
-            header: () => "Время с начала тура",
+            header: () => "Время до конца тура",
             cell: (info) => {
                 const lastSubmission = info.getValue();
-                
-                if (lastSubmission === undefined || lastSubmission === null || isNaN(lastSubmission)) {
+
+                if (
+                    lastSubmission === undefined ||
+                    lastSubmission === null ||
+                    isNaN(lastSubmission) ||
+                    tourDurationSec <= 0
+                ) {
                     return "00:00:00";
                 }
 
-                const elapsed = Math.max(0, lastSubmission);
-
-                const hours = Math.floor(elapsed / 3600);
-                const mins = Math.floor((elapsed % 3600) / 60);
-                const secs = elapsed % 60;
-
-                return `${hours.toString().padStart(2, "0")}:${mins
-                    .toString()
-                    .padStart(2, "0")}:${secs.toString().padStart(2, "0")}`;
+                const remaining = Math.max(0, tourDurationSec - lastSubmission);
+                return formatSeconds(remaining);
             },
             sortingFn: "alphanumeric",
         }),
@@ -65,8 +74,11 @@ export const createColumns = () => {
 };
 
 const RecentParcelsTable = () => {
-    const columns = createColumns();
     const {data} = useCurRegattaData();
+    const columns = useMemo(
+        () => createColumns(data?.current_tour_duration),
+        [data?.current_tour_duration],
+    );
     const rows = useMemo(() => {
         const contestRows = data?.rows ?? [];
         // Разворачиваем данные: для каждого участника создаем отдельные строки для каждой задачи

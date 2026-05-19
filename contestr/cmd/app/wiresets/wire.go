@@ -65,8 +65,6 @@ var All = wire.NewSet(
 	tgbot.NewStartHandle,
 	wire.Bind(new(tgbot.Regatta), new(*regatta.Regatta)),
 	tgbot.NewRegattaStartTourHandle,
-	wire.Bind(new(tgbot.TimetableService), new(*regatta.Regatta)),
-	tgbot.NewTimetableHandle,
 	wire.Bind(new(tgbot.ContestSyncService), new(*contest_sync.ContestSyncService)),
 	tgbot.NewSyncContestsHandle,
 	tgbot.NewHelpHandle,

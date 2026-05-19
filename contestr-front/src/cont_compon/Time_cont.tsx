@@ -30,12 +30,12 @@ function Clock() {
     return <div>00:00:00</div>;
   }
 
-  // const endTime = startTime + data.current_tour_duration * 60 * 1000;
-  const elapsed = Math.max(0, now - startTime);
-  if (isNaN(elapsed)) {
+  const tourDurationMs = (data.current_tour_duration ?? 0) * 60 * 1000;
+  const endTime = startTime + tourDurationMs;
+  const remaining = Math.max(0, endTime - now);
+  if (isNaN(remaining)) {
     return <div>00:00:00</div>;
   }
-  // const remaining = Math.max(0, endTime - now);
 
   const formatTime = (ms: number) => {
     if (isNaN(ms) || ms < 0) {
@@ -72,8 +72,7 @@ function Clock() {
       // </div>
 
       <div>
-        {formatTime(elapsed)}
-        {/*До конца тура: {formatTime(remaining)}*/}
+        {formatTime(remaining)}
       </div>
   );
 }

@@ -27,8 +27,22 @@ type TimetableRepository interface {
 	DeleteByContestID(ctx context.Context, contestID int) error
 }
 
-func (s *Regatta) CreateTimetable(ctx context.Context, timetable regatta.ToursTimetable) (*regatta.ToursTimetable, error) {
-	if err := validateTimetable(timetable); err != nil {
+// LoadTimetable returns the persisted timetable for a contest.
+func (s *Regatta) LoadTimetable(ctx context.Context, contestID int) (*regatta.ToursTimetable, error) {
+	timetable, err := s.timetableRepository.GetByContestID(ctx, contestID)
+	if err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return nil, ErrTimetableNotFound
+		}
+		return nil, fmt.Errorf("failed to load timetable for contest %d: %w", contestID, err)
+	}
+	return timetable, nil
+}
+
+// insertTimetable creates a timetable document; fails if one already exists.
+func (s *Regatta) insertTimetable(ctx context.Context, timetable regatta.ToursTimetable) (*regatta.ToursTimetable, error) {
+	regatta.RebuildChain(timetable.TourTimes)
+	if err := validateTourChain(timetable); err != nil {
 		return nil, err
 	}
 
@@ -42,40 +56,32 @@ func (s *Regatta) CreateTimetable(ctx context.Context, timetable regatta.ToursTi
 		if mongo.IsDuplicateKeyError(err) {
 			return nil, ErrTimetableAlreadyExists
 		}
-		return nil, fmt.Errorf("failed to create timetable: %w", err)
+		return nil, fmt.Errorf("failed to insert timetable: %w", err)
 	}
 
 	return &timetable, nil
 }
 
-func (s *Regatta) GetTimetable(ctx context.Context, contestID int) (*regatta.ToursTimetable, error) {
-	timetable, err := s.timetableRepository.GetByContestID(ctx, contestID)
-	if err != nil {
-		if errors.Is(err, mongo.ErrNoDocuments) {
-			return nil, ErrTimetableNotFound
-		}
-		return nil, fmt.Errorf("failed to get timetable for contest %d: %w", contestID, err)
-	}
-	return timetable, nil
-}
-
-func (s *Regatta) UpdateTimetable(ctx context.Context, timetable regatta.ToursTimetable) (*regatta.ToursTimetable, error) {
-	if err := validateTimetable(timetable); err != nil {
+// ReplaceTimetable overwrites an existing timetable document.
+func (s *Regatta) ReplaceTimetable(ctx context.Context, timetable regatta.ToursTimetable) (*regatta.ToursTimetable, error) {
+	regatta.RebuildChain(timetable.TourTimes)
+	if err := validateTourChain(timetable); err != nil {
 		return nil, err
 	}
 
-	if _, err := s.GetTimetable(ctx, timetable.ContestId); err != nil {
+	if _, err := s.LoadTimetable(ctx, timetable.ContestId); err != nil {
 		return nil, err
 	}
 
 	if err := s.timetableRepository.Update(ctx, &timetable); err != nil {
-		return nil, fmt.Errorf("failed to update timetable: %w", err)
+		return nil, fmt.Errorf("failed to replace timetable: %w", err)
 	}
 
 	return &timetable, nil
 }
 
-func (s *Regatta) DeleteTimetable(ctx context.Context, contestID int) error {
+// RemoveTimetable deletes the timetable for a contest.
+func (s *Regatta) RemoveTimetable(ctx context.Context, contestID int) error {
 	if contestID <= 0 {
 		return fmt.Errorf("%w: contest_id must be positive", ErrInvalidTimetable)
 	}
@@ -84,47 +90,14 @@ func (s *Regatta) DeleteTimetable(ctx context.Context, contestID int) error {
 		if errors.Is(err, mongo.ErrNoDocuments) {
 			return ErrTimetableNotFound
 		}
-		return fmt.Errorf("failed to delete timetable: %w", err)
+		return fmt.Errorf("failed to remove timetable: %w", err)
 	}
 
 	return nil
 }
 
-func (s *Regatta) MoveTimetableTour(ctx context.Context, contestID int, tourNumber int, newStartTime int) (*regatta.ToursTimetable, error) {
-	if contestID <= 0 {
-		return nil, fmt.Errorf("%w: contest_id must be positive", ErrInvalidTimetable)
-	}
-	if tourNumber <= 0 {
-		return nil, fmt.Errorf("%w: tour_number must be positive", ErrInvalidTimetable)
-	}
-	if newStartTime < 0 {
-		return nil, fmt.Errorf("%w: start_time must be non-negative", ErrInvalidTimetable)
-	}
-
-	timetable, err := s.GetTimetable(ctx, contestID)
-	if err != nil {
-		return nil, err
-	}
-
-	position := tourNumber - 1
-	if position >= len(timetable.TourTimes) {
-		return nil, ErrTourNotFound
-	}
-
-	shiftTimetableTours(timetable, position, newStartTime)
-
-	if err := validateTimetable(*timetable); err != nil {
-		return nil, err
-	}
-
-	if err := s.timetableRepository.Update(ctx, timetable); err != nil {
-		return nil, fmt.Errorf("failed to update timetable after moving tour: %w", err)
-	}
-
-	return timetable, nil
-}
-
-func (s *Regatta) StartTimetableTour(ctx context.Context, contestID int, tourNumber int) (*regatta.ToursTimetable, error) {
+// StartScheduledTour manually starts the first not-started tour at the current contest time.
+func (s *Regatta) StartScheduledTour(ctx context.Context, contestID int, tourNumber int) (*regatta.ToursTimetable, error) {
 	if contestID <= 0 {
 		return nil, fmt.Errorf("%w: contest_id must be positive", ErrInvalidTimetable)
 	}
@@ -132,7 +105,7 @@ func (s *Regatta) StartTimetableTour(ctx context.Context, contestID int, tourNum
 		return nil, fmt.Errorf("%w: tour_number must be positive", ErrInvalidTimetable)
 	}
 
-	timetable, err := s.GetTimetable(ctx, contestID)
+	timetable, err := s.LoadTimetable(ctx, contestID)
 	if err != nil {
 		return nil, err
 	}
@@ -168,10 +141,10 @@ func (s *Regatta) StartTimetableTour(ctx context.Context, contestID int, tourNum
 		return nil, fmt.Errorf("%w: contest has not started yet", ErrInvalidTimetable)
 	}
 
-	shiftTimetableTours(timetable, position, startTime)
+	shiftToursFromIndex(timetable, position, startTime)
 	timetable.TourTimes[position].Started = true
 
-	if err := validateTimetable(*timetable); err != nil {
+	if err := validateTourChain(*timetable); err != nil {
 		return nil, err
 	}
 
@@ -189,28 +162,14 @@ func (s *Regatta) StartTimetableTour(ctx context.Context, contestID int, tourNum
 	return timetable, nil
 }
 
-func (s *Regatta) GetFirstNotStartedTimetableTour(ctx context.Context, contestID int) (*regatta.TourConfig, error) {
-	timetable, err := s.GetTimetable(ctx, contestID)
-	if err != nil {
-		return nil, err
-	}
-
-	_, tour, ok := timetable.FirstNotStartedTour()
-	if !ok {
-		return nil, ErrTourNotFound
-	}
-
-	return &tour, nil
-}
-
-func shiftTimetableTours(timetable *regatta.ToursTimetable, position int, newStartTime int) {
+func shiftToursFromIndex(timetable *regatta.ToursTimetable, position int, newStartTime int) {
 	delta := newStartTime - timetable.TourTimes[position].StartTime
 	for i := position; i < len(timetable.TourTimes); i++ {
 		timetable.TourTimes[i].StartTime += delta
 	}
 }
 
-func validateTimetable(timetable regatta.ToursTimetable) error {
+func validateTourChain(timetable regatta.ToursTimetable) error {
 	if timetable.ContestId <= 0 {
 		return fmt.Errorf("%w: contest_id must be positive", ErrInvalidTimetable)
 	}
@@ -230,5 +189,14 @@ func validateTimetable(timetable regatta.ToursTimetable) error {
 		}
 	}
 
+	return nil
+}
+
+func validateTourDurations(durations []int) error {
+	for i, duration := range durations {
+		if duration <= 0 {
+			return fmt.Errorf("%w: tour %d duration must be positive", ErrInvalidTimetable, i+1)
+		}
+	}
 	return nil
 }

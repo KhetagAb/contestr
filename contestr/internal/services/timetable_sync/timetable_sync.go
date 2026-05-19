@@ -18,8 +18,8 @@ type Interval time.Duration
 
 type RegattaService interface {
 	StartTour(ctx context.Context, contestID int, duration time.Duration) (string, error)
-	GetTimetable(ctx context.Context, contestID int) (*regattapkg.ToursTimetable, error)
-	UpdateTimetable(ctx context.Context, timetable regattapkg.ToursTimetable) (*regattapkg.ToursTimetable, error)
+	LoadTimetable(ctx context.Context, contestID int) (*regattapkg.ToursTimetable, error)
+	ReplaceTimetable(ctx context.Context, timetable regattapkg.ToursTimetable) (*regattapkg.ToursTimetable, error)
 }
 
 type TimetableSyncService struct {
@@ -78,7 +78,7 @@ func (s *TimetableSyncService) StartDueTours(ctx context.Context) {
 }
 
 func (s *TimetableSyncService) startDueTour(ctx context.Context, contestID int, now time.Time) error {
-	timetable, err := s.regatta.GetTimetable(ctx, contestID)
+	timetable, err := s.regatta.LoadTimetable(ctx, contestID)
 	if err != nil {
 		if errors.Is(err, regattasvc.ErrTimetableNotFound) {
 			return nil
@@ -92,6 +92,10 @@ func (s *TimetableSyncService) startDueTour(ctx context.Context, contestID int, 
 			return nil
 		}
 		return err
+	}
+
+	if !timetable.AutoStartEnabled {
+		return nil
 	}
 
 	tourNumber, tour, ok := timetable.FirstNotStartedTour()
@@ -110,7 +114,7 @@ func (s *TimetableSyncService) startDueTour(ctx context.Context, contestID int, 
 	}
 
 	timetable.TourTimes[tourNumber-1].Started = true
-	if _, err := s.regatta.UpdateTimetable(ctx, *timetable); err != nil {
+	if _, err := s.regatta.ReplaceTimetable(ctx, *timetable); err != nil {
 		return err
 	}
 

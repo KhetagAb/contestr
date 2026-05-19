@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 
+	"contestr/internal/configs"
 	"contestr/internal/generated/server"
 	regattasvc "contestr/internal/services/regatta"
 	regattapkg "contestr/pkg/regatta"
@@ -13,101 +14,68 @@ import (
 )
 
 type TimetableService interface {
-	CreateTimetable(ctx context.Context, timetable regattapkg.ToursTimetable) (*regattapkg.ToursTimetable, error)
-	GetTimetable(ctx context.Context, contestID int) (*regattapkg.ToursTimetable, error)
-	UpdateTimetable(ctx context.Context, timetable regattapkg.ToursTimetable) (*regattapkg.ToursTimetable, error)
-	DeleteTimetable(ctx context.Context, contestID int) error
-	MoveTimetableTour(ctx context.Context, contestID int, tourNumber int, newStartTime int) (*regattapkg.ToursTimetable, error)
-	StartTimetableTour(ctx context.Context, contestID int, tourNumber int) (*regattapkg.ToursTimetable, error)
-	GetFirstNotStartedTimetableTour(ctx context.Context, contestID int) (*regattapkg.TourConfig, error)
+	GetTimetableView(ctx context.Context, contestID int, opts regattasvc.TimetableViewOptions) (*regattapkg.TimetableView, error)
+	SaveTimetable(ctx context.Context, contestID int, input regattapkg.SaveTimetableRequest, opts regattasvc.TimetableViewOptions) (*regattapkg.TimetableView, error)
+	RemoveTimetable(ctx context.Context, contestID int) error
+	StartScheduledTour(ctx context.Context, contestID int, tourNumber int) (*regattapkg.ToursTimetable, error)
 }
 
 type TimetableHandle struct {
 	timetable TimetableService
+	cfg       *configs.Config
 }
 
-type moveTimetableTourRequest struct {
-	StartTime int `json:"start_time"`
-}
-
-func NewTimetableHandle(timetable TimetableService) *TimetableHandle {
+func NewTimetableHandle(timetable TimetableService, cfg *configs.Config) *TimetableHandle {
 	return &TimetableHandle{
 		timetable: timetable,
+		cfg:       cfg,
+	}
+}
+
+func (h *TimetableHandle) viewOpts() regattasvc.TimetableViewOptions {
+	return regattasvc.TimetableViewOptions{
+		ServerAutoStartAvailable: h.cfg.TimetableSync.Interval > 0,
 	}
 }
 
 func (h *TimetableHandle) GetAdminTimetable(ctx echo.Context, contestId int) error {
-	timetable, err := h.timetable.GetTimetable(ctx.Request().Context(), contestId)
+	view, err := h.timetable.GetTimetableView(ctx.Request().Context(), contestId, h.viewOpts())
 	if err != nil {
 		return writeTimetableError(ctx, err)
 	}
-
-	return ctx.JSON(http.StatusOK, timetable)
+	return ctx.JSON(http.StatusOK, view)
 }
 
 func (h *TimetableHandle) PutAdminTimetable(ctx echo.Context, contestId int) error {
-	var timetable regattapkg.ToursTimetable
-	if err := ctx.Bind(&timetable); err != nil {
+	var input regattapkg.SaveTimetableRequest
+	if err := ctx.Bind(&input); err != nil {
 		return ctx.JSON(http.StatusBadRequest, server.Error{Message: "invalid request body"})
 	}
-	timetable.ContestId = contestId
 
-	existing, err := h.timetable.GetTimetable(ctx.Request().Context(), contestId)
-	if err != nil && !errors.Is(err, regattasvc.ErrTimetableNotFound) {
-		return writeTimetableError(ctx, err)
-	}
-
-	var result *regattapkg.ToursTimetable
-	if existing == nil {
-		result, err = h.timetable.CreateTimetable(ctx.Request().Context(), timetable)
-	} else {
-		result, err = h.timetable.UpdateTimetable(ctx.Request().Context(), timetable)
-	}
+	view, err := h.timetable.SaveTimetable(ctx.Request().Context(), contestId, input, h.viewOpts())
 	if err != nil {
 		return writeTimetableError(ctx, err)
 	}
 
-	return ctx.JSON(http.StatusOK, result)
+	return ctx.JSON(http.StatusOK, view)
 }
 
 func (h *TimetableHandle) DeleteAdminTimetable(ctx echo.Context, contestId int) error {
-	if err := h.timetable.DeleteTimetable(ctx.Request().Context(), contestId); err != nil {
+	if err := h.timetable.RemoveTimetable(ctx.Request().Context(), contestId); err != nil {
 		return writeTimetableError(ctx, err)
 	}
-
 	return ctx.NoContent(http.StatusNoContent)
 }
 
-func (h *TimetableHandle) PatchAdminTimetableTourMove(ctx echo.Context, contestId int, tourNumber int) error {
-	var req moveTimetableTourRequest
-	if err := ctx.Bind(&req); err != nil {
-		return ctx.JSON(http.StatusBadRequest, server.Error{Message: "invalid request body"})
-	}
-
-	timetable, err := h.timetable.MoveTimetableTour(ctx.Request().Context(), contestId, tourNumber, req.StartTime)
-	if err != nil {
-		return writeTimetableError(ctx, err)
-	}
-
-	return ctx.JSON(http.StatusOK, timetable)
-}
-
 func (h *TimetableHandle) PostAdminTimetableTourStart(ctx echo.Context, contestId int, tourNumber int) error {
-	timetable, err := h.timetable.StartTimetableTour(ctx.Request().Context(), contestId, tourNumber)
+	if _, err := h.timetable.StartScheduledTour(ctx.Request().Context(), contestId, tourNumber); err != nil {
+		return writeTimetableError(ctx, err)
+	}
+	view, err := h.timetable.GetTimetableView(ctx.Request().Context(), contestId, h.viewOpts())
 	if err != nil {
 		return writeTimetableError(ctx, err)
 	}
-
-	return ctx.JSON(http.StatusOK, timetable)
-}
-
-func (h *TimetableHandle) GetAdminTimetableFirstNotStarted(ctx echo.Context, contestId int) error {
-	tour, err := h.timetable.GetFirstNotStartedTimetableTour(ctx.Request().Context(), contestId)
-	if err != nil {
-		return writeTimetableError(ctx, err)
-	}
-
-	return ctx.JSON(http.StatusOK, tour)
+	return ctx.JSON(http.StatusOK, view)
 }
 
 func writeTimetableError(ctx echo.Context, err error) error {

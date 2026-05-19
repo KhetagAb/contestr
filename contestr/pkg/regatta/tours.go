@@ -81,8 +81,9 @@ type TourConfig struct {
 }
 
 type ToursTimetable struct {
-	ContestId int          `bson:"contest_id" json:"contest_id"`
-	TourTimes []TourConfig `bson:"tour_times" json:"tour_times"`
+	ContestId        int          `bson:"contest_id" json:"contest_id"`
+	TourTimes        []TourConfig `bson:"tour_times" json:"tour_times"`
+	AutoStartEnabled bool         `bson:"auto_start_enabled" json:"auto_start_enabled"`
 }
 
 func (t *ToursTimetable) FirstNotStartedTour() (int, TourConfig, bool) {

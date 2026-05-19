@@ -136,7 +136,10 @@ export const Sidebar = ({ adminSession }: SidebarProps) => {
 
             </div>
 
-            <div className="time-text"><p><span>Время с </span> <span>начала тура </span></p></div>
+            <div className="time-text"><p>
+                    <span>Время до </span>
+                    <span>конца тура</span>
+                </p></div>
 
             {adminSession && (
                 <div

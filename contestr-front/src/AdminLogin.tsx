@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { adminAuthHeaders, clearAdminToken, setAdminToken } from "./adminAuth";
 import { useAdminSession } from "./AdminSessionContext.tsx";
-import AdminTimetable from "./AdminTimetable";
+import TimetablePage from "./admin-timetable/TimetablePage";
 import "./App.css";
 import "./AdminLogin.css";
 
@@ -100,7 +100,7 @@ export default function AdminLogin() {
         <div className={`admin-login-content${username ? " admin-login-content--console" : ""}`}>
             <div className={`admin-login-panel ${username ? "admin-console-panel" : ""}`}>
                 {username ? (
-                    <AdminTimetable />
+                    <TimetablePage />
                 ) : (
                     <>
                         <h1 className="admin-login-title">Авторизация</h1>

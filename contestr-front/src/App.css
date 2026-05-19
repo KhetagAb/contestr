@@ -228,6 +228,7 @@ ul {
     box-shadow: 2px 0 10px rgba(0, 0, 0, 0.12);
     box-sizing: border-box;
     z-index: 100;
+    overflow-x: visible;
 }
 
 .icon-wrap {
@@ -292,6 +293,15 @@ ul {
     text-align: end;
     rotate: -90deg;
     color: #575756;
+    flex-shrink: 0;
+    width: max-content;
+    min-width: max-content;
+    align-self: center;
+    overflow: visible;
+}
+
+.time-text p {
+    margin: 0;
 }
 
 .time-text span {
