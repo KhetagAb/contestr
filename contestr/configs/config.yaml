@@ -31,11 +31,8 @@ ejudge:
 contest_sync:
   interval: 1m
 
-contests:
-  registry:
-    ejudge:
-    codeforces:
-      - 681038
+timetable_sync:
+  interval: 1s
 
 admin:
   jwt_secret: ""

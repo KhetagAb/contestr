@@ -13,6 +13,8 @@ import { useMemo } from "react";
 import { SlArrowDown, SlArrowUp } from "react-icons/sl";
 import type { ProblemResult, RegattaContestRow } from "../client";
 import { useCurRegattaData } from "../data";
+import { formatGroupCode } from "../utils/groupCode";
+import { ContestEventLog } from "./ContestEventLog";
 
 const columnHelper = createColumnHelper<RegattaContestRow>();
 
@@ -20,7 +22,10 @@ const hightlighted_user_id = "0";
 
 const columns = [
   columnHelper.accessor("team_number", {
-    cell: (info) => info.getValue(),
+    cell: (info) => {
+      const n = info.getValue();
+      return <span title={`Группа ${n}`}>{formatGroupCode(n)}</span>;
+    },
     header: () => "Команда",
   }),
   columnHelper.accessor("display_name", {
@@ -262,7 +267,7 @@ const ResultsTable = () => {
           })}
           </tbody>
         </table>
-        <div />
+        {isSuccess && data?.events && <ContestEventLog events={data.events} />}
       </div>
   );
 };

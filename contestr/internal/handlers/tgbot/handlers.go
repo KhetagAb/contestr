@@ -22,13 +22,12 @@ func (h *Handlers) Register(b *bot.Bot) {
 
 func NewHandlers(
 	start *StartHandle,
-	regattaStartTour *RegattaStartTourHandle,
 	help *HelpHandle,
 	message *MessageHandle,
 	syncContests *SyncContestsHandle,
 ) *Handlers {
 	return &Handlers{
-		handlers: []Handler{start, help, regattaStartTour, message, syncContests},
+		handlers: []Handler{start, help, syncContests, message},
 	}
 }
 

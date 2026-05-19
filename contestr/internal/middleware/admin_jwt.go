@@ -1,9 +1,10 @@
 package middleware
 
 import (
-	"contestr/internal/auth"
 	"net/http"
 	"strings"
+
+	"contestr/internal/auth"
 
 	"github.com/labstack/echo/v4"
 )

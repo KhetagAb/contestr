@@ -10,8 +10,22 @@
     padding: var(--space-m);
 }
 
+.admin-login-content--console {
+    align-items: flex-start;
+    justify-content: flex-start;
+    padding-top: var(--space-l);
+}
+
 .admin-login-panel {
     width: min(100%, 24rem);
+}
+
+.admin-console-panel {
+    width: min(100%, 72rem);
+}
+
+.admin-console-panel .admin-login-btn {
+    width: auto;
 }
 
 .admin-login-title {
@@ -126,4 +140,215 @@
 
 .admin-login-link:hover {
     color: #e58995;
+}
+
+.admin-timetable {
+    margin-top: 0;
+    width: 100%;
+}
+
+.admin-section-head,
+.admin-toolbar,
+.admin-contest-inputs,
+.admin-inline-fields {
+    display: flex;
+    align-items: center;
+    gap: var(--space-s);
+}
+
+.admin-section-head {
+    justify-content: space-between;
+    margin-bottom: var(--space-s);
+}
+
+.admin-section-head h2,
+.admin-tool-block h3 {
+    margin: 0;
+    color: #4f4e4e;
+    text-align: left;
+}
+
+.admin-contest-field {
+    margin-bottom: var(--space-s);
+}
+
+.admin-contest-inputs {
+    align-items: stretch;
+}
+
+.admin-contest-inputs select,
+.admin-contest-inputs input,
+.admin-timetable-row input,
+.admin-inline-fields input {
+    box-sizing: border-box;
+    font-family: "Anonymous Pro", sans-serif;
+    font-size: var(--fs-p);
+    padding: 0.55rem 0.7rem;
+    border: 1px solid #e0dcd0;
+    border-radius: 0.5rem;
+    background: #fff;
+    color: #4f4e4e;
+}
+
+.admin-contest-inputs select {
+    min-width: 16rem;
+}
+
+.admin-timetable-form {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-s);
+}
+
+.admin-timetable-table {
+    display: grid;
+    gap: 0.4rem;
+}
+
+.admin-timetable-row {
+    display: grid;
+    grid-template-columns: 3rem minmax(8rem, 1fr) minmax(8rem, 1fr) 7rem minmax(8.5rem, auto);
+    align-items: center;
+    gap: 0.5rem;
+    min-height: 2.75rem;
+}
+
+.admin-timetable-header {
+    font-family: "Montserrat Alternates", sans-serif;
+    font-size: var(--fs-button);
+    color: #6b6a68;
+}
+
+.admin-timetable-row > span:first-child {
+    font-family: "Anonymous Pro", sans-serif;
+    color: #6b6a68;
+}
+
+.admin-status-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 2rem;
+    padding: 0.25rem 0.6rem;
+    border-radius: 0.5rem;
+    font-family: "Anonymous Pro", sans-serif;
+    font-size: var(--fs-button);
+    border: 1px solid #e0dcd0;
+    background: #fff;
+    color: #6b6a68;
+}
+
+.admin-status-badge--done {
+    border-color: #bdd7bf;
+    background: #f4fbf4;
+    color: #456f49;
+}
+
+.admin-status-badge--pending {
+    border-color: #e0dcd0;
+    background: #fbf8f3;
+    color: #6b6a68;
+}
+
+.admin-icon-btn,
+.admin-row-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    min-height: 2.5rem;
+    padding: 0.55rem 0.85rem;
+    border: 1px solid #e0dcd0;
+    border-radius: 0.5rem;
+    background: #fff;
+    color: #4f4e4e;
+    cursor: pointer;
+}
+
+.admin-icon-btn:hover:not(:disabled),
+.admin-row-btn:hover:not(:disabled) {
+    border-color: #e58995;
+    color: #8b5a62;
+}
+
+.admin-icon-btn:disabled,
+.admin-row-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.admin-row-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.4rem;
+}
+
+.admin-row-btn {
+    width: 2.5rem;
+    padding: 0;
+}
+
+.admin-start-btn {
+    width: auto;
+    padding: 0 0.7rem;
+}
+
+.admin-primary-btn {
+    background: #bf9298;
+    border-color: #bf9298;
+    color: #fbf8f3;
+}
+
+.admin-danger-btn {
+    border-color: #d7a3a8;
+    color: #8b5a62;
+}
+
+.admin-toolbar {
+    flex-direction: row;
+    flex-wrap: wrap;
+}
+
+.admin-split-tools {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(16rem, 1fr));
+    gap: var(--space-m);
+    margin-top: var(--space-m);
+}
+
+.admin-tool-block {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-xs);
+}
+
+.admin-inline-fields {
+    align-items: flex-end;
+}
+
+.admin-inline-fields .admin-login-field {
+    min-width: 8rem;
+}
+
+.admin-result-text {
+    margin: 0;
+    text-align: left;
+}
+
+@media (max-width: 760px) {
+    .admin-contest-inputs,
+    .admin-inline-fields,
+    .admin-toolbar,
+    .admin-section-head {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .admin-timetable-row {
+        grid-template-columns: 2rem minmax(6rem, 1fr) minmax(6rem, 1fr) 5.5rem minmax(7rem, auto);
+    }
+
+    .admin-split-tools {
+        grid-template-columns: 1fr;
+    }
 }

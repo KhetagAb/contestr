@@ -5,34 +5,44 @@ import (
 )
 
 const (
-	SWAP_BORDER_PROBABILITY = 0.4
+	SwapBorderProbability = 0.4
 )
 
 func FormGroups(ratedParticipants []string, groupSize int) [][]string {
 	n := len(ratedParticipants)
-	result := make([][]string, 0, n/groupSize+1)
+	if n == 0 {
+		return [][]string{}
+	}
+	if groupSize <= 0 {
+		groupSize = 1
+	}
+
+	participants := append([]string(nil), ratedParticipants...)
 
 	for i := 0; i < n-1; i++ {
-		if rand.Float64() <= SWAP_BORDER_PROBABILITY {
-			ratedParticipants[i], ratedParticipants[i+1] = ratedParticipants[i+1], ratedParticipants[i]
+		if rand.Float64() <= SwapBorderProbability {
+			participants[i], participants[i+1] = participants[i+1], participants[i]
 		}
 	}
 
+	result := make([][]string, 0, n/groupSize+1)
 	for i := 0; i < n; i += groupSize {
 		intervalEnd := i + groupSize
 		if intervalEnd > n {
 			intervalEnd = n
 		}
-
-		result = append(result, ratedParticipants[i:intervalEnd])
+		result = append(result, participants[i:intervalEnd])
 	}
 
-	if len(result[len(result)-1]) == 1 {
-		result[len(result)-1] = []string{
-			result[len(result)-2][2], result[len(result)-1][0],
-		}
-		result[len(result)-2] = []string{
-			result[len(result)-2][0], result[len(result)-2][1],
+	last := len(result) - 1
+	if last >= 1 && len(result[last]) == 1 {
+		prev := result[last-1]
+		if len(prev) >= 3 {
+			result[last] = []string{prev[2], result[last][0]}
+			result[last-1] = prev[:2]
+		} else {
+			result[last-1] = append(append([]string(nil), prev...), result[last][0])
+			result = result[:last]
 		}
 	}
 

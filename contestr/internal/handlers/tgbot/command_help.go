@@ -1,9 +1,11 @@
 package tgbot
 
 import (
-	"contestr/pkg/logger"
 	"context"
 	"fmt"
+
+	"contestr/pkg/logger"
+
 	"github.com/go-telegram/bot"
 	"github.com/go-telegram/bot/models"
 )
@@ -18,7 +20,6 @@ func (h *HelpHandle) Register() (bot.HandlerType, string, bot.MatchType, bot.Han
 	return bot.HandlerTypeMessageText, "help", bot.MatchTypeCommand, h.HandleHelp
 }
 
-// HandleHelp обрабатывает команду /help
 func (h *HelpHandle) HandleHelp(ctx context.Context, b *bot.Bot, update *models.Update) {
 	chatID := update.Message.Chat.ID
 	userID := fmt.Sprint(update.Message.From.ID)
@@ -43,7 +44,6 @@ func (h *HelpHandle) HandleHelp(ctx context.Context, b *bot.Bot, update *models.
 func handleHelpCommand(_ context.Context, _ string) (string, error) {
 	return "Доступные команды:\n" +
 			"/help - Показать это сообщение\n" +
-			"/start_tour <contest_id> <duration_in_minutes> - Начать тур в регате\n" +
 			"/sync_contests - Запустить внеочередное обновление контестов из codeforces/ejudge\n" +
 			"",
 		nil

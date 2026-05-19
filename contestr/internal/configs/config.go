@@ -11,15 +11,15 @@ import (
 
 type (
 	Config struct {
-		App         AppConfig             `mapstructure:"app"`
-		HTTP        HTTPConfig            `mapstructure:"http"`
-		MongoDB     MongoDBConfig         `mapstructure:"mongodb"`
-		Telegram    TelegramConfig        `mapstructure:"telegram"`
-		Codeforces  CodeforcesConfig      `mapstructure:"codeforces"`
-		Ejudge      EjudgeConfig          `mapstructure:"ejudge"`
-		ContestSync ContestSyncConfig     `mapstructure:"contest_sync"`
-		Contests    ContestRegistryConfig `mapstructure:"contests"`
-		Admin       AdminConfig           `mapstructure:"admin"`
+		App           AppConfig             `mapstructure:"app"`
+		HTTP          HTTPConfig            `mapstructure:"http"`
+		MongoDB       MongoDBConfig         `mapstructure:"mongodb"`
+		Telegram      TelegramConfig        `mapstructure:"telegram"`
+		Codeforces    CodeforcesConfig      `mapstructure:"codeforces"`
+		Ejudge        EjudgeConfig          `mapstructure:"ejudge"`
+		ContestSync   ContestSyncConfig   `mapstructure:"contest_sync"`
+		TimetableSync TimetableSyncConfig `mapstructure:"timetable_sync"`
+		Admin         AdminConfig         `mapstructure:"admin"`
 	}
 
 	AppConfig struct {
@@ -39,8 +39,9 @@ type (
 		MaxPoolSize uint64 `mapstructure:"max_pool_size"`
 		MinPoolSize uint64 `mapstructure:"min_pool_size"`
 
-		Database       string `mapstructure:"database"`
-		TourCollection string `mapstructure:"tour_collection"`
+		Database                string `mapstructure:"database"`
+		TourCollection          string `mapstructure:"tour_collection"`
+		TourTimetableCollection string `mapstructure:"tour_timetable_collection"`
 	}
 
 	TelegramConfig struct {
@@ -62,8 +63,8 @@ type (
 		Interval time.Duration `mapstructure:"interval"`
 	}
 
-	ContestRegistryConfig struct {
-		Registry map[string][]int `mapstructure:"registry"`
+	TimetableSyncConfig struct {
+		Interval time.Duration `mapstructure:"interval"`
 	}
 
 	AdminConfig struct {

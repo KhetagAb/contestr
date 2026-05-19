@@ -8,6 +8,7 @@ import (
 	"contestr/cmd/app/wiresets"
 	"contestr/internal/configs"
 	"contestr/internal/services/contest_sync"
+	"contestr/internal/services/timetable_sync"
 	"contestr/internal/transport"
 	"context"
 
@@ -15,11 +16,12 @@ import (
 )
 
 type App struct {
-	Ctx         context.Context
-	Cfg         *configs.Config
-	HttpServer  *transport.HTTPServer
-	TgBot       *transport.TgBot
-	ContestSync *contest_sync.ContestSyncService
+	Ctx           context.Context
+	Cfg           *configs.Config
+	HttpServer    *transport.HTTPServer
+	TgBot         *transport.TgBot
+	ContestSync   *contest_sync.ContestSyncService
+	TimetableSync *timetable_sync.TimetableSyncService
 }
 
 func InitializeService() (*App, error) {

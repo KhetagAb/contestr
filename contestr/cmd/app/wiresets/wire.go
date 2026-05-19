@@ -12,9 +12,12 @@ import (
 	"contestr/internal/integrations/codeforces"
 	"contestr/internal/integrations/ejudge"
 	"contestr/internal/repository"
+	"contestr/internal/handlers/contests"
+	"contestr/internal/services/contest_admin"
 	"contestr/internal/services/contest_registry"
 	"contestr/internal/services/contest_sync"
 	"contestr/internal/services/regatta"
+	"contestr/internal/services/timetable_sync"
 	"contestr/internal/transport"
 	"contestr/pkg/config"
 	"context"
@@ -41,6 +44,25 @@ func GetContestSyncInterval(cfg *configs.Config) time.Duration {
 	return cfg.ContestSync.Interval
 }
 
+func GetTimetableSyncInterval(cfg *configs.Config) timetable_sync.Interval {
+	return timetable_sync.Interval(cfg.TimetableSync.Interval)
+}
+
+func NewTimetableSyncServiceProvider(
+	registry contest_registry.ContestRegistry,
+	contestRepo repository.ContestRepository,
+	regattaService *regatta.Regatta,
+	cfg *configs.Config,
+) *timetable_sync.TimetableSyncService {
+	return timetable_sync.NewTimetableSyncService(
+		registry,
+		contestRepo,
+		regattaService,
+		GetTimetableSyncInterval(cfg),
+		cfg.TimetableSync.Interval > 0,
+	)
+}
+
 var All = wire.NewSet(
 	NewContextProvider,
 	config.NewConfig,
@@ -51,13 +73,16 @@ var All = wire.NewSet(
 	cfhandlers.NewContestHandle,
 	adminhandlers.NewLoginHandle,
 	adminhandlers.NewMeHandle,
+	wire.Bind(new(adminhandlers.TimetableService), new(*regatta.Regatta)),
+	adminhandlers.NewTimetableHandle,
+	adminhandlers.NewContestsHandle,
+	contests.NewListHandle,
+	contest_admin.NewService,
 	handlers.NewHandlers,
 	auth.NewService,
 	transport.NewHTTPServer,
 
 	tgbot.NewStartHandle,
-	wire.Bind(new(tgbot.Regatta), new(*regatta.Regatta)),
-	tgbot.NewRegattaStartTourHandle,
 	wire.Bind(new(tgbot.ContestSyncService), new(*contest_sync.ContestSyncService)),
 	tgbot.NewSyncContestsHandle,
 	tgbot.NewHelpHandle,
@@ -67,9 +92,13 @@ var All = wire.NewSet(
 
 	repository.NewMongoClient,
 	repository.NewMongoTourRepository,
+	repository.NewTourTimetableRepository,
 	repository.NewMongoContestRepository,
+	repository.NewMongoRegisteredContestRepository,
 	repository.NewMongoCodeforcesHandleRepository,
+	wire.Bind(new(repository.RegisteredContestRepository), new(*repository.MongoRegisteredContestRepository)),
 	wire.Bind(new(regatta.TourRepository), new(*repository.MongoTourRepository)),
+	wire.Bind(new(regatta.TimetableRepository), new(*repository.TourTimetableRepository)),
 	wire.Bind(new(regatta.ContestRepository), new(*repository.MongoContestRepository)),
 	wire.Bind(new(repository.ContestRepository), new(*repository.MongoContestRepository)),
 	wire.Bind(new(repository.CodeforcesHandleRepository), new(*repository.MongoCodeforcesHandleRepository)),
@@ -85,6 +114,9 @@ var All = wire.NewSet(
 
 	GetContestSyncInterval,
 	contest_sync.NewContestSyncService,
+	GetTimetableSyncInterval,
+	wire.Bind(new(timetable_sync.RegattaService), new(*regatta.Regatta)),
+	NewTimetableSyncServiceProvider,
 
 	regatta.NewRegatta,
 

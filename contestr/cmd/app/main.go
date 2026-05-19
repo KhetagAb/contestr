@@ -46,6 +46,13 @@ func main() {
 		}
 	}()
 
+	timetableSync := svc.TimetableSync
+	go func() {
+		if err := timetableSync.Start(ctx); err != nil && !errors.Is(err, context.Canceled) {
+			logger.Errorf(ctx, "failed to start timetable sync: %v", err)
+		}
+	}()
+
 	awaitGracefulShutdown(ctx, cfg, bot, server)
 }
 

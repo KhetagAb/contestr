@@ -1,9 +1,10 @@
 package admin
 
 import (
+	"net/http"
+
 	"contestr/internal/auth"
 	"contestr/internal/generated/server"
-	"net/http"
 
 	"github.com/labstack/echo/v4"
 )

@@ -3,7 +3,7 @@ import { useState } from "react";
 import { FiFileText } from "react-icons/fi";
 // import { LuTrophy } from "react-icons/lu";
 // import { GiBalloonDog, GiLightBulb } from "react-icons/gi";
-import { CONTESTS } from "../consts";
+import { useContests } from "../useContests";
 import Clock from "./Time_cont.tsx";
 // import badminton from "./public/badminton.svg";
 // import football from "./public/football.svg";
@@ -13,6 +13,12 @@ import Clock from "./Time_cont.tsx";
 // import basketball from "./public/basketball.svg";
 // import shooting from "./public/shooting.svg";
 import logo from "./public/logo.svg";
+import adminUserIcon from "./public/admin-user-icon.png";
+
+export type AdminSidebarSession = {
+    username: string;
+    onLogout: () => void;
+};
 
 const Submenu = ({
                      isOpen,
@@ -56,8 +62,13 @@ const Submenu = ({
 //     return createPortal(<div style={style}>{text}</div>, document.body);
 // };
 
-export const Sidebar = () => {
+type SidebarProps = {
+    adminSession?: AdminSidebarSession | null;
+};
+
+export const Sidebar = ({ adminSession }: SidebarProps) => {
     const [hoveredMenu, setHoveredMenu] = useState<string | null>(null);
+    const { contests, isLoading } = useContests();
 
     return (
         <aside className="sidebar-hover">
@@ -78,15 +89,21 @@ export const Sidebar = () => {
                         <FiFileText size={35} />
                     </div>
                     <Submenu isOpen={hoveredMenu === "contests"}>
-                        {
-                            CONTESTS.map((item) => (
-                                <a key={item.id} className="submenu-item"
-                                href={`/?contestId=${item.id}`}>
-                                    <item.IconComponent className="subMenu-icon"></item.IconComponent>
-                                    <span className="submenu-item-text">{item.name}</span>
-                                </a>
-                            ))
-                        }
+                        {isLoading && (
+                            <span className="submenu-item submenu-item-text">Загрузка…</span>
+                        )}
+                        {!isLoading && contests.length === 0 && (
+                            <span className="submenu-item submenu-item-text">Контесты не настроены</span>
+                        )}
+                        {contests.map((item) => (
+                            <a
+                                key={item.contest_id}
+                                className="submenu-item"
+                                href={`/?contestId=${item.contest_id}`}
+                            >
+                                <span className="submenu-item-text">{item.name}</span>
+                            </a>
+                        ))}
                     </Submenu>
                 </div>
 
@@ -126,7 +143,39 @@ export const Sidebar = () => {
 
             </div>
 
-            <div className="time-text"><p><span>Время с </span> <span>начала тура </span></p></div>
+            <div className="time-text"><p>
+                    <span>Время до </span>
+                    <span>конца тура</span>
+                </p></div>
+
+            {adminSession && (
+                <div
+                    className="menu-item-container sidebar-admin-user"
+                    onMouseEnter={() => setHoveredMenu("admin-user")}
+                    onMouseLeave={() => setHoveredMenu(null)}
+                >
+                    <div className="icon-box sidebar-admin-user-trigger" aria-label="Аккаунт администратора">
+                        <img src={adminUserIcon} alt="" className="sidebar-admin-user-icon" />
+                    </div>
+                    <Submenu isOpen={hoveredMenu === "admin-user"}>
+                        <div className="admin-user-popover">
+                            <p className="admin-user-popover-greeting">
+                                Вы вошли как <span className="h1_pink">{adminSession.username}</span>
+                            </p>
+                            <a href="/admin" className="admin-user-popover-link">
+                                Админ-панель
+                            </a>
+                            <button
+                                type="button"
+                                className="admin-user-popover-btn"
+                                onClick={adminSession.onLogout}
+                            >
+                                Выйти
+                            </button>
+                        </div>
+                    </Submenu>
+                </div>
+            )}
 
             {/* <SubTooltip text={tooltipText} target={hoveredItem} /> */}
         </aside>

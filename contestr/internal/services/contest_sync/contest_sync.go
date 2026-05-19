@@ -114,3 +114,27 @@ func (s *ContestSyncService) SyncAllContests(ctx context.Context) *SyncResult {
 
 	return result
 }
+
+func (s *ContestSyncService) SyncContest(ctx context.Context, contestID int) error {
+	system, err := s.registry.GetSystem(contestID)
+	if err != nil {
+		return err
+	}
+
+	adapter, ok := s.adapters[system]
+	if !ok {
+		return fmt.Errorf("adapter for system %s not found", system)
+	}
+
+	contest, err := adapter.FetchContest(ctx, contestID)
+	if err != nil {
+		return fmt.Errorf("failed to sync contest %d (%s): %w", contestID, system, err)
+	}
+
+	if err := s.contestRepo.Upsert(ctx, contest); err != nil {
+		return fmt.Errorf("failed to save contest %d: %w", contestID, err)
+	}
+
+	logger.Infof(ctx, "successfully synced contest %d (%s)", contestID, system)
+	return nil
+}

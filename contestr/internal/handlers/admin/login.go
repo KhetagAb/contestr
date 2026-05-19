@@ -1,10 +1,11 @@
 package admin
 
 import (
-	"contestr/internal/auth"
-	"contestr/internal/generated/server"
 	"errors"
 	"net/http"
+
+	"contestr/internal/auth"
+	"contestr/internal/generated/server"
 
 	"github.com/labstack/echo/v4"
 )

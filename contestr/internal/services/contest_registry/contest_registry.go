@@ -1,8 +1,10 @@
 package contest_registry
 
 import (
-	"contestr/internal/configs"
+	"context"
 	"fmt"
+
+	"contestr/internal/repository"
 )
 
 type ContestRegistry interface {
@@ -11,30 +13,33 @@ type ContestRegistry interface {
 }
 
 type MongoContestRegistry struct {
-	registry map[string][]int
+	repo repository.RegisteredContestRepository
 }
 
-func NewContestRegistry(cfg *configs.Config) ContestRegistry {
-	registry := make(map[string][]int)
-	if cfg.Contests.Registry != nil {
-		registry = cfg.Contests.Registry
-	}
-	return &MongoContestRegistry{
-		registry: registry,
-	}
+func NewContestRegistry(repo repository.RegisteredContestRepository) ContestRegistry {
+	return &MongoContestRegistry{repo: repo}
 }
 
 func (r *MongoContestRegistry) GetSystem(contestID int) (string, error) {
-	for system, contestIDs := range r.registry {
-		for _, id := range contestIDs {
-			if id == contestID {
-				return system, nil
-			}
-		}
+	contest, err := r.repo.GetByContestID(context.Background(), contestID)
+	if err != nil {
+		return "", err
 	}
-	return "", fmt.Errorf("contest %d not found in registry", contestID)
+	if contest == nil {
+		return "", fmt.Errorf("contest %d not found in registry", contestID)
+	}
+	return contest.System, nil
 }
 
 func (r *MongoContestRegistry) GetAllContests() map[string][]int {
-	return r.registry
+	contests, err := r.repo.List(context.Background())
+	if err != nil {
+		return map[string][]int{}
+	}
+
+	result := make(map[string][]int)
+	for _, c := range contests {
+		result[c.System] = append(result[c.System], c.ContestID)
+	}
+	return result
 }

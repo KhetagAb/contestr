@@ -4,9 +4,11 @@ import (
 	"contestr/internal/configs"
 	"contestr/pkg/regatta"
 	"context"
+
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 type MongoTourRepository struct {
@@ -33,8 +35,21 @@ func (r *MongoTourRepository) Create(ctx context.Context, tour *regatta.Tour) (p
 	return result.InsertedID.(primitive.ObjectID), nil
 }
 
+func (r *MongoTourRepository) UpdateDuration(ctx context.Context, contestID int, sequence int, durationSeconds int) error {
+	_, err := r.collection.UpdateOne(
+		ctx,
+		bson.M{"contest_id": contestID, "sequence": sequence},
+		bson.M{"$set": bson.M{"duration_in_seconds": durationSeconds}},
+	)
+	return err
+}
+
 func (r *MongoTourRepository) FindByContestID(ctx context.Context, contestID int) ([]regatta.Tour, error) {
-	cursor, err := r.collection.Find(ctx, bson.M{"contest_id": contestID})
+	cursor, err := r.collection.Find(
+		ctx,
+		bson.M{"contest_id": contestID},
+		options.Find().SetSort(bson.D{{Key: "sequence", Value: 1}}),
+	)
 	if err != nil {
 		return nil, err
 	}

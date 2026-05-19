@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"slices"
 	"strings"
+	"sync"
 	"time"
 
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -14,6 +15,7 @@ import (
 type TourRepository interface {
 	Create(ctx context.Context, tour *regatta.Tour) (primitive.ObjectID, error)
 	FindByContestID(ctx context.Context, contestID int) ([]regatta.Tour, error)
+	UpdateDuration(ctx context.Context, contestID int, sequence int, durationSeconds int) error
 }
 
 type ContestRepository interface {
@@ -23,17 +25,23 @@ type ContestRepository interface {
 }
 
 type Regatta struct {
-	tourRepository TourRepository
-	contestRepo    ContestRepository
+	tourRepository      TourRepository
+	contestRepo         ContestRepository
+	timetableRepository TimetableRepository
+
+	advanceLockMu sync.Mutex
+	advanceLocks  map[int]*sync.Mutex
 }
 
 func NewRegatta(
 	tourRepository TourRepository,
 	contestRepo ContestRepository,
+	timetableRepository TimetableRepository,
 ) *Regatta {
 	return &Regatta{
-		tourRepository: tourRepository,
-		contestRepo:    contestRepo,
+		tourRepository:      tourRepository,
+		contestRepo:         contestRepo,
+		timetableRepository: timetableRepository,
 	}
 }
 
@@ -48,9 +56,9 @@ func (s *Regatta) GetContestResult(ctx context.Context, contestID int) (regatta.
 		return regatta.ContestStandings{}, fmt.Errorf("failed to get participants: %w", err)
 	}
 
-	tours, err := s.tourRepository.FindByContestID(ctx, contestID)
+	tours, err := s.loadToursSorted(ctx, contestID)
 	if err != nil {
-		return regatta.ContestStandings{}, fmt.Errorf("failed to find tours for contest %d: %w", contestID, err)
+		return regatta.ContestStandings{}, err
 	}
 
 	currentTime := time.Now()
@@ -60,6 +68,7 @@ func (s *Regatta) GetContestResult(ctx context.Context, contestID int) (regatta.
 		CurrentTime:      currentTime,
 		ContestStartTime: contest.StartTime,
 		Rows:             []regatta.ContestRow{},
+		Events:           []regatta.RegattaEvent{},
 	}
 
 	if len(tours) == 0 {
@@ -91,8 +100,14 @@ func (s *Regatta) GetContestResult(ctx context.Context, contestID int) (regatta.
 	contestStandingsByParticipants := make(ResultsByParticipant)
 	participantTotal := make(map[Participant]int)
 
+	offsets := regatta.SegmentOffsets(tours)
+
 	for _, tour := range tours {
-		result := CalculateResult(tour, runs).Export()
+		if tour.IsPause {
+			continue
+		}
+		segmentStart := offsets[tour.Sequence].Start
+		result := CalculateResult(tour, segmentStart, runs).Export()
 
 		for participant, participantResult := range result {
 			_, was := contestStandingsByParticipants[participant]
@@ -113,11 +128,17 @@ func (s *Regatta) GetContestResult(ctx context.Context, contestID int) (regatta.
 			displayName = participant
 		}
 
+		teamTour := lastCompetitiveTour(tours)
+		teamNumber := 0
+		if teamTour != nil {
+			teamNumber = teamTour.GroupNumbers[participant]
+		}
+
 		contestRows = append(contestRows, regatta.ContestRow{
 			DisplayName:    displayName,
 			ProblemResults: getProblemResults(participantResult),
 			SolvedProblems: getSolvedProblemsCount(participantResult),
-			TeamNumber:     tours[len(tours)-1].GroupNumbers[participant],
+			TeamNumber:     teamNumber,
 			TotalScore:     participantTotal[participant],
 			UserID:         participant,
 		})
@@ -133,8 +154,11 @@ func (s *Regatta) GetContestResult(ctx context.Context, contestID int) (regatta.
 
 	if len(tours) > 0 {
 		lastTour := tours[len(tours)-1]
-		standings.CurrentTourStartTime = int(contest.StartTime.Unix()) + lastTour.StarTime
+		lastOffset := offsets[lastTour.Sequence]
+		standings.CurrentTourStartTime = int(contest.StartTime.Unix()) + lastOffset.Start
 		standings.CurrentTourDuration = lastTour.DurationInSeconds / 60
+		standings.IsPauseBreak = lastTour.IsPause
+		standings.Events = BuildContestEvents(tours, runs, participantsMap)
 	}
 
 	return standings, nil
@@ -166,6 +190,15 @@ func getProblemResults(result ParticipantResult) []regatta.ProblemResult {
 		return strings.Compare(result1.ProblemCode, result2.ProblemCode)
 	})
 	return results
+}
+
+func lastCompetitiveTour(tours []regatta.Tour) *regatta.Tour {
+	for i := len(tours) - 1; i >= 0; i-- {
+		if !tours[i].IsPause {
+			return &tours[i]
+		}
+	}
+	return nil
 }
 
 func getSolvedProblemsCount(result ParticipantResult) int {
