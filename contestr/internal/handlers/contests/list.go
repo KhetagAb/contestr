@@ -5,6 +5,7 @@ import (
 
 	"contestr/internal/generated/server"
 	"contestr/internal/services/contest_admin"
+	"contestr/pkg/regatta"
 
 	"github.com/labstack/echo/v4"
 )
@@ -25,10 +26,24 @@ func (h *ListHandle) GetContests(ctx echo.Context) error {
 
 	items := make([]server.RegisteredContestItem, 0, len(contests))
 	for _, c := range contests {
+		settings := regatta.NormalizeScoringSettings(c.ScoringSettings)
+		tourSettings := regatta.NormalizeTourSettings(c.TourSettings)
 		items = append(items, server.RegisteredContestItem{
 			ContestId: c.ContestID,
 			Name:      c.Name,
 			System:    c.System,
+			ScoringSettings: server.ScoringSettings{
+				Mode:               server.ScoringSettingsMode(settings.Mode),
+				BinaryOvertakeMode: server.ScoringSettingsBinaryOvertakeMode(settings.BinaryOvertakeMode),
+				FullSolveBonus:     settings.FullSolveBonus,
+				SolveInTimeBonus:   settings.SolveInTimeBonus,
+				OvertakeBonus:      settings.OvertakeBonus,
+			},
+			TourSettings: server.TourSettings{
+				GroupSize:           tourSettings.GroupSize,
+				ProblemsPerTour:     tourSettings.ProblemsPerTour,
+				GroupShufflePercent: tourSettings.GroupShufflePercent,
+			},
 		})
 	}
 	return ctx.JSON(http.StatusOK, items)

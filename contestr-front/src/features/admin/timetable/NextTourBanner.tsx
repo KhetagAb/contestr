@@ -1,8 +1,15 @@
-import { Coffee, Play } from "lucide-react";
+import { AlertTriangle, Coffee, Play } from "lucide-react";
 import type { TimetableView } from "@/client/types.gen";
 import { AutostartToggle } from "./AutostartToggle";
+import { SEGMENT_SLOT_ICON_PX } from "./segmentIcons";
 import { TourStatusIcon } from "./TourStatusIcon";
-import { formatDurationCompact, formatTourClock, segmentLabel } from "./time";
+import { useContestElapsed } from "./useContestElapsed";
+import {
+    formatDurationCompact,
+    formatThroughMinutes,
+    formatTourClock,
+    segmentLabel,
+} from "./time";
 
 type Props = {
     view: TimetableView;
@@ -26,6 +33,10 @@ export function NextTourBanner({
     const hasPending = (view.pending_slots?.length ?? 0) > 0;
     const isLastSlot = activeSegment != null && !hasPending && !nextSegment;
     const displaySegment = nextSegment ?? (isLastSlot ? activeSegment : undefined);
+    const elapsed = useContestElapsed(
+        view.contest_start_time,
+        view.elapsed_seconds ?? 0,
+    );
 
     if (!displaySegment && !hasPending) {
         return null;
@@ -36,53 +47,86 @@ export function NextTourBanner({
     const isPause = displaySegment?.kind === "pause";
     const autostartAvailable = view.auto_start_available ?? false;
     const autostartOn = autostartAvailable && Boolean(view.auto_start_enabled);
-    const canAdvance =
-        !autostartOn &&
+    const hasAdvanceTarget =
         !isLastSlot &&
         (nextSegment?.status === "next" ||
             nextSegment?.status === "starting" ||
             (activeSegment != null && hasPending));
 
+    const throughSegment =
+        nextSegment && displaySegment && !isLastSlot ? displaySegment : null;
+    const showThrough = throughSegment != null;
+    const untilStartSeconds = throughSegment
+        ? Math.max(0, throughSegment.start_time - elapsed)
+        : 0;
+    const throughMinutes = throughSegment
+        ? Math.max(0, Math.round(untilStartSeconds / 60))
+        : null;
+    const showThroughWarning = throughMinutes === 0;
+
     return (
         <section className="tt-next-banner">
             <div className="tt-next-banner__content">
-                <span className="tt-next-banner__label">{sectionLabel}</span>
-                <span className="tt-next-banner__tour">
-                    {displaySegment && !isPause && (
-                        <span className="tt-next-banner__status-icon">
-                            <TourStatusIcon
-                                status={displaySegment.status}
-                                visualState={displaySegment.status}
-                            />
+                <span className="tt-next-banner__lead">
+                    <span className="tt-next-banner__label">{sectionLabel}</span>
+                    {displaySegment && (
+                        <span className="tt-next-banner__tour-chip">
+                            {!isPause && (
+                                <span className="tt-next-banner__tour-chip-icon">
+                                    <TourStatusIcon
+                                        status={displaySegment.status}
+                                        visualState={displaySegment.status}
+                                        size={SEGMENT_SLOT_ICON_PX}
+                                    />
+                                </span>
+                            )}
+                            {isPause ? (
+                                <Coffee
+                                    size={SEGMENT_SLOT_ICON_PX}
+                                    strokeWidth={2}
+                                    className={`tt-next-banner__pause-icon${displaySegment.status === "active" ? " tt-next-banner__pause-icon--active" : ""}`}
+                                    aria-label={label}
+                                />
+                            ) : (
+                                <span className="tt-next-banner__tour-chip-name">{label}</span>
+                            )}
                         </span>
                     )}
-                    <span className="tt-next-banner__tour-name">
-                        {isPause ? (
-                            <Coffee
-                                size={16}
-                                className={`tt-next-banner__pause-icon${displaySegment.status === "active" ? " tt-next-banner__pause-icon--active" : ""}`}
-                                aria-label={label}
-                            />
-                        ) : (
-                            label
-                        )}
-                    </span>
+                    {displaySegment && showThrough && (
+                        <span className="tt-next-banner__meta-part tt-next-banner__through">
+                            через{" "}
+                            <strong>{formatThroughMinutes(untilStartSeconds)}</strong>
+                            {showThroughWarning && (
+                                <AlertTriangle
+                                    size={15}
+                                    className="tt-next-banner__through-warn"
+                                    aria-label="Тур начинается сейчас"
+                                />
+                            )}
+                        </span>
+                    )}
                 </span>
                 {displaySegment && (
-                    <span className="tt-next-banner__facts">
-                        <span className="tt-next-banner__fact">
-                            <span className="tt-next-banner__fact-label">старт:</span>
-                            <span className="tt-next-banner__fact-value">
-                                {formatTourClock(view.contest_start_time, displaySegment.start_time)}
+                    <>
+                        <span className="tt-next-banner__sep" aria-hidden>
+                            ·
+                        </span>
+                        <span className="tt-next-banner__details">
+                            <span className="tt-next-banner__meta-part">
+                                старт:{" "}
+                                {formatTourClock(
+                                    view.contest_start_time,
+                                    displaySegment.start_time,
+                                )}
+                            </span>
+                            <span className="tt-next-banner__sep" aria-hidden>
+                                ·
+                            </span>
+                            <span className="tt-next-banner__meta-part">
+                                длительность: {formatDurationCompact(displaySegment.duration)}
                             </span>
                         </span>
-                        <span className="tt-next-banner__fact">
-                            <span className="tt-next-banner__fact-label">длительность:</span>
-                            <span className="tt-next-banner__fact-value">
-                                {formatDurationCompact(displaySegment.duration)}
-                            </span>
-                        </span>
-                    </span>
+                    </>
                 )}
             </div>
             <div className="tt-next-banner__actions">
@@ -94,12 +138,17 @@ export function NextTourBanner({
                         onChange={onAutoStartChange}
                     />
                 )}
-                {canAdvance && (
+                {hasAdvanceTarget && (
                     <button
                         type="button"
                         className="admin-icon-btn admin-primary-btn tt-start-now-btn"
                         onClick={onStartNow}
-                        disabled={busy}
+                        disabled={busy || autostartOn}
+                        title={
+                            autostartOn
+                                ? "Отключите автозапуск, чтобы запустить слот вручную"
+                                : undefined
+                        }
                     >
                         <Play size={16} />
                         Запустить сейчас

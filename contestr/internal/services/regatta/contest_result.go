@@ -62,6 +62,10 @@ func (s *Regatta) GetContestResult(ctx context.Context, contestID int) (regatta.
 	}
 
 	currentTime := time.Now()
+	currentElapsedSeconds := int(currentTime.Sub(contest.StartTime).Seconds())
+	if currentElapsedSeconds < 0 {
+		currentElapsedSeconds = 0
+	}
 	standings := regatta.ContestStandings{
 		ContestId:        contestID,
 		ContestName:      contest.ContestName,
@@ -95,6 +99,7 @@ func (s *Regatta) GetContestResult(ctx context.Context, contestID int) (regatta.
 	}
 
 	runs := convertSubmissionsToRuns(submissions)
+	scoringSettings := regatta.NormalizeScoringSettings(contest.ScoringSettings)
 
 	var contestRows []regatta.ContestRow
 	contestStandingsByParticipants := make(ResultsByParticipant)
@@ -107,7 +112,7 @@ func (s *Regatta) GetContestResult(ctx context.Context, contestID int) (regatta.
 			continue
 		}
 		segmentStart := offsets[tour.Sequence].Start
-		result := CalculateResult(tour, segmentStart, runs).Export()
+		result := CalculateResultWithSettingsAt(tour, segmentStart, runs, scoringSettings, currentElapsedSeconds).Export()
 
 		for participant, participantResult := range result {
 			_, was := contestStandingsByParticipants[participant]
@@ -158,7 +163,7 @@ func (s *Regatta) GetContestResult(ctx context.Context, contestID int) (regatta.
 		standings.CurrentTourStartTime = int(contest.StartTime.Unix()) + lastOffset.Start
 		standings.CurrentTourDuration = lastTour.DurationInSeconds / 60
 		standings.IsPauseBreak = lastTour.IsPause
-		standings.Events = BuildContestEvents(tours, runs, participantsMap)
+		standings.Events = BuildContestEventsAt(tours, runs, participantsMap, currentElapsedSeconds, scoringSettings)
 	}
 
 	return standings, nil
@@ -172,6 +177,7 @@ func convertSubmissionsToRuns(submissions []regatta.ContestSubmission) []Run {
 			ProbID: sub.ProblemID,
 			Time:   sub.Time,
 			Status: sub.Status,
+			Points: sub.Points,
 		})
 	}
 	return runs

@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Podkova&family=Anonymous+Pro&family=Montserrat+Alternates&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Podkova&family=Anonymous+Pro:wght@400;700&family=Montserrat+Alternates:wght@400;600&display=swap');
 
 :root {
     --step--3: clamp(0.6944rem, 0.6481rem + 0.2319vw, 0.88rem);

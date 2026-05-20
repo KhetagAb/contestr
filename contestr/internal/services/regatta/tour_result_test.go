@@ -33,18 +33,13 @@ func testTour() regatta.Tour {
 
 func TestParticipantScore_eventsAndScore(t *testing.T) {
 	tour := testTour()
-	tr := &TourResult{
-		Tour:         tour,
-		SegmentStart: 0,
-		Results: map[string]map[int]int{
-			"alice": {1: 100},
-			"bob":   {1: 500},
-		},
-		ProblemsMapping: tour.ProblemsIDsToNameMapping(tour.Problems),
-	}
+	tr := CalculateResult(tour, 0, []Run{
+		{UserID: "alice", ProbID: 1, Time: 100, Status: SubmissionStatusOK},
+		{UserID: "bob", ProbID: 1, Time: 500, Status: SubmissionStatusOK},
+	})
 
 	out := tr.ParticipantScore("alice")
-	wantScore := SolvePoints + SolveInTimePoints + OvertakePoints
+	wantScore := 100 + SolvePoints + SolveInTimePoints + OvertakePoints
 	if out.Results["1A"].score != wantScore {
 		t.Fatalf("alice score = %d, want %d", out.Results["1A"].score, wantScore)
 	}
@@ -58,6 +53,32 @@ func TestParticipantScore_eventsAndScore(t *testing.T) {
 	}
 	if !ev.SolvedInTime || !ev.FirstInGroup {
 		t.Fatalf("expected in-time and first-in-group flags, got %+v", ev)
+	}
+}
+
+func TestParticipantScore_singleParticipantFullSolveGetsProblemAndSolveBonuses(t *testing.T) {
+	tour := testTour()
+	tour.Groups = map[string][]string{
+		"alice": {"alice"},
+	}
+	tour.GroupNumbers = map[string]int{
+		"alice": 1,
+	}
+
+	tr := CalculateResult(tour, 0, []Run{
+		{UserID: "alice", ProbID: 1, Time: 100, Status: SubmissionStatusOK},
+	})
+
+	want := 100 + SolvePoints + SolveInTimePoints
+	out := tr.ParticipantScore("alice")
+	if got := out.Results["1A"].score; got != want {
+		t.Fatalf("single participant score = %d, want %d", got, want)
+	}
+	if len(out.Events) != 1 {
+		t.Fatalf("expected solve event, got %d events", len(out.Events))
+	}
+	if out.Events[0].FirstInGroup {
+		t.Fatalf("single participant should not receive overtake bonus: %+v", out.Events[0])
 	}
 }
 
@@ -80,7 +101,7 @@ func TestBuildContestEvents_chronological(t *testing.T) {
 	if events[0].DisplayName != "Alice A" {
 		t.Fatalf("display name = %q", events[0].DisplayName)
 	}
-	if events[0].Points != SolvePoints+SolveInTimePoints+OvertakePoints {
+	if events[0].Points != 100+SolvePoints+SolveInTimePoints+OvertakePoints {
 		t.Fatalf("alice points = %d", events[0].Points)
 	}
 
@@ -98,21 +119,16 @@ func TestScoreForSolve_noMultiOvertakeBonus(t *testing.T) {
 		"bob":   {"alice", "bob", "carol"},
 		"carol": {"alice", "bob", "carol"},
 	}
-	tr := &TourResult{
-		Tour:         tour,
-		SegmentStart: 0,
-		Results: map[string]map[int]int{
-			"alice": {1: 100},
-			"bob":   {1: 200},
-			"carol": {1: 300},
-		},
-		ProblemsMapping: tour.ProblemsIDsToNameMapping(tour.Problems),
-	}
+	tr := CalculateResult(tour, 0, []Run{
+		{UserID: "alice", ProbID: 1, Time: 100, Status: SubmissionStatusOK},
+		{UserID: "bob", ProbID: 1, Time: 200, Status: SubmissionStatusOK},
+		{UserID: "carol", ProbID: 1, Time: 300, Status: SubmissionStatusOK},
+	})
 
-	want := SolvePoints + SolveInTimePoints + OvertakePoints
-	got := scoreForSolve(tr, "alice", 1, 100)
+	want := 100 + SolvePoints + SolveInTimePoints + OvertakePoints
+	got := scoreForProblem(tr, "alice", 1)
 	if got != want {
-		t.Fatalf("score = %d, want %d (no +5 per opponent)", got, want)
+		t.Fatalf("score = %d, want %d (no +%d per opponent)", got, want, OvertakePoints)
 	}
 }
 
@@ -203,6 +219,138 @@ func TestBuildContestEvents_sortedByTime(t *testing.T) {
 	}
 	if events[0].ParticipantID != "bob" {
 		t.Fatalf("first should be bob at t=200, got %+v", events[0])
+	}
+}
+
+func TestPartialMode_uniqueFirstFullSolveGetsOvertake(t *testing.T) {
+	tour := testTour()
+	settings := regatta.DefaultScoringSettings()
+	settings.Mode = regatta.ScoringModePartial
+	tr := CalculateResultWithSettings(tour, 0, []Run{
+		{UserID: "alice", ProbID: 1, Time: 100, Status: SubmissionStatusOK, Points: 100},
+		{UserID: "bob", ProbID: 1, Time: 200, Status: SubmissionStatusOK, Points: 100},
+	}, settings)
+
+	want := 100 + SolvePoints + SolveInTimePoints + OvertakePoints
+	if got := tr.ParticipantScore("alice").Results["1A"].score; got != want {
+		t.Fatalf("alice score = %d, want %d", got, want)
+	}
+	if got := tr.ParticipantScore("bob").Results["1A"].score; got != 100+SolvePoints+SolveInTimePoints {
+		t.Fatalf("bob score = %d, want no overtake", got)
+	}
+}
+
+func TestPartialMode_tiedFirstFullSolveGetsNoOvertake(t *testing.T) {
+	tour := testTour()
+	settings := regatta.DefaultScoringSettings()
+	settings.Mode = regatta.ScoringModePartial
+	tr := CalculateResultWithSettings(tour, 0, []Run{
+		{UserID: "alice", ProbID: 1, Time: 100, Status: SubmissionStatusOK, Points: 100},
+		{UserID: "bob", ProbID: 1, Time: 100, Status: SubmissionStatusOK, Points: 100},
+	}, settings)
+
+	want := 100 + SolvePoints + SolveInTimePoints
+	for _, participant := range []string{"alice", "bob"} {
+		if got := tr.ParticipantScore(participant).Results["1A"].score; got != want {
+			t.Fatalf("%s score = %d, want %d", participant, got, want)
+		}
+	}
+}
+
+func TestPartialMode_tourEndHighestPartialGetsOvertake(t *testing.T) {
+	tour := testTour()
+	settings := regatta.DefaultScoringSettings()
+	settings.Mode = regatta.ScoringModePartial
+	tr := CalculateResultWithSettings(tour, 0, []Run{
+		{UserID: "alice", ProbID: 1, Time: 100, Status: SubmissionStatusPartial, Points: 40},
+		{UserID: "alice", ProbID: 1, Time: 3700, Status: SubmissionStatusPartial, Points: 80},
+		{UserID: "bob", ProbID: 1, Time: 200, Status: SubmissionStatusPartial, Points: 60},
+	}, settings)
+
+	if got := tr.ParticipantScore("alice").Results["1A"].score; got != 80 {
+		t.Fatalf("alice score = %d, want latest raw points without overtake", got)
+	}
+	if got := tr.ParticipantScore("bob").Results["1A"].score; got != 60+OvertakePoints {
+		t.Fatalf("bob score = %d, want raw points plus overtake", got)
+	}
+
+	events := BuildContestEvents([]regatta.Tour{tour}, []Run{
+		{UserID: "alice", ProbID: 1, Time: 100, Status: SubmissionStatusPartial, Points: 40},
+		{UserID: "alice", ProbID: 1, Time: 3700, Status: SubmissionStatusPartial, Points: 80},
+		{UserID: "bob", ProbID: 1, Time: 200, Status: SubmissionStatusPartial, Points: 60},
+	}, nil, settings)
+	if len(events) != 1 {
+		t.Fatalf("expected one bob scoring event with overtake badge, got %+v", events)
+	}
+	if events[0].Type != regatta.EventTypeProblemSolved ||
+		events[0].ParticipantID != "bob" ||
+		!events[0].FirstInGroup ||
+		events[0].TimeSec != 200 ||
+		events[0].Points != 60+OvertakePoints {
+		t.Fatalf("expected bob scoring event with overtake badge, got %+v", events)
+	}
+}
+
+func TestPartialMode_activeTourHighestPartialGetsNoTourEndOvertake(t *testing.T) {
+	tour := testTour()
+	settings := regatta.DefaultScoringSettings()
+	settings.Mode = regatta.ScoringModePartial
+	runs := []Run{
+		{UserID: "alice", ProbID: 1, Time: 900, Status: SubmissionStatusPartial, Points: 20},
+		{UserID: "bob", ProbID: 1, Time: 700, Status: SubmissionStatusPartial, Points: 10},
+	}
+
+	tr := CalculateResultWithSettingsAt(tour, 0, runs, settings, 1100)
+
+	if got := tr.ParticipantScore("alice").Results["1A"].score; got != 20 {
+		t.Fatalf("alice score = %d, want raw points only while tour is active", got)
+	}
+	events := BuildContestEventsAt([]regatta.Tour{tour}, runs, nil, 1100, settings)
+	if len(events) != 0 {
+		t.Fatalf("expected no tour-end overtake event while tour is active, got %+v", events)
+	}
+}
+
+func TestPartialMode_tiedHighestPartialGetsNoOvertake(t *testing.T) {
+	tour := testTour()
+	settings := regatta.DefaultScoringSettings()
+	settings.Mode = regatta.ScoringModePartial
+	tr := CalculateResultWithSettings(tour, 0, []Run{
+		{UserID: "alice", ProbID: 1, Time: 100, Status: SubmissionStatusPartial, Points: 60},
+		{UserID: "bob", ProbID: 1, Time: 200, Status: SubmissionStatusPartial, Points: 60},
+	}, settings)
+
+	for _, participant := range []string{"alice", "bob"} {
+		if got := tr.ParticipantScore(participant).Results["1A"].score; got != 60 {
+			t.Fatalf("%s score = %d, want raw points only", participant, got)
+		}
+	}
+}
+
+func TestPartialMode_zeroNeverGetsOvertake(t *testing.T) {
+	tour := testTour()
+	settings := regatta.DefaultScoringSettings()
+	settings.Mode = regatta.ScoringModePartial
+	tr := CalculateResultWithSettings(tour, 0, []Run{
+		{UserID: "alice", ProbID: 1, Time: 100, Status: SubmissionStatusPartial, Points: 0},
+	}, settings)
+
+	if got := tr.ParticipantScore("alice").Results["1A"].score; got != 0 {
+		t.Fatalf("alice score = %d, want 0", got)
+	}
+}
+
+func TestBinaryMode_duringTourOnlyOvertakeOption(t *testing.T) {
+	tour := testTour()
+	settings := regatta.DefaultScoringSettings()
+	settings.BinaryOvertakeMode = regatta.BinaryOvertakeModeDuringTour
+	tr := CalculateResultWithSettings(tour, 0, []Run{
+		{UserID: "alice", ProbID: 1, Time: 3700, Status: SubmissionStatusOK},
+	}, settings)
+
+	want := 100 + SolvePoints
+	if got := tr.ParticipantScore("alice").Results["1A"].score; got != want {
+		t.Fatalf("alice score = %d, want %d", got, want)
 	}
 }
 

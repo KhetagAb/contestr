@@ -8,8 +8,6 @@ import (
 	"fmt"
 )
 
-const GroupSize = 3
-
 type StartTourOptions struct {
 	IsPause bool
 }
@@ -37,26 +35,32 @@ func (s *Regatta) StartTour(ctx context.Context, contestId int, durationSeconds 
 	groupSize := 0
 
 	if !opts.IsPause {
-		participantsMap, err := s.contestRepo.GetParticipants(ctx, contestId)
+		contest, err := s.contestRepo.GetByContestID(ctx, contestId)
 		if err != nil {
-			return "", fmt.Errorf("failed to get participants: %w", err)
+			return "", fmt.Errorf("failed to get contest: %w", err)
 		}
+		participantsMap := contestParticipantsMap(contest.Participants)
 		if len(participantsMap) == 0 {
 			return "", fmt.Errorf("contest %d has no participants", contestId)
 		}
+		tourSettings := regatta.NormalizeTourSettings(contest.TourSettings)
 
 		ratedParticipants := make([]Participant, 0, len(participantsMap))
 		for id := range participantsMap {
 			ratedParticipants = append(ratedParticipants, id)
 		}
 
-		formed := util.FormGroups(ratedParticipants, GroupSize)
+		formed := util.FormGroupsWithSwapProbability(
+			ratedParticipants,
+			tourSettings.GroupSize,
+			tourSettings.GroupShuffleProbability(),
+		)
 		groups = ConvertGroups(formed)
 		groupNumbers = regatta.ParticipantsToGroupNumbersMapping(formed)
-		groupSize = GroupSize
+		groupSize = tourSettings.GroupSize
 
 		round = regatta.CompetitiveRoundCount(tours) + 1
-		problems = []int{2*round - 1, 2 * round}
+		problems = nextTourProblems(tours, tourSettings.ProblemsPerTour)
 	}
 
 	name := fmt.Sprintf("Tour №%d of contest %d", round, contestId)
@@ -83,6 +87,31 @@ func (s *Regatta) StartTour(ctx context.Context, contestId int, durationSeconds 
 	}
 
 	return create.Hex(), nil
+}
+
+func contestParticipantsMap(participants []regatta.ContestParticipant) map[string]string {
+	result := make(map[string]string, len(participants))
+	for _, participant := range participants {
+		result[participant.ID] = participant.DisplayName
+	}
+	return result
+}
+
+func nextTourProblems(tours []regatta.Tour, count int) []int {
+	maxProblem := 0
+	for _, tour := range tours {
+		for _, problem := range tour.Problems {
+			if problem > maxProblem {
+				maxProblem = problem
+			}
+		}
+	}
+
+	problems := make([]int, 0, count)
+	for i := 1; i <= count; i++ {
+		problems = append(problems, maxProblem+i)
+	}
+	return problems
 }
 
 func ConvertGroups(groups [][]string) map[Participant]Group {

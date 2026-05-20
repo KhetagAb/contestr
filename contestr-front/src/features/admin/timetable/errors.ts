@@ -1,7 +1,28 @@
+import { formatDurationCompact, minActiveDurationSeconds } from "./time";
+
+export function activeSegmentMinDurationError(minSeconds: number): string {
+    return `Нельзя сделать текущий сегмент короче уже прошедшего времени. Минимум сейчас: ${formatDurationCompact(minSeconds)}.`;
+}
+
+function translateElapsedDurationError(details: string): string | null {
+    const match = details.match(
+        /duration cannot be less than elapsed time in segment \((\d+)s\)/,
+    );
+    if (!match) {
+        return null;
+    }
+    const elapsedIn = Number(match[1]);
+    if (!Number.isFinite(elapsedIn)) {
+        return null;
+    }
+    return activeSegmentMinDurationError(minActiveDurationSeconds(elapsedIn, 0));
+}
+
 const ERROR_TRANSLATIONS: Record<string, string> = {
     "bad request": "Некорректный запрос.",
     conflict: "Конфликт состояния.",
     "contest not found": "Контест не найден. Сначала дождитесь синхронизации контеста.",
+    "contest has no participants": "В контесте нет участников.",
     "contest already registered": "Этот контест уже зарегистрирован.",
     "contest not registered": "Контест не зарегистрирован.",
     "handle mapping not found": "Маппинг handle не найден.",
@@ -55,6 +76,12 @@ export function translateAdminMessage(message?: string) {
         if (details.includes("overlap")) {
             return "Некорректное расписание: туры пересекаются по времени.";
         }
+        if (details.includes("duration cannot be less than elapsed")) {
+            return (
+                translateElapsedDurationError(details) ??
+                activeSegmentMinDurationError(60)
+            );
+        }
         return "Некорректное расписание.";
     }
 
@@ -69,6 +96,9 @@ export function translateAdminMessage(message?: string) {
     }
     if (key.startsWith("failed to get contest")) {
         return "Контест не найден. Сначала дождитесь синхронизации контеста.";
+    }
+    if (key.includes("codeforces contest") || key.includes("error getting contest standings")) {
+        return "Не удалось получить данные контеста из Codeforces. Проверьте ID контеста, доступ менеджера и API-ключи.";
     }
     if (key.startsWith("failed to ")) {
         return "Не удалось выполнить действие.";

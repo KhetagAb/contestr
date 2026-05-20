@@ -28,7 +28,7 @@ function MovingChevronsIcon({ className = "" }: { className?: string }) {
 export function TourStatusIcon({
     status,
     visualState,
-    size = 13,
+    size = 14,
     className = "",
 }: StatusIconProps) {
     const label = statusLabel(status);
@@ -42,7 +42,7 @@ export function TourStatusIcon({
     let icon: ReactNode;
     switch (visualState ?? status) {
         case "past":
-            icon = <Check {...iconProps} strokeWidth={2.5} />;
+            icon = <Check {...iconProps} strokeWidth={2} />;
             break;
         case "active":
             icon = <MovingChevronsIcon className={className} />;

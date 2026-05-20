@@ -78,6 +78,66 @@ paths:
         404:
           $ref: '#/components/responses/ErrorResponse'
 
+  /api/admin/contests/{contest_id}/settings:
+    patch:
+      operationId: patchAdminContestSettings
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: contest_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateContestSettingsRequest'
+      responses:
+        200:
+          description: Настройки контеста обновлены
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegisteredContestItem'
+        400:
+          $ref: '#/components/responses/ErrorResponse'
+        401:
+          $ref: '#/components/responses/ErrorResponse'
+        404:
+          $ref: '#/components/responses/ErrorResponse'
+        502:
+          $ref: '#/components/responses/ErrorResponse'
+
+  /api/admin/contests/{contest_id}/refresh:
+    post:
+      operationId: postAdminContestRefresh
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: contest_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          description: Данные контеста обновлены
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegisteredContestItem'
+        400:
+          $ref: '#/components/responses/ErrorResponse'
+        401:
+          $ref: '#/components/responses/ErrorResponse'
+        404:
+          $ref: '#/components/responses/ErrorResponse'
+        502:
+          $ref: '#/components/responses/ErrorResponse'
+
   /api/admin/contests/{contest_id}/handles:
     get:
       operationId: getAdminContestHandles
@@ -449,6 +509,7 @@ components:
           type: string
           enum:
             - problem_solved
+            - problem_overtake
         time_sec:
           type: integer
           description: Время посылки в секундах от старта контеста
@@ -603,6 +664,8 @@ components:
         - contest_id
         - name
         - system
+        - scoring_settings
+        - tour_settings
       properties:
         contest_id:
           type: integer
@@ -611,6 +674,10 @@ components:
         system:
           type: string
           example: codeforces
+        scoring_settings:
+          $ref: '#/components/schemas/ScoringSettings'
+        tour_settings:
+          $ref: '#/components/schemas/TourSettings'
     CreateContestRequest:
       type: object
       required:
@@ -621,6 +688,67 @@ components:
         name:
           type: string
           description: Необязательное отображаемое имя; по умолчанию берётся с Codeforces
+        scoring_settings:
+          $ref: '#/components/schemas/ScoringSettings'
+        tour_settings:
+          $ref: '#/components/schemas/TourSettings'
+    UpdateContestSettingsRequest:
+      type: object
+      required:
+        - scoring_settings
+        - tour_settings
+      properties:
+        scoring_settings:
+          $ref: '#/components/schemas/ScoringSettings'
+        tour_settings:
+          $ref: '#/components/schemas/TourSettings'
+    ScoringSettings:
+      type: object
+      required:
+        - mode
+        - binary_overtake_mode
+        - full_solve_bonus
+        - solve_in_time_bonus
+        - overtake_bonus
+      properties:
+        mode:
+          type: string
+          enum: [binary, partial]
+        binary_overtake_mode:
+          type: string
+          enum: [retrospective, during_tour_only]
+        full_solve_bonus:
+          type: integer
+          minimum: 0
+          default: 100
+        solve_in_time_bonus:
+          type: integer
+          minimum: 0
+          default: 100
+        overtake_bonus:
+          type: integer
+          minimum: 0
+          default: 100
+    TourSettings:
+      type: object
+      required:
+        - group_size
+        - problems_per_tour
+        - group_shuffle_percent
+      properties:
+        group_size:
+          type: integer
+          minimum: 1
+          default: 3
+        problems_per_tour:
+          type: integer
+          minimum: 1
+          default: 2
+        group_shuffle_percent:
+          type: integer
+          minimum: 0
+          maximum: 100
+          default: 40
     CodeforcesHandleItem:
       type: object
       required:

@@ -1,6 +1,7 @@
 package ejudge
 
 import (
+	"contestr/internal/integrations"
 	"contestr/pkg/regatta"
 	"context"
 	"fmt"
@@ -22,7 +23,7 @@ func (a *EjudgeAdapter) GetSystem() string {
 	return "ejudge"
 }
 
-func (a *EjudgeAdapter) FetchContest(ctx context.Context, contestID int) (*regatta.Contest, error) {
+func (a *EjudgeAdapter) FetchContest(ctx context.Context, contestID int, opts integrations.FetchContestOptions) (*regatta.Contest, error) {
 	runLog, err := a.fetcher.FetchAndParseXML(ctx, contestID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch ejudge contest: %w", err)
@@ -54,17 +55,27 @@ func (a *EjudgeAdapter) FetchContest(ctx context.Context, contestID int) (*regat
 			ProblemID:         run.ProbID,
 			Time:              run.Time,
 			Status:            run.Status,
+			Points:            pointsForEjudgeStatus(run.Status),
 			OriginalProblemID: strconv.Itoa(run.ProbID),
 		})
 	}
 
 	return &regatta.Contest{
-		ContestID:    contestIDInt,
-		ContestName:  runLog.Name,
-		System:       "ejudge",
-		StartTime:    startTime,
-		LastUpdated:  time.Now(),
-		Participants: participants,
-		Submissions:  submissions,
+		ContestID:       contestIDInt,
+		ContestName:     runLog.Name,
+		System:          "ejudge",
+		StartTime:       startTime,
+		LastUpdated:     time.Now(),
+		ScoringSettings: regatta.NormalizeScoringSettings(opts.ScoringSettings),
+		TourSettings:    regatta.NormalizeTourSettings(opts.TourSettings),
+		Participants:    participants,
+		Submissions:     submissions,
 	}, nil
+}
+
+func pointsForEjudgeStatus(status string) int {
+	if status == "OK" {
+		return 100
+	}
+	return 0
 }

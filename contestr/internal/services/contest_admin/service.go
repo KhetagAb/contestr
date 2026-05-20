@@ -10,6 +10,8 @@ import (
 	"contestr/internal/integrations/codeforces"
 	"contestr/internal/repository"
 	contestsync "contestr/internal/services/contest_sync"
+	"contestr/pkg/logger"
+	"contestr/pkg/regatta"
 )
 
 const systemCodeforces = "codeforces"
@@ -39,7 +41,13 @@ func (s *Service) ListContests(ctx context.Context) ([]repository.RegisteredCont
 	return s.registeredRepo.List(ctx)
 }
 
-func (s *Service) RegisterCodeforcesContest(ctx context.Context, contestID int, nameOverride string) (*repository.RegisteredContest, error) {
+func (s *Service) RegisterCodeforcesContest(
+	ctx context.Context,
+	contestID int,
+	nameOverride string,
+	scoringSettings regatta.ScoringSettings,
+	tourSettings regatta.TourSettings,
+) (*repository.RegisteredContest, error) {
 	if contestID <= 0 {
 		return nil, fmt.Errorf("invalid contest id")
 	}
@@ -54,6 +62,7 @@ func (s *Service) RegisterCodeforcesContest(ctx context.Context, contestID int, 
 
 	standings, err := s.cfService.GetContest(ctx, contestID)
 	if err != nil {
+		logger.Errorf(ctx, "failed to import codeforces contest %d: %v", contestID, err)
 		return nil, fmt.Errorf("codeforces contest not found or unavailable: %w", err)
 	}
 
@@ -63,20 +72,60 @@ func (s *Service) RegisterCodeforcesContest(ctx context.Context, contestID int, 
 	}
 
 	contest := repository.RegisteredContest{
-		ContestID: contestID,
-		System:    systemCodeforces,
-		Name:      name,
-		CreatedAt: time.Now().UTC(),
+		ContestID:       contestID,
+		System:          systemCodeforces,
+		Name:            name,
+		CreatedAt:       time.Now().UTC(),
+		ScoringSettings: regatta.NormalizeScoringSettings(scoringSettings),
+		TourSettings:    regatta.NormalizeTourSettings(tourSettings),
 	}
 	if err := s.registeredRepo.Create(ctx, contest); err != nil {
 		return nil, err
 	}
 
 	if err := s.syncService.SyncContest(ctx, contestID); err != nil {
+		logger.Errorf(ctx, "contest %d registered but initial sync failed: %v", contestID, err)
 		return &contest, fmt.Errorf("contest registered but sync failed: %w", err)
 	}
 
 	return &contest, nil
+}
+
+func (s *Service) UpdateContestSettings(ctx context.Context, contestID int, scoringSettings regatta.ScoringSettings, tourSettings regatta.TourSettings) (*repository.RegisteredContest, error) {
+	if err := s.ensureContestExists(ctx, contestID); err != nil {
+		return nil, err
+	}
+
+	if err := s.registeredRepo.UpdateContestSettings(ctx, contestID, scoringSettings, tourSettings); err != nil {
+		return nil, err
+	}
+
+	if err := s.syncService.SyncContest(ctx, contestID); err != nil {
+		return nil, fmt.Errorf("settings saved but sync failed: %w", err)
+	}
+
+	contest, err := s.registeredRepo.GetByContestID(ctx, contestID)
+	if err != nil {
+		return nil, err
+	}
+	return contest, nil
+}
+
+func (s *Service) RefreshContest(ctx context.Context, contestID int) (*repository.RegisteredContest, error) {
+	if err := s.ensureContestExists(ctx, contestID); err != nil {
+		return nil, err
+	}
+
+	if err := s.syncService.SyncContest(ctx, contestID); err != nil {
+		logger.Errorf(ctx, "failed to refresh contest %d: %v", contestID, err)
+		return nil, fmt.Errorf("contest refresh failed: %w", err)
+	}
+
+	contest, err := s.registeredRepo.GetByContestID(ctx, contestID)
+	if err != nil {
+		return nil, err
+	}
+	return contest, nil
 }
 
 func (s *Service) DeleteContest(ctx context.Context, contestID int) error {
@@ -94,14 +143,28 @@ func (s *Service) UpsertHandles(ctx context.Context, contestID int, mappings []r
 	if err := s.ensureContestExists(ctx, contestID); err != nil {
 		return err
 	}
-	return s.handleRepo.UpsertMany(ctx, contestID, mappings)
+	if err := s.handleRepo.UpsertMany(ctx, contestID, mappings); err != nil {
+		return err
+	}
+	if err := s.syncService.SyncContest(ctx, contestID); err != nil {
+		logger.Errorf(ctx, "handles saved but contest %d sync failed: %v", contestID, err)
+		return fmt.Errorf("handles saved but sync failed: %w", err)
+	}
+	return nil
 }
 
 func (s *Service) DeleteHandle(ctx context.Context, contestID int, handle string) error {
 	if err := s.ensureContestExists(ctx, contestID); err != nil {
 		return err
 	}
-	return s.handleRepo.DeleteOne(ctx, contestID, handle)
+	if err := s.handleRepo.DeleteOne(ctx, contestID, handle); err != nil {
+		return err
+	}
+	if err := s.syncService.SyncContest(ctx, contestID); err != nil {
+		logger.Errorf(ctx, "handle deleted but contest %d sync failed: %v", contestID, err)
+		return fmt.Errorf("handle deleted but sync failed: %w", err)
+	}
+	return nil
 }
 
 func (s *Service) ensureContestExists(ctx context.Context, contestID int) error {

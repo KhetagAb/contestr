@@ -1,7 +1,12 @@
-import { Coffee, Pencil, Plus, Trash2 } from "lucide-react";
+import { Coffee, Plus, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState, type CSSProperties, type MouseEvent } from "react";
 import type { TimelineSegment } from "@/client/types.gen";
-import { confirmEditPendingDuration } from "./ConfirmDialogs";
+import {
+    compactSlotBlockClass,
+    SegmentCompactMarker,
+    shouldShowCompactSegmentMarker,
+} from "./SegmentCompactMarker";
+import { SEGMENT_SLOT_ICON_PX } from "./segmentIcons";
 import { TourStatusIcon } from "./TourStatusIcon";
 import { resolveSegmentVisualState, visualStateClass } from "./tourVisualState";
 import {
@@ -12,14 +17,14 @@ import {
     segmentLabel,
 } from "./time";
 
-const TITLE_FULL_MIN_PX = 58;
-const DURATION_COMPACT_MAX_PX = 64;
+/** Min block width (px) to fit title + actions without compact hover-expand */
+const SEGMENT_EXPAND_MIN_PX = 80;
 
 type Props = {
     segment: TimelineSegment;
-    isLast?: boolean;
     busy?: boolean;
     onDurationChange?: (pendingIndex: number, duration: number) => void;
+    onActiveDurationChange?: (duration: number) => void | Promise<unknown>;
     onKindChange?: (pendingIndex: number, kind: "tour" | "pause") => void;
     onRemove?: (pendingIndex: number) => void;
     onAdd?: () => void;
@@ -32,9 +37,9 @@ type Props = {
 
 export function AxisSegment({
     segment,
-    isLast = false,
     busy = false,
     onDurationChange,
+    onActiveDurationChange,
     onKindChange,
     onRemove,
     onAdd,
@@ -47,6 +52,7 @@ export function AxisSegment({
     const [editing, setEditing] = useState(false);
     const [draft, setDraft] = useState(formatDurationInputValue(segment.duration));
     const blockRef = useRef<HTMLDivElement>(null);
+    const pointerInsideRef = useRef(false);
     const [blockWidthPx, setBlockWidthPx] = useState(0);
 
     useEffect(() => {
@@ -60,29 +66,42 @@ export function AxisSegment({
         if (!el) {
             return;
         }
-        const sync = () => setBlockWidthPx(el.getBoundingClientRect().width);
+        const sync = () => {
+            if (pointerInsideRef.current) {
+                return;
+            }
+            setBlockWidthPx(el.getBoundingClientRect().width);
+        };
         sync();
         const ro = new ResizeObserver(sync);
         ro.observe(el);
         return () => ro.disconnect();
     }, [segment.duration]);
 
+    const measureBlockWidth = () => {
+        const el = blockRef.current;
+        if (el) {
+            setBlockWidthPx(el.getBoundingClientRect().width);
+        }
+    };
+
     const visualState = resolveSegmentVisualState(segment);
     const label = segmentLabel(segment);
-    const narrowTitle = blockWidthPx > 0 && blockWidthPx < TITLE_FULL_MIN_PX;
-    const compact = blockWidthPx > 0 && blockWidthPx < DURATION_COMPACT_MAX_PX;
-    const canEdit = segment.editable && segment.pending_index != null;
-    const canToggleKind = canEdit && Boolean(onKindChange);
-    const canDelete = canEdit;
-    const actionSlots =
-        (isLast && onAdd ? 1 : 0) +
-        (canToggleKind ? 1 : 0) +
-        (canEdit ? 1 : 0) +
-        (canDelete ? 1 : 0);
-    const displayLabel =
-        narrowTitle && segment.kind === "tour" && segment.round
-            ? String(segment.round)
-            : label;
+    const canEditPending = Boolean(
+        segment.editable && segment.pending_index != null && onDurationChange,
+    );
+    const canEditActive = Boolean(
+        segment.editable && segment.sequence != null && onActiveDurationChange,
+    );
+    const canEdit = canEditPending || canEditActive;
+    const canToggleKind = canEditPending && Boolean(onKindChange);
+    const canDelete = canEditPending;
+    const hasActions =
+        Boolean(onAdd) || canToggleKind || (canDelete && onRemove);
+    const needsExpand = Boolean(
+        hasActions && blockWidthPx > 0 && blockWidthPx < SEGMENT_EXPAND_MIN_PX,
+    );
+    const showCompactMarker = shouldShowCompactSegmentMarker(needsExpand, editing);
 
     const inProgress = progressFill !== undefined && progressColorFrom && progressColorTo;
     const progressStyle: CSSProperties | undefined = inProgress
@@ -96,7 +115,7 @@ export function AxisSegment({
     const elapsedInSegment = inProgress
         ? Math.round(progressFill * segment.duration)
         : 0;
-    const blockTitle = inProgress
+    const blockAriaLabel = inProgress
         ? `${label}: прошло ${formatDuration(elapsedInSegment)} из ${formatDuration(segment.duration)}`
         : `${label}: ${formatTourClock(contestStartTime, segment.start_time)} — ${formatDuration(segment.duration)}`;
 
@@ -107,20 +126,17 @@ export function AxisSegment({
             setEditing(false);
             return;
         }
-        if (!confirmEditPendingDuration()) {
-            setDraft(formatDurationInputValue(segment.duration));
-            setEditing(false);
-            return;
-        }
         if (segment.pending_index != null && onDurationChange) {
             onDurationChange(segment.pending_index, seconds);
+        } else if (segment.sequence != null && onActiveDurationChange) {
+            void onActiveDurationChange(seconds);
         }
         setEditing(false);
     };
 
-    const startDurationEdit = (e: MouseEvent) => {
-        e.stopPropagation();
-        if (!canEdit) {
+    const startDurationEdit = (e?: MouseEvent) => {
+        e?.stopPropagation();
+        if (!canEdit || busy) {
             return;
         }
         setEditing(true);
@@ -135,76 +151,139 @@ export function AxisSegment({
         onKindChange(segment.pending_index, next);
     };
 
+    const surfaceClass = [
+        visualStateClass(visualState),
+        inProgress ? "tt-axis__block--in-progress" : "",
+    ]
+        .filter(Boolean)
+        .join(" ");
+
+    const blockClassName = [
+        "tt-axis__block",
+        needsExpand ? "" : surfaceClass,
+        editing ? "tt-axis__block--editing" : "",
+        needsExpand ? "tt-axis__block--expandable" : "",
+        compactSlotBlockClass(needsExpand),
+        hasActions ? "tt-axis__block--has-actions" : "",
+    ]
+        .filter(Boolean)
+        .join(" ");
+
+    const innerClassName = ["tt-axis__block-inner", needsExpand ? surfaceClass : ""]
+        .filter(Boolean)
+        .join(" ");
+
     return (
         <div
             ref={blockRef}
-            className={`tt-axis__block ${visualStateClass(visualState)}${segment.kind === "pause" ? " tt-axis__block--pause" : ""}${editing ? " tt-axis__block--editing" : ""}${inProgress ? " tt-axis__block--in-progress" : ""}`}
+            className={blockClassName}
             style={{ gridColumn, gridRow: 2, ...progressStyle }}
-            title={blockTitle}
+            aria-label={blockAriaLabel}
+            onMouseEnter={() => {
+                pointerInsideRef.current = true;
+            }}
+            onMouseLeave={() => {
+                pointerInsideRef.current = false;
+                measureBlockWidth();
+            }}
+            onFocusCapture={() => {
+                pointerInsideRef.current = true;
+            }}
+            onBlurCapture={(e) => {
+                if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
+                    pointerInsideRef.current = false;
+                    measureBlockWidth();
+                }
+            }}
         >
-            <div className="tt-axis__block-inner" data-actions={String(Math.min(actionSlots, 4))}>
-                <div className="tt-axis__block-head">
-                    {segment.kind !== "pause" && (
-                        <span
-                            className={`tt-axis__status-icon${compact ? " tt-axis__status-icon--compact" : ""}`}
-                        >
-                            <TourStatusIcon status={segment.status} visualState={visualState} />
+            <div className={innerClassName}>
+                {showCompactMarker && (
+                    <SegmentCompactMarker
+                        segment={segment}
+                        visualState={visualState}
+                        label={label}
+                    />
+                )}
+                <div
+                    className={`tt-axis__block-main${canEdit ? " tt-axis__block-main--editable" : ""}`}
+                    onDoubleClick={canEdit && !editing ? startDurationEdit : undefined}
+                    onMouseDown={
+                        canEdit && !editing
+                            ? (e) => {
+                                  if (e.detail > 1) {
+                                      e.preventDefault();
+                                  }
+                              }
+                            : undefined
+                    }
+                    title={canEdit ? "Двойной щелчок — изменить длительность" : undefined}
+                >
+                    <div className="tt-axis__block-head">
+                        <span className="tt-axis__status-icon">
+                            {segment.kind === "pause" ? (
+                                <Coffee
+                                    size={SEGMENT_SLOT_ICON_PX}
+                                    strokeWidth={2}
+                                    className={`tt-axis__pause-icon${segment.status === "active" ? " tt-axis__pause-icon--active" : ""}`}
+                                    aria-label={label}
+                                />
+                            ) : (
+                                <TourStatusIcon
+                                    status={segment.status}
+                                    visualState={visualState}
+                                    size={SEGMENT_SLOT_ICON_PX}
+                                />
+                            )}
                         </span>
-                    )}
-                    <span
-                        className={`tt-axis__block-title${narrowTitle && segment.kind === "tour" ? " tt-axis__block-title--num" : ""}${segment.kind === "pause" ? " tt-axis__block-title--pause" : ""}`}
-                        aria-label={label}
-                    >
-                        {segment.kind === "pause" ? (
-                            <Coffee
-                                size={compact ? 10 : 12}
-                                className={`tt-axis__pause-icon${segment.status === "active" ? " tt-axis__pause-icon--active" : ""}`}
-                                aria-hidden
-                            />
-                        ) : (
-                            displayLabel
+                        {segment.kind !== "pause" && (
+                            <span className="tt-axis__block-title" title={label}>
+                                {label}
+                            </span>
                         )}
-                    </span>
+                    </div>
+
+                    <div className="tt-axis__block-duration">
+                        {editing ? (
+                            <span className="tt-axis__duration-text tt-axis__duration-text--editing">
+                                <input
+                                    type="text"
+                                    inputMode="numeric"
+                                    className="tt-axis__duration-value"
+                                    size={Math.max(2, draft.length || 1)}
+                                    maxLength={4}
+                                    value={draft}
+                                    onChange={(e) => setDraft(e.target.value.replace(/\D/g, ""))}
+                                    onBlur={commitDuration}
+                                    onFocus={(e) => e.currentTarget.select()}
+                                    onKeyDown={(e) => {
+                                        e.stopPropagation();
+                                        if (e.key === "Enter") {
+                                            commitDuration();
+                                        }
+                                        if (e.key === "Escape") {
+                                            setDraft(formatDurationInputValue(segment.duration));
+                                            setEditing(false);
+                                        }
+                                    }}
+                                    onClick={(e) => e.stopPropagation()}
+                                    autoFocus
+                                    aria-label={`Длительность: ${label}`}
+                                />
+                                {" мин."}
+                            </span>
+                        ) : (
+                            <span className="tt-axis__duration-text">
+                                {formatDuration(segment.duration)}
+                            </span>
+                        )}
+                    </div>
                 </div>
 
                 <div
-                    className={`tt-axis__block-duration${compact ? " tt-axis__block-duration--compact" : ""}`}
+                    className={`tt-axis__block-actions${hasActions ? "" : " tt-axis__block-actions--reserved"}`}
+                    aria-hidden={!hasActions}
                 >
-                    {editing ? (
-                        <span className="tt-axis__duration-text tt-axis__duration-text--editing">
-                            <input
-                                type="text"
-                                inputMode="numeric"
-                                className="tt-axis__duration-value"
-                                size={Math.max(2, draft.length || 1)}
-                                maxLength={4}
-                                value={draft}
-                                onChange={(e) => setDraft(e.target.value.replace(/\D/g, ""))}
-                                onBlur={commitDuration}
-                                onFocus={(e) => e.currentTarget.select()}
-                                onKeyDown={(e) => {
-                                    e.stopPropagation();
-                                    if (e.key === "Enter") {
-                                        commitDuration();
-                                    }
-                                    if (e.key === "Escape") {
-                                        setDraft(formatDurationInputValue(segment.duration));
-                                        setEditing(false);
-                                    }
-                                }}
-                                onClick={(e) => e.stopPropagation()}
-                                autoFocus
-                                aria-label={`Длительность: ${label}`}
-                            />
-                            {" мин."}
-                        </span>
-                    ) : (
-                        <span className="tt-axis__duration-text">{formatDuration(segment.duration)}</span>
-                    )}
-                </div>
-
-                <div className="tt-axis__block-actions">
-                    {isLast && onAdd && (
+                    {hasActions && onAdd && (
                         <button
                             type="button"
                             className="tt-axis__icon-btn"
@@ -213,33 +292,30 @@ export function AxisSegment({
                                 e.stopPropagation();
                                 onAdd();
                             }}
-                            aria-label="Добавить слот"
+                            aria-label="Добавить слот после этого"
+                            title="Добавить слот после этого"
                         >
-                            <Plus size={10} />
+                            <Plus size={16} />
                         </button>
                     )}
-                    {canToggleKind && !editing && (
+                    {hasActions && canToggleKind && !editing && (
                         <button
                             type="button"
-                            className={`tt-axis__icon-btn tt-axis__icon-btn--pause${segment.kind === "pause" ? " tt-axis__icon-btn--pause-on" : ""}`}
+                            className={`tt-axis__icon-btn tt-axis__icon-btn--pause${
+                                segment.kind === "pause" && segment.status === "active"
+                                    ? " tt-axis__icon-btn--pause-on"
+                                    : segment.kind === "pause"
+                                      ? " tt-axis__icon-btn--pause-set"
+                                      : ""
+                            }`}
                             onClick={togglePause}
                             aria-label={segment.kind === "pause" ? "Сделать туром" : "Сделать паузой"}
                             aria-pressed={segment.kind === "pause"}
                         >
-                            <Coffee size={10} />
+                            <Coffee size={16} />
                         </button>
                     )}
-                    {canEdit && !editing && (
-                        <button
-                            type="button"
-                            className="tt-axis__icon-btn tt-duration-edit"
-                            onClick={startDurationEdit}
-                            aria-label={`Изменить длительность: ${label}`}
-                        >
-                            <Pencil size={10} />
-                        </button>
-                    )}
-                    {canDelete && onRemove && segment.pending_index != null && (
+                    {hasActions && canDelete && onRemove && segment.pending_index != null && (
                         <button
                             type="button"
                             className="tt-axis__icon-btn tt-axis__icon-btn--danger"
@@ -249,7 +325,7 @@ export function AxisSegment({
                             }}
                             aria-label={`Удалить ${label}`}
                         >
-                            <Trash2 size={10} />
+                            <Trash2 size={16} />
                         </button>
                     )}
                 </div>

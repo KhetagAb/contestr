@@ -61,7 +61,7 @@ func (s *ContestSyncService) SyncAllContests(ctx context.Context) *SyncResult {
 	}
 
 	contestsBySystem := s.registry.GetAllContests()
-	
+
 	totalContests := 0
 	for _, contestIDs := range contestsBySystem {
 		totalContests += len(contestIDs)
@@ -91,7 +91,19 @@ func (s *ContestSyncService) SyncAllContests(ctx context.Context) *SyncResult {
 		}
 
 		for _, contestID := range contestIDs {
-			contest, err := adapter.FetchContest(ctx, contestID)
+			registered, err := s.registry.GetContest(contestID)
+			if err != nil {
+				errMsg := fmt.Sprintf("failed to load contest settings for %d (%s): %v", contestID, system, err)
+				logger.Errorf(ctx, errMsg)
+				result.ErrorMessages = append(result.ErrorMessages, errMsg)
+				result.FailedCount++
+				continue
+			}
+
+			contest, err := adapter.FetchContest(ctx, contestID, integrations.FetchContestOptions{
+				ScoringSettings: registered.ScoringSettings,
+				TourSettings:    registered.TourSettings,
+			})
 			if err != nil {
 				errMsg := fmt.Sprintf("failed to sync contest %d (%s): %v", contestID, system, err)
 				logger.Errorf(ctx, errMsg)
@@ -116,17 +128,21 @@ func (s *ContestSyncService) SyncAllContests(ctx context.Context) *SyncResult {
 }
 
 func (s *ContestSyncService) SyncContest(ctx context.Context, contestID int) error {
-	system, err := s.registry.GetSystem(contestID)
+	registered, err := s.registry.GetContest(contestID)
 	if err != nil {
 		return err
 	}
+	system := registered.System
 
 	adapter, ok := s.adapters[system]
 	if !ok {
 		return fmt.Errorf("adapter for system %s not found", system)
 	}
 
-	contest, err := adapter.FetchContest(ctx, contestID)
+	contest, err := adapter.FetchContest(ctx, contestID, integrations.FetchContestOptions{
+		ScoringSettings: registered.ScoringSettings,
+		TourSettings:    registered.TourSettings,
+	})
 	if err != nil {
 		return fmt.Errorf("failed to sync contest %d (%s): %w", contestID, system, err)
 	}

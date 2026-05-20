@@ -91,6 +91,14 @@ func (h *Handlers) DeleteAdminContest(ctx echo.Context, contestId int) error {
 	return h.adminContestsHandle.DeleteAdminContest(ctx, contestId)
 }
 
+func (h *Handlers) PatchAdminContestSettings(ctx echo.Context, contestId int) error {
+	return h.adminContestsHandle.PatchAdminContestSettings(ctx, contestId)
+}
+
+func (h *Handlers) PostAdminContestRefresh(ctx echo.Context, contestId int) error {
+	return h.adminContestsHandle.PostAdminContestRefresh(ctx, contestId)
+}
+
 func (h *Handlers) GetAdminContestHandles(ctx echo.Context, contestId int) error {
 	return h.adminContestsHandle.GetAdminContestHandles(ctx, contestId)
 }

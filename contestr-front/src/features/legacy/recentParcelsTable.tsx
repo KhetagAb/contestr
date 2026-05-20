@@ -55,7 +55,7 @@ export const createColumns = (tourDurationMinutes?: number) => {
         }),
 
         columnHelper.accessor("team_number", {
-            header: () => "Команда",
+            header: () => "Группа",
             cell: (info) => {
                 const n = info.getValue();
                 return <span title={`Группа ${n}`}>{formatGroupCode(n)}</span>;

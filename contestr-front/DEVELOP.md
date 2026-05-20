@@ -13,7 +13,7 @@ npm run generate-client
 
 3. Типы и клиент — только из `src/client/`. Ручные правки перезапишутся.
 4. **Зритель:** опции React Query из `@/client/@tanstack/react-query.gen` (например `getRegattaContestStandingsOptions`); обёртка в хуке фичи — `features/contest/hooks/useContestStandings.ts`.
-5. **Админка:** `adminAuthHeaders()` из `@/features/admin/auth/adminAuth`, `fetch` на `/api/admin/...` — см. `features/admin/timetable/useTimetable.ts`.
+5. **Админка:** `adminAuthHeaders()` из `@/features/admin/auth/adminAuth`, `fetch` на `/api/admin/...` — см. `features/admin/timetable/useContestTimetable.ts`.
 
 ## Стили
 

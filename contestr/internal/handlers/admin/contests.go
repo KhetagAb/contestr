@@ -8,6 +8,7 @@ import (
 	"contestr/internal/generated/server"
 	"contestr/internal/repository"
 	"contestr/internal/services/contest_admin"
+	"contestr/pkg/regatta"
 
 	"github.com/labstack/echo/v4"
 )
@@ -35,12 +36,46 @@ func (h *ContestsHandle) PostAdminContest(ctx echo.Context) error {
 		name = *req.Name
 	}
 
-	contest, err := h.admin.RegisterCodeforcesContest(ctx.Request().Context(), req.ContestId, name)
+	contest, err := h.admin.RegisterCodeforcesContest(
+		ctx.Request().Context(),
+		req.ContestId,
+		name,
+		fromAPIScoringSettings(req.ScoringSettings),
+		fromAPITourSettings(req.TourSettings),
+	)
 	if err != nil {
 		return writeContestError(ctx, err)
 	}
 
 	return ctx.JSON(http.StatusCreated, toContestItem(*contest))
+}
+
+func (h *ContestsHandle) PatchAdminContestSettings(ctx echo.Context, contestId int) error {
+	var req server.UpdateContestSettingsRequest
+	if err := ctx.Bind(&req); err != nil {
+		return ctx.JSON(http.StatusBadRequest, server.Error{Message: "invalid request body"})
+	}
+
+	contest, err := h.admin.UpdateContestSettings(
+		ctx.Request().Context(),
+		contestId,
+		fromAPIRequiredScoringSettings(req.ScoringSettings),
+		fromAPIRequiredTourSettings(req.TourSettings),
+	)
+	if err != nil {
+		return writeContestError(ctx, err)
+	}
+
+	return ctx.JSON(http.StatusOK, toContestItem(*contest))
+}
+
+func (h *ContestsHandle) PostAdminContestRefresh(ctx echo.Context, contestId int) error {
+	contest, err := h.admin.RefreshContest(ctx.Request().Context(), contestId)
+	if err != nil {
+		return writeContestError(ctx, err)
+	}
+
+	return ctx.JSON(http.StatusOK, toContestItem(*contest))
 }
 
 func (h *ContestsHandle) DeleteAdminContest(ctx echo.Context, contestId int) error {
@@ -104,10 +139,14 @@ func (h *ContestsHandle) listContests(ctx echo.Context) error {
 }
 
 func toContestItem(c repository.RegisteredContest) server.RegisteredContestItem {
+	settings := toAPIScoringSettings(regatta.NormalizeScoringSettings(c.ScoringSettings))
+	tourSettings := toAPITourSettings(regatta.NormalizeTourSettings(c.TourSettings))
 	return server.RegisteredContestItem{
-		ContestId: c.ContestID,
-		Name:      c.Name,
-		System:    c.System,
+		ContestId:       c.ContestID,
+		Name:            c.Name,
+		System:          c.System,
+		ScoringSettings: settings,
+		TourSettings:    tourSettings,
 	}
 }
 
@@ -122,6 +161,57 @@ func toHandleItems(mappings []repository.CodeforcesHandleMapping) []server.Codef
 	return items
 }
 
+func fromAPIScoringSettings(settings *server.ScoringSettings) regatta.ScoringSettings {
+	if settings == nil {
+		return regatta.DefaultScoringSettings()
+	}
+	return fromAPIRequiredScoringSettings(*settings)
+}
+
+func fromAPIRequiredScoringSettings(settings server.ScoringSettings) regatta.ScoringSettings {
+	return regatta.NormalizeScoringSettings(regatta.ScoringSettings{
+		Version:            regatta.CurrentScoringSettingsVersion,
+		Mode:               string(settings.Mode),
+		BinaryOvertakeMode: string(settings.BinaryOvertakeMode),
+		FullSolveBonus:     settings.FullSolveBonus,
+		SolveInTimeBonus:   settings.SolveInTimeBonus,
+		OvertakeBonus:      settings.OvertakeBonus,
+	})
+}
+
+func fromAPITourSettings(settings *server.TourSettings) regatta.TourSettings {
+	if settings == nil {
+		return regatta.DefaultTourSettings()
+	}
+	return fromAPIRequiredTourSettings(*settings)
+}
+
+func fromAPIRequiredTourSettings(settings server.TourSettings) regatta.TourSettings {
+	return regatta.NormalizeTourSettings(regatta.TourSettings{
+		GroupSize:           settings.GroupSize,
+		ProblemsPerTour:     settings.ProblemsPerTour,
+		GroupShufflePercent: settings.GroupShufflePercent,
+	})
+}
+
+func toAPIScoringSettings(settings regatta.ScoringSettings) server.ScoringSettings {
+	return server.ScoringSettings{
+		Mode:               server.ScoringSettingsMode(settings.Mode),
+		BinaryOvertakeMode: server.ScoringSettingsBinaryOvertakeMode(settings.BinaryOvertakeMode),
+		FullSolveBonus:     settings.FullSolveBonus,
+		SolveInTimeBonus:   settings.SolveInTimeBonus,
+		OvertakeBonus:      settings.OvertakeBonus,
+	}
+}
+
+func toAPITourSettings(settings regatta.TourSettings) server.TourSettings {
+	return server.TourSettings{
+		GroupSize:           settings.GroupSize,
+		ProblemsPerTour:     settings.ProblemsPerTour,
+		GroupShufflePercent: settings.GroupShufflePercent,
+	}
+}
+
 func writeContestError(ctx echo.Context, err error) error {
 	if contest_admin.IsContestAlreadyRegistered(err) {
 		return ctx.JSON(http.StatusConflict, server.Error{Message: "contest already registered"})
@@ -134,7 +224,10 @@ func writeContestError(ctx echo.Context, err error) error {
 	}
 
 	msg := err.Error()
-	if strings.Contains(msg, "codeforces contest not found") {
+	if strings.Contains(msg, "codeforces contest not found") ||
+		strings.Contains(msg, "failed to fetch codeforces contest") ||
+		strings.Contains(msg, "codeforces contest.standings failed") ||
+		strings.Contains(msg, "codeforces contest.status failed") {
 		return ctx.JSON(http.StatusBadGateway, server.Error{Message: msg})
 	}
 	if errors.Is(err, repository.ErrContestAlreadyRegistered) {

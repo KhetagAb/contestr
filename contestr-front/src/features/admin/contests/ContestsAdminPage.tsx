@@ -1,7 +1,6 @@
-import { useEffect, useRef, useState, type FormEvent } from "react";
-import { Check, Plus, Save, Trash2, Upload, X } from "lucide-react";
+import { useEffect, useRef, useState, type FocusEvent, type FormEvent } from "react";
+import { Check, Plus, RefreshCw, Save, Trash2, Upload, X } from "lucide-react";
 import { useAdminContests } from "./useAdminContests";
-import { formatImportSuccessMessage } from "./messages";
 import "./ContestsAdminPage.css";
 
 function PanelStatus({
@@ -76,8 +75,8 @@ export default function ContestsAdminPage() {
         setNewName("");
     }, [ac.selectedContestId]);
 
-    const handleAddParticipant = () => {
-        if (ac.appendDraftRow(newHandle, newName)) {
+    const handleAddParticipant = async () => {
+        if (await ac.addParticipant(newHandle, newName)) {
             setNewHandle("");
             setNewName("");
             requestAnimationFrame(() => {
@@ -86,8 +85,8 @@ export default function ContestsAdminPage() {
         }
     };
 
-    const handleApplyImport = () => {
-        const result = ac.importHandlesFromList(importText);
+    const handleApplyImport = async () => {
+        const result = await ac.importHandlesFromList(importText);
         if (!result.ok) {
             ac.showHandlesMessage(
                 result.detail || result.invalidLines[0] || "Не удалось разобрать список",
@@ -96,13 +95,20 @@ export default function ContestsAdminPage() {
             return;
         }
 
-        let text = formatImportSuccessMessage(result.entriesCount, result.skippedOtherContest);
         if (result.invalidLines.length > 0) {
-            text += `. Ошибок в строках: ${result.invalidLines.length}`;
+            ac.showHandlesMessage(`Ошибок в строках: ${result.invalidLines.length}`, "info");
         }
-        ac.showHandlesMessage(text, "success");
         setImportText("");
         setShowImportList(false);
+    };
+
+    const handleHandlesTableBlur = (event: FocusEvent<HTMLDivElement>) => {
+        const wrap = event.currentTarget;
+        requestAnimationFrame(() => {
+            if (!wrap.contains(document.activeElement)) {
+                void ac.flushHandlesDraft();
+            }
+        });
     };
 
     return (
@@ -138,23 +144,36 @@ export default function ContestsAdminPage() {
                                                 ID {c.contest_id} · {c.system}
                                             </span>
                                         </button>
-                                        <button
-                                            type="button"
-                                            className="cf-icon-btn"
-                                            title="Удалить контест"
-                                            disabled={ac.busy}
-                                            onClick={() => {
-                                                if (
-                                                    window.confirm(
-                                                        `Удалить контест «${c.name}» (ID ${c.contest_id})?`,
-                                                    )
-                                                ) {
-                                                    void ac.deleteContest(c.contest_id);
-                                                }
-                                            }}
-                                        >
-                                            <Trash2 size={18} aria-hidden />
-                                        </button>
+                                        <span className="cf-contest-list__actions">
+                                            <button
+                                                type="button"
+                                                className="cf-icon-btn"
+                                                title="Обновить данные контеста"
+                                                aria-label="Обновить данные контеста"
+                                                disabled={ac.busy}
+                                                onClick={() => void ac.refreshContest(c.contest_id)}
+                                            >
+                                                <RefreshCw size={16} aria-hidden />
+                                            </button>
+                                            <button
+                                                type="button"
+                                                className="cf-icon-btn"
+                                                title="Удалить контест"
+                                                aria-label="Удалить контест"
+                                                disabled={ac.busy}
+                                                onClick={() => {
+                                                    if (
+                                                        window.confirm(
+                                                            `Удалить контест «${c.name}» (ID ${c.contest_id})?`,
+                                                        )
+                                                    ) {
+                                                        void ac.deleteContest(c.contest_id);
+                                                    }
+                                                }}
+                                            >
+                                                <Trash2 size={18} aria-hidden />
+                                            </button>
+                                        </span>
                                     </li>
                                 ))}
                             </ul>
@@ -246,7 +265,151 @@ export default function ContestsAdminPage() {
                                 <p className="cf-admin-hint">Загрузка участников…</p>
                             )}
 
-                            <div className="cf-handles-table-wrap">
+                            <section className="cf-scoring-settings" aria-label="Настройки начисления баллов">
+                                <div className="cf-scoring-settings__row">
+                                    <label>
+                                        <span>Режим</span>
+                                        <select
+                                            value={ac.draftScoringSettings.mode}
+                                            onChange={(e) =>
+                                                ac.updateDraftScoringSetting(
+                                                    "mode",
+                                                    e.target.value === "partial" ? "partial" : "binary",
+                                                )
+                                            }
+                                            disabled={ac.busy}
+                                        >
+                                            <option value="binary">ICPC</option>
+                                            <option value="partial">IOI</option>
+                                        </select>
+                                    </label>
+                                    <label>
+                                        <span>Обгон в режиме ICPC</span>
+                                        <select
+                                            value={ac.draftScoringSettings.binary_overtake_mode}
+                                            onChange={(e) =>
+                                                ac.updateDraftScoringSetting(
+                                                    "binary_overtake_mode",
+                                                    e.target.value === "during_tour_only"
+                                                        ? "during_tour_only"
+                                                        : "retrospective",
+                                                )
+                                            }
+                                            disabled={ac.busy || ac.draftScoringSettings.mode === "partial"}
+                                        >
+                                            <option value="retrospective">Ретроспективно</option>
+                                            <option value="during_tour_only">Только во время тура</option>
+                                        </select>
+                                    </label>
+                                </div>
+                                <div className="cf-scoring-settings__row">
+                                    <label>
+                                        <span>Полное решение</span>
+                                        <input
+                                            type="number"
+                                            min={0}
+                                            value={ac.draftScoringSettings.full_solve_bonus}
+                                            onChange={(e) =>
+                                                ac.updateDraftScoringSetting(
+                                                    "full_solve_bonus",
+                                                    Math.max(0, Number(e.target.value) || 0),
+                                                )
+                                            }
+                                            disabled={ac.busy}
+                                        />
+                                    </label>
+                                    <label>
+                                        <span>Во время тура</span>
+                                        <input
+                                            type="number"
+                                            min={0}
+                                            value={ac.draftScoringSettings.solve_in_time_bonus}
+                                            onChange={(e) =>
+                                                ac.updateDraftScoringSetting(
+                                                    "solve_in_time_bonus",
+                                                    Math.max(0, Number(e.target.value) || 0),
+                                                )
+                                            }
+                                            disabled={ac.busy}
+                                        />
+                                    </label>
+                                    <label>
+                                        <span>Обгон</span>
+                                        <input
+                                            type="number"
+                                            min={0}
+                                            value={ac.draftScoringSettings.overtake_bonus}
+                                            onChange={(e) =>
+                                                ac.updateDraftScoringSetting(
+                                                    "overtake_bonus",
+                                                    Math.max(0, Number(e.target.value) || 0),
+                                                )
+                                            }
+                                            disabled={ac.busy}
+                                        />
+                                    </label>
+                                    <button
+                                        type="button"
+                                        className="cf-handles-save-btn"
+                                        title="Сохранить настройки"
+                                        aria-label="Сохранить настройки"
+                                        onClick={() => void ac.saveContestSettings()}
+                                        disabled={ac.busy || !ac.settingsDirty}
+                                    >
+                                        <Save size={16} aria-hidden />
+                                    </button>
+                                </div>
+                                <div className="cf-scoring-settings__row">
+                                    <label>
+                                        <span>Участников в группе</span>
+                                        <input
+                                            type="number"
+                                            min={1}
+                                            value={ac.draftTourSettings.group_size}
+                                            onChange={(e) =>
+                                                ac.updateDraftTourSetting(
+                                                    "group_size",
+                                                    Math.max(1, Number(e.target.value) || 1),
+                                                )
+                                            }
+                                            disabled={ac.busy}
+                                        />
+                                    </label>
+                                    <label>
+                                        <span>Задач в туре</span>
+                                        <input
+                                            type="number"
+                                            min={1}
+                                            value={ac.draftTourSettings.problems_per_tour}
+                                            onChange={(e) =>
+                                                ac.updateDraftTourSetting(
+                                                    "problems_per_tour",
+                                                    Math.max(1, Number(e.target.value) || 1),
+                                                )
+                                            }
+                                            disabled={ac.busy}
+                                        />
+                                    </label>
+                                    <label>
+                                        <span>Перемешивание групп, %</span>
+                                        <input
+                                            type="number"
+                                            min={0}
+                                            max={100}
+                                            value={ac.draftTourSettings.group_shuffle_percent}
+                                            onChange={(e) =>
+                                                ac.updateDraftTourSetting(
+                                                    "group_shuffle_percent",
+                                                    Math.min(100, Math.max(0, Number(e.target.value) || 0)),
+                                                )
+                                            }
+                                            disabled={ac.busy}
+                                        />
+                                    </label>
+                                </div>
+                            </section>
+
+                            <div className="cf-handles-table-wrap" onBlur={handleHandlesTableBlur}>
                                 <table className="cf-handles-table">
                                     <colgroup>
                                         <col className="cf-handles-table__col-handle" />
@@ -344,14 +507,25 @@ export default function ContestsAdminPage() {
                                                     onKeyDown={(e) => {
                                                         if (e.key === "Enter") {
                                                             e.preventDefault();
-                                                            handleAddParticipant();
+                                                            void handleAddParticipant();
                                                         }
                                                     }}
                                                     disabled={ac.busy}
                                                     aria-label="Имя участника"
                                                 />
                                             </td>
-                                            <td className="cf-handles-table__actions" />
+                                            <td className="cf-handles-table__actions">
+                                                <button
+                                                    type="button"
+                                                    className="cf-icon-btn cf-icon-btn--plain cf-icon-btn--add"
+                                                    title="Добавить участника"
+                                                    aria-label="Добавить участника"
+                                                    disabled={ac.busy || !newHandle.trim()}
+                                                    onClick={() => void handleAddParticipant()}
+                                                >
+                                                    <Plus size={16} aria-hidden />
+                                                </button>
+                                            </td>
                                         </tr>
                                     </tbody>
                                 </table>
@@ -360,7 +534,7 @@ export default function ContestsAdminPage() {
                             {showImportList && (
                                 <div className="cf-import-list">
                                     <p className="cf-admin-hint cf-import-list__hint">
-                                        Вставьте регистрацию участников из codeforces
+                                        Вставьте регистрацию участников из Codeforces
                                     </p>
                                     <textarea
                                         className="cf-import-list__textarea"
@@ -378,7 +552,7 @@ export default function ContestsAdminPage() {
                                             disabled={ac.busy || !importText.trim()}
                                             onClick={handleApplyImport}
                                         >
-                                            Применить к таблице
+                                            Импортировать
                                         </button>
                                         <button
                                             type="button"
@@ -392,8 +566,8 @@ export default function ContestsAdminPage() {
                                 </div>
                             )}
 
-                            <footer className="cf-handles-panel-footer">
-                                {!showImportList && (
+                            {!showImportList && (
+                                <footer className="cf-handles-panel-footer">
                                     <button
                                         type="button"
                                         className="cf-secondary-btn cf-secondary-btn--compact"
@@ -403,18 +577,8 @@ export default function ContestsAdminPage() {
                                         <Upload size={16} aria-hidden />
                                         Импорт
                                     </button>
-                                )}
-                                <button
-                                    type="button"
-                                    className="cf-handles-save-btn"
-                                    title="Сохранить"
-                                    aria-label="Сохранить участников"
-                                    onClick={() => void ac.saveHandles()}
-                                    disabled={ac.busy || !ac.handlesDirty}
-                                >
-                                    <Save size={16} aria-hidden />
-                                </button>
-                            </footer>
+                                </footer>
+                            )}
 
                             <PanelStatus
                                 message={ac.handlesMessage}
