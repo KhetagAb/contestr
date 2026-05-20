@@ -1,0 +1,58 @@
+.table, .table th, .table td{
+    border: .5px solid rgb(255, 255, 255);
+    border-collapse: collapse;
+    width: fit-content;
+    text-align: center;
+}
+
+.tableHeader {
+    background-color: #DCDCDC;
+    height: 35px;
+    user-select: none;
+      -webkit-user-select: none;
+
+}
+
+.canSort {
+    cursor: pointer;
+}
+
+.headerColumn {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 0 10px;
+    gap: 10px;
+}
+
+.select-page {
+    border-radius: 40px;
+}
+
+.teamCell{
+    height: 100%;
+}
+
+.taskTime {
+    font-size: 0.5em;
+}
+
+.newRow {
+    background-color: #d4f7d4;
+    animation: fadeIn 2s ease;
+}
+
+@keyframes fadeIn {
+    0% {
+        background-color: #d4f7d4;
+        opacity: 0;
+    }
+    50% {
+        background-color: #d4f7d4;
+        opacity: 0.5;
+    }
+    100% {
+        background-color: #d4f7d4;
+        opacity: 1;
+    }
+}

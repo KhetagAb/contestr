@@ -1,54 +1,111 @@
-# React + TypeScript + Vite
+# contestr-front
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React-приложение регаты: таблица результатов для зрителей и админка (расписание туров, контесты Codeforces).
 
-Currently, two official plugins are available:
+**Для разработчиков:** практические шаги и примеры — [DEVELOP.md](DEVELOP.md).
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+## Быстрый старт
 
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default tseslint.config({
-  extends: [
-    // Remove ...tseslint.configs.recommended and replace with this
-    ...tseslint.configs.recommendedTypeChecked,
-    // Alternatively, use this for stricter rules
-    ...tseslint.configs.strictTypeChecked,
-    // Optionally, add this for stylistic rules
-    ...tseslint.configs.stylisticTypeChecked,
-  ],
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
+```bash
+cd contestr-front
+npm install
+npm run dev          # http://localhost:5173, прокси /api → бэкенд
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Бэкенд по умолчанию: `http://127.0.0.1:8080`. Другой хост:
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
-
-export default tseslint.config({
-  plugins: {
-    // Add the react-x and react-dom plugins
-    'react-x': reactX,
-    'react-dom': reactDom,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended typescript rules
-    ...reactX.configs['recommended-typescript'].rules,
-    ...reactDom.configs.recommended.rules,
-  },
-})
+```bash
+VITE_API_PROXY_TARGET=http://host:8080 npm run dev
 ```
+
+Перед `dev` и `build` автоматически запускается `generate-client` (см. `predev` в `package.json`).
+
+```bash
+npm run build        # generate-client + tsc + vite build
+npm run lint
+npm run preview      # просмотр production-сборки
+```
+
+---
+
+## Структура `src/`
+
+```
+src/
+  main.tsx                 # тонкая точка входа → app/App
+  app/                     # оболочка приложения
+    App.tsx                # роутинг по pathname (/admin vs зритель)
+    providers/             # QueryClient, AdminSessionContext
+    styles/                # index.css, App.css (глобальные)
+  client/                  # ⚠️ только генерация OpenAPI, не править вручную
+  features/
+    contest/               # зрительский UI
+      pages/               # страницы целиком
+      components/          # виджеты по доменам (event-log/, sidebar/)
+      hooks/               # данные и логика фичи contest
+    admin/                 # админка
+      pages/               # AdminLogin, AdminConsole
+      auth/                # токен, заголовки
+      timetable/           # расписание туров
+      contests/            # контесты и участники
+    legacy/                # архив, не подключать к app
+  shared/                  # переиспользуемое между фичами
+    hooks/
+    utils/
+    icons/
+  assets/                  # SVG/PNG для import (Vite)
+    icons/
+    images/
+```
+
+Отдельно: [`match-integration/`](match-integration/) — другой бандл и свой OpenAPI.
+
+---
+
+## Как устроен код
+
+### Куда класть новое
+
+| Задача | Куда |
+|--------|------|
+| Страница зрителя | `features/contest/pages/` — суффикс `Page` |
+| Страница / раздел админки | `features/admin/pages/` или `timetable/`, `contests/` |
+| UI-компонент фичи | `features/<feature>/components/<домен>/` |
+| Логика и запросы фичи | `features/<feature>/hooks/` |
+| Общая утилита / хук | `shared/utils/`, `shared/hooks/` |
+| Иконка-компонент | `shared/icons/` |
+| Картинка | `assets/icons/`, `assets/images/` |
+| Провайдеры, глобальные стили | `app/providers/`, `app/styles/` |
+| Старый / черновой код | `features/legacy/` |
+
+### Нейминг
+
+| Сущность | Стиль | Пример |
+|----------|--------|--------|
+| Папки | `kebab-case` | `event-log/` |
+| Компоненты | `PascalCase`, файл = имя | `Sidebar.tsx` |
+| Страницы | `*Page.tsx` | `ContestStandingsPage.tsx` |
+| Хуки | `use` + домен | `useContestStandings` |
+| CSS modules | рядом с компонентом | `event-log.module.css` |
+
+Импорты: алиас `@/` → `src/` (`@/client`, `@/features/...`, `@/shared/...`).
+
+---
+
+## Точки входа
+
+| Файл | Назначение |
+|------|------------|
+| [`src/main.tsx`](src/main.tsx) | `createRoot`, глобальный CSS |
+| [`src/app/App.tsx`](src/app/App.tsx) | провайдеры, `Sidebar`, страница по URL |
+| [`src/features/contest/pages/ContestStandingsPage.tsx`](src/features/contest/pages/ContestStandingsPage.tsx) | таблица + история |
+| [`src/features/admin/pages/AdminLogin.tsx`](src/features/admin/pages/AdminLogin.tsx) | `/admin` |
+
+URL зрителя: `/?contestId=<id>` (контест в сайдбаре).
+
+---
+
+## Связанные репозитории
+
+- OpenAPI и бэкенд: [`../contestr/`](../contestr/)
+- Docker/nginx: корень монорепо [`../`](../)

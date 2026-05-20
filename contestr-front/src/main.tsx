@@ -1,18 +1,13 @@
-import {createRoot} from "react-dom/client";
-import App from "./App";
-// import './cont_compon/Test.css';
-
+import { createRoot } from "react-dom/client";
+import "@/app/styles/index.css";
+import App from "@/app/App";
 
 const container = document.getElementById("root");
 
 const root = createRoot(container!);
 
 root.render(
-    <>
-        <div id="MyDiv">
-            <App/>
-        </div>
-
-    </>
-)
-;
+    <div id="MyDiv">
+        <App />
+    </div>
+);

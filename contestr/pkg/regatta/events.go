@@ -10,6 +10,6 @@ type RegattaEvent struct {
 	ProblemCode   string `json:"problem_code"`
 	TeamNumber    int    `json:"team_number,omitempty"`
 	Points        int    `json:"points"`
-	SolvedInTime  bool   `json:"solved_in_time,omitempty"`
-	FirstInGroup  bool   `json:"first_in_group,omitempty"`
+	SolvedInTime  bool `json:"solved_in_time"`
+	FirstInGroup  bool `json:"first_in_group,omitempty"`
 }
