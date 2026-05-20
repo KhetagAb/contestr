@@ -1,6 +1,9 @@
 package regatta
 
-const EventTypeProblemSolved = "problem_solved"
+const (
+	EventTypeProblemSolved   = "problem_solved"
+	EventTypeProblemOvertake = "problem_overtake"
+)
 
 type RegattaEvent struct {
 	Type          string `json:"type"`

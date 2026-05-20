@@ -9,8 +9,10 @@ type Contest struct {
 	StartTime   time.Time `bson:"start_time"`
 	LastUpdated time.Time `bson:"last_updated"`
 
-	Participants []ContestParticipant `bson:"participants"`
-	Submissions  []ContestSubmission  `bson:"submissions"`
+	ScoringSettings ScoringSettings      `bson:"scoring_settings"`
+	TourSettings    TourSettings         `bson:"tour_settings"`
+	Participants    []ContestParticipant `bson:"participants"`
+	Submissions     []ContestSubmission  `bson:"submissions"`
 }
 
 type ContestParticipant struct {
@@ -24,5 +26,6 @@ type ContestSubmission struct {
 	ProblemID         int    `bson:"problem_id"`
 	Time              int    `bson:"time"`
 	Status            string `bson:"status"`
+	Points            int    `bson:"points"`
 	OriginalProblemID string `bson:"original_problem_id"`
 }

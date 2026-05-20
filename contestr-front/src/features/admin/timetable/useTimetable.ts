@@ -26,7 +26,7 @@ function normalizeSlots(slots: ScheduleSlot[]): ScheduleSlot[] {
 }
 
 export function useTimetable() {
-    const { contests } = useContests();
+    const { contests, refetch: refetchContests } = useContests();
     const [contestId, setContestId] = useState<number>(0);
     const [view, setView] = useState<TimetableView | null>(null);
     const [draftPending, setDraftPending] = useState<ScheduleSlot[]>([]);
@@ -239,6 +239,43 @@ export function useTimetable() {
         return true;
     }, [applyView, contestId, draftPending, view?.auto_start_enabled]);
 
+    const updateActiveDuration = useCallback(
+        async (duration: number) => {
+            if (contestId <= 0) {
+                return false;
+            }
+
+            setActionLoading(true);
+            setMessage("");
+
+            const response = await fetch(
+                `/api/admin/timetables/${contestId}/active-tour/duration`,
+                {
+                    method: "PATCH",
+                    headers: {
+                        "Content-Type": "application/json",
+                        ...adminAuthHeaders(),
+                    },
+                    body: JSON.stringify({ duration }),
+                },
+            );
+
+            setActionLoading(false);
+
+            if (!response.ok) {
+                setMessageKind("error");
+                setMessage(await readApiError(response));
+                return false;
+            }
+
+            const body = (await response.json()) as TimetableView;
+            applyView(body);
+            setMessage("");
+            return true;
+        },
+        [applyView, contestId],
+    );
+
     const setAutoStartEnabled = useCallback(
         async (enabled: boolean) => {
             if (!hasSchedule) {
@@ -301,6 +338,34 @@ export function useTimetable() {
         return true;
     }, [applyView, contestId]);
 
+    const refreshContest = useCallback(async () => {
+        if (contestId <= 0) {
+            return false;
+        }
+
+        setActionLoading(true);
+        setMessage("");
+
+        const response = await fetch(`/api/admin/contests/${contestId}/refresh`, {
+            method: "POST",
+            headers: adminAuthHeaders(),
+        });
+
+        setActionLoading(false);
+
+        if (!response.ok) {
+            setMessageKind("error");
+            setMessage(await readApiError(response));
+            return false;
+        }
+
+        await refetchContests();
+        await loadTimetable(true);
+        setMessageKind("success");
+        setMessage("Данные контеста обновлены");
+        return true;
+    }, [contestId, loadTimetable, refetchContests]);
+
     const busy = loadState === "loading" || actionLoading;
 
     return {
@@ -325,7 +390,9 @@ export function useTimetable() {
         applyDurationTemplate,
         revertChanges,
         saveTimetable,
+        updateActiveDuration,
         setAutoStartEnabled,
         advance,
+        refreshContest,
     };
 }

@@ -12,6 +12,7 @@ export function EventLogLine({ event }: Props) {
     const time = formatContestTime(event.time_sec);
     const teamNumber = event.team_number ?? 0;
     const groupCode = formatGroupCode(teamNumber);
+    const isOvertakeEvent = event.type === "problem_overtake";
 
     return (
         <div className={styles.eventLogLine}>
@@ -28,11 +29,22 @@ export function EventLogLine({ event }: Props) {
                 </span>
             </span>
             <span className={styles.eventLogAction}>
-                решил задачу{" "}
-                <span className={styles.eventChip}>{event.problem_code}</span>
+                {isOvertakeEvent ? (
+                    <>
+                        получил бонус за обгон в задаче{" "}
+                        <span className={styles.eventChip}>{event.problem_code}</span>
+                    </>
+                ) : (
+                    <>
+                        решил задачу{" "}
+                        <span className={styles.eventChip}>{event.problem_code}</span>
+                    </>
+                )}
             </span>
             <span className={styles.eventLogBadgesCell}>
-                <EventBonusBadges first_in_group={event.first_in_group} />
+                {!isOvertakeEvent && (
+                    <EventBonusBadges first_in_group={event.first_in_group} />
+                )}
             </span>
             <span className={styles.eventLogPoints}>
                 <span className={styles.eventChip}>+{event.points}</span>

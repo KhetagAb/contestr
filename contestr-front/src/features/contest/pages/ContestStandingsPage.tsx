@@ -25,7 +25,7 @@ const columns = [
             const n = info.getValue();
             return <span title={`Группа ${n}`}>{formatGroupCode(n)}</span>;
         },
-        header: () => "Команда",
+        header: () => "Группа",
     }),
     columnHelper.accessor("display_name", {
         cell: (info) => info.getValue(),

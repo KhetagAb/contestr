@@ -1,7 +1,10 @@
 import { Coffee, Pencil, Plus, Trash2 } from "lucide-react";
 import { useEffect, useRef, useState, type CSSProperties, type MouseEvent } from "react";
 import type { TimelineSegment } from "@/client/types.gen";
-import { confirmEditPendingDuration } from "./ConfirmDialogs";
+import {
+    confirmEditActiveDuration,
+    confirmEditPendingDuration,
+} from "./ConfirmDialogs";
 import { TourStatusIcon } from "./TourStatusIcon";
 import { resolveSegmentVisualState, visualStateClass } from "./tourVisualState";
 import {
@@ -13,13 +16,14 @@ import {
 } from "./time";
 
 const TITLE_FULL_MIN_PX = 58;
-const DURATION_COMPACT_MAX_PX = 64;
+const DURATION_COMPACT_MAX_PX = 84;
 
 type Props = {
     segment: TimelineSegment;
     isLast?: boolean;
     busy?: boolean;
     onDurationChange?: (pendingIndex: number, duration: number) => void;
+    onActiveDurationChange?: (duration: number) => void | Promise<unknown>;
     onKindChange?: (pendingIndex: number, kind: "tour" | "pause") => void;
     onRemove?: (pendingIndex: number) => void;
     onAdd?: () => void;
@@ -35,6 +39,7 @@ export function AxisSegment({
     isLast = false,
     busy = false,
     onDurationChange,
+    onActiveDurationChange,
     onKindChange,
     onRemove,
     onAdd,
@@ -71,9 +76,15 @@ export function AxisSegment({
     const label = segmentLabel(segment);
     const narrowTitle = blockWidthPx > 0 && blockWidthPx < TITLE_FULL_MIN_PX;
     const compact = blockWidthPx > 0 && blockWidthPx < DURATION_COMPACT_MAX_PX;
-    const canEdit = segment.editable && segment.pending_index != null;
-    const canToggleKind = canEdit && Boolean(onKindChange);
-    const canDelete = canEdit;
+    const canEditPending = Boolean(
+        segment.editable && segment.pending_index != null && onDurationChange,
+    );
+    const canEditActive = Boolean(
+        segment.editable && segment.sequence != null && onActiveDurationChange,
+    );
+    const canEdit = canEditPending || canEditActive;
+    const canToggleKind = canEditPending && Boolean(onKindChange);
+    const canDelete = canEditPending;
     const actionSlots =
         (isLast && onAdd ? 1 : 0) +
         (canToggleKind ? 1 : 0) +
@@ -107,13 +118,18 @@ export function AxisSegment({
             setEditing(false);
             return;
         }
-        if (!confirmEditPendingDuration()) {
+        const confirmed = canEditActive
+            ? confirmEditActiveDuration()
+            : confirmEditPendingDuration();
+        if (!confirmed) {
             setDraft(formatDurationInputValue(segment.duration));
             setEditing(false);
             return;
         }
         if (segment.pending_index != null && onDurationChange) {
             onDurationChange(segment.pending_index, seconds);
+        } else if (segment.sequence != null && onActiveDurationChange) {
+            void onActiveDurationChange(seconds);
         }
         setEditing(false);
     };
@@ -157,7 +173,7 @@ export function AxisSegment({
                     >
                         {segment.kind === "pause" ? (
                             <Coffee
-                                size={compact ? 10 : 12}
+                                size={compact ? 12 : 16}
                                 className={`tt-axis__pause-icon${segment.status === "active" ? " tt-axis__pause-icon--active" : ""}`}
                                 aria-hidden
                             />
@@ -215,7 +231,7 @@ export function AxisSegment({
                             }}
                             aria-label="Добавить слот"
                         >
-                            <Plus size={10} />
+                            <Plus size={16} />
                         </button>
                     )}
                     {canToggleKind && !editing && (
@@ -226,7 +242,7 @@ export function AxisSegment({
                             aria-label={segment.kind === "pause" ? "Сделать туром" : "Сделать паузой"}
                             aria-pressed={segment.kind === "pause"}
                         >
-                            <Coffee size={10} />
+                            <Coffee size={16} />
                         </button>
                     )}
                     {canEdit && !editing && (
@@ -236,7 +252,7 @@ export function AxisSegment({
                             onClick={startDurationEdit}
                             aria-label={`Изменить длительность: ${label}`}
                         >
-                            <Pencil size={10} />
+                            <Pencil size={16} />
                         </button>
                     )}
                     {canDelete && onRemove && segment.pending_index != null && (
@@ -249,7 +265,7 @@ export function AxisSegment({
                             }}
                             aria-label={`Удалить ${label}`}
                         >
-                            <Trash2 size={10} />
+                            <Trash2 size={16} />
                         </button>
                     )}
                 </div>

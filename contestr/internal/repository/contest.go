@@ -48,6 +48,8 @@ func (r *MongoContestRepository) GetByContestID(ctx context.Context, contestID i
 	if err != nil {
 		return nil, err
 	}
+	contest.ScoringSettings = regatta.NormalizeScoringSettings(contest.ScoringSettings)
+	contest.TourSettings = regatta.NormalizeTourSettings(contest.TourSettings)
 	return &contest, nil
 }
 

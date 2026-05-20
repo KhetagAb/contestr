@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"contestr/internal/configs"
+	"contestr/pkg/regatta"
 
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -13,16 +14,19 @@ import (
 )
 
 type RegisteredContest struct {
-	ContestID int       `bson:"contest_id"`
-	System    string    `bson:"system"`
-	Name      string    `bson:"name"`
-	CreatedAt time.Time `bson:"created_at"`
+	ContestID       int                     `bson:"contest_id"`
+	System          string                  `bson:"system"`
+	Name            string                  `bson:"name"`
+	CreatedAt       time.Time               `bson:"created_at"`
+	ScoringSettings regatta.ScoringSettings `bson:"scoring_settings"`
+	TourSettings    regatta.TourSettings    `bson:"tour_settings"`
 }
 
 type RegisteredContestRepository interface {
 	List(ctx context.Context) ([]RegisteredContest, error)
 	GetByContestID(ctx context.Context, contestID int) (*RegisteredContest, error)
 	Create(ctx context.Context, contest RegisteredContest) error
+	UpdateContestSettings(ctx context.Context, contestID int, scoring regatta.ScoringSettings, tour regatta.TourSettings) error
 	Delete(ctx context.Context, contestID int) error
 }
 
@@ -61,6 +65,10 @@ func (r *MongoRegisteredContestRepository) List(ctx context.Context) ([]Register
 	if contests == nil {
 		return []RegisteredContest{}, nil
 	}
+	for i := range contests {
+		contests[i].ScoringSettings = regatta.NormalizeScoringSettings(contests[i].ScoringSettings)
+		contests[i].TourSettings = regatta.NormalizeTourSettings(contests[i].TourSettings)
+	}
 	return contests, nil
 }
 
@@ -73,15 +81,39 @@ func (r *MongoRegisteredContestRepository) GetByContestID(ctx context.Context, c
 		}
 		return nil, err
 	}
+	contest.ScoringSettings = regatta.NormalizeScoringSettings(contest.ScoringSettings)
+	contest.TourSettings = regatta.NormalizeTourSettings(contest.TourSettings)
 	return &contest, nil
 }
 
 func (r *MongoRegisteredContestRepository) Create(ctx context.Context, contest RegisteredContest) error {
+	contest.ScoringSettings = regatta.NormalizeScoringSettings(contest.ScoringSettings)
+	contest.TourSettings = regatta.NormalizeTourSettings(contest.TourSettings)
 	_, err := r.collection.InsertOne(ctx, contest)
 	if mongo.IsDuplicateKeyError(err) {
 		return ErrContestAlreadyRegistered
 	}
 	return err
+}
+
+func (r *MongoRegisteredContestRepository) UpdateContestSettings(ctx context.Context, contestID int, scoring regatta.ScoringSettings, tour regatta.TourSettings) error {
+	scoring = regatta.NormalizeScoringSettings(scoring)
+	tour = regatta.NormalizeTourSettings(tour)
+	res, err := r.collection.UpdateOne(
+		ctx,
+		bson.M{"contest_id": contestID},
+		bson.M{"$set": bson.M{
+			"scoring_settings": scoring,
+			"tour_settings":    tour,
+		}},
+	)
+	if err != nil {
+		return err
+	}
+	if res.MatchedCount == 0 {
+		return ErrContestNotRegistered
+	}
+	return nil
 }
 
 func (r *MongoRegisteredContestRepository) Delete(ctx context.Context, contestID int) error {

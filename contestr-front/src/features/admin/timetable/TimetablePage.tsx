@@ -42,6 +42,8 @@ export default function TimetablePage() {
                 contestId={tt.contestId}
                 onContestChange={handleContestChange}
                 view={tt.view}
+                onRefresh={() => void tt.refreshContest()}
+                busy={tt.busy}
             />
 
             {showBanner && (
@@ -76,6 +78,7 @@ export default function TimetablePage() {
                         dirty={tt.dirty}
                         busy={tt.busy}
                         onPendingDurationChange={tt.setPendingDuration}
+                        onActiveDurationChange={tt.updateActiveDuration}
                         onPendingKindChange={tt.setPendingKind}
                         onPendingRemove={tt.removeSlot}
                         onAddSlot={tt.addSlot}
@@ -108,6 +111,11 @@ export default function TimetablePage() {
             {tt.message && tt.messageKind === "error" && (
                 <p className="admin-login-message admin-login-message--error tt-message" role="alert">
                     Ошибка: {tt.message}
+                </p>
+            )}
+            {tt.message && tt.messageKind === "success" && (
+                <p className="tt-message tt-message--success" role="status">
+                    {tt.message}
                 </p>
             )}
         </section>

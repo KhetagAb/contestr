@@ -13,15 +13,15 @@ import (
 )
 
 var (
-	ErrTimetableNotFound           = errors.New("timetable not found")
-	ErrTimetableAlreadyExists      = errors.New("timetable already exists")
-	ErrContestNotFound             = errors.New("contest not found")
-	ErrTourNotFound                = errors.New("tour not found in timetable")
-	ErrInvalidTimetable            = errors.New("invalid timetable")
-	ErrManualStartWithAutostart    = errors.New("manual start disabled while auto start is enabled")
-	ErrNothingToAdvance            = errors.New("nothing to advance")
-	ErrContestNotStarted           = errors.New("contest has not started yet")
-	ErrNoActiveTour                = errors.New("no active tour or pause")
+	ErrTimetableNotFound        = errors.New("timetable not found")
+	ErrTimetableAlreadyExists   = errors.New("timetable already exists")
+	ErrContestNotFound          = errors.New("contest not found")
+	ErrTourNotFound             = errors.New("tour not found in timetable")
+	ErrInvalidTimetable         = errors.New("invalid timetable")
+	ErrManualStartWithAutostart = errors.New("manual start disabled while auto start is enabled")
+	ErrNothingToAdvance         = errors.New("nothing to advance")
+	ErrContestNotStarted        = errors.New("contest has not started yet")
+	ErrNoActiveTour             = errors.New("no active tour or pause")
 )
 
 type TimetableRepository interface {
@@ -316,21 +316,17 @@ func (s *Regatta) UpdateActiveTourDuration(
 	}
 
 	elapsed := int(time.Now().Sub(contest.StartTime).Seconds())
-	if elapsed < 0 {
-		return nil, ErrContestNotStarted
-	}
 
 	tours, err := s.loadToursSorted(ctx, contestID)
 	if err != nil {
 		return nil, err
 	}
 
-	activeSeq, ok := regatta.ActiveSequence(tours, elapsed)
+	sequence, elapsedIn, ok := editableFactualSegment(tours, elapsed)
 	if !ok {
 		return nil, ErrNoActiveTour
 	}
 
-	elapsedIn := regatta.ElapsedInSegment(tours, activeSeq, elapsed)
 	if durationSeconds < elapsedIn {
 		return nil, fmt.Errorf(
 			"%w: duration cannot be less than elapsed time in segment (%ds)",
@@ -339,7 +335,7 @@ func (s *Regatta) UpdateActiveTourDuration(
 		)
 	}
 
-	if err := s.tourRepository.UpdateDuration(ctx, contestID, activeSeq, durationSeconds); err != nil {
+	if err := s.tourRepository.UpdateDuration(ctx, contestID, sequence, durationSeconds); err != nil {
 		return nil, fmt.Errorf("failed to update tour duration: %w", err)
 	}
 
@@ -355,6 +351,22 @@ func (s *Regatta) UpdateActiveTourDuration(
 	}
 
 	return s.buildTimetableView(ctx, contestID, timetable, opts)
+}
+
+func editableFactualSegment(tours []regatta.Tour, elapsed int) (sequence int, elapsedIn int, ok bool) {
+	if elapsed < 0 {
+		sorted := regatta.SortToursBySequence(tours)
+		if len(sorted) == 0 {
+			return 0, 0, false
+		}
+		return sorted[0].Sequence, 0, true
+	}
+
+	activeSeq, ok := regatta.ActiveSequence(tours, elapsed)
+	if !ok {
+		return 0, 0, false
+	}
+	return activeSeq, regatta.ElapsedInSegment(tours, activeSeq, elapsed), true
 }
 
 func validatePendingSlots(slots []regatta.ScheduleSlot) error {

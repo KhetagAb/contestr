@@ -2,6 +2,7 @@ const ERROR_TRANSLATIONS: Record<string, string> = {
     "bad request": "Некорректный запрос.",
     conflict: "Конфликт состояния.",
     "contest not found": "Контест не найден. Сначала дождитесь синхронизации контеста.",
+    "contest has no participants": "В контесте нет участников.",
     "contest already registered": "Этот контест уже зарегистрирован.",
     "contest not registered": "Контест не зарегистрирован.",
     "handle mapping not found": "Маппинг handle не найден.",
@@ -69,6 +70,9 @@ export function translateAdminMessage(message?: string) {
     }
     if (key.startsWith("failed to get contest")) {
         return "Контест не найден. Сначала дождитесь синхронизации контеста.";
+    }
+    if (key.includes("codeforces contest") || key.includes("error getting contest standings")) {
+        return "Не удалось получить данные контеста из Codeforces. Проверьте ID контеста, доступ менеджера и API-ключи.";
     }
     if (key.startsWith("failed to ")) {
         return "Не удалось выполнить действие.";

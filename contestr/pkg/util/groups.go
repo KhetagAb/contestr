@@ -9,6 +9,10 @@ const (
 )
 
 func FormGroups(ratedParticipants []string, groupSize int) [][]string {
+	return FormGroupsWithSwapProbability(ratedParticipants, groupSize, SwapBorderProbability)
+}
+
+func FormGroupsWithSwapProbability(ratedParticipants []string, groupSize int, swapBorderProbability float64) [][]string {
 	n := len(ratedParticipants)
 	if n == 0 {
 		return [][]string{}
@@ -16,11 +20,17 @@ func FormGroups(ratedParticipants []string, groupSize int) [][]string {
 	if groupSize <= 0 {
 		groupSize = 1
 	}
+	if swapBorderProbability < 0 {
+		swapBorderProbability = 0
+	}
+	if swapBorderProbability > 1 {
+		swapBorderProbability = 1
+	}
 
 	participants := append([]string(nil), ratedParticipants...)
 
 	for i := 0; i < n-1; i++ {
-		if rand.Float64() <= SwapBorderProbability {
+		if rand.Float64() <= swapBorderProbability {
 			participants[i], participants[i+1] = participants[i+1], participants[i]
 		}
 	}

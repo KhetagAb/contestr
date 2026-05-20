@@ -11,6 +11,7 @@ type Props = {
     dirty?: boolean;
     busy?: boolean;
     onPendingDurationChange: (pendingIndex: number, duration: number) => void;
+    onActiveDurationChange: (duration: number) => void | Promise<unknown>;
     onPendingKindChange: (pendingIndex: number, kind: "tour" | "pause") => void;
     onPendingRemove: (pendingIndex: number) => void;
     onAddSlot: () => void;
@@ -124,6 +125,7 @@ export function ScheduleAxis({
     dirty = false,
     busy = false,
     onPendingDurationChange,
+    onActiveDurationChange,
     onPendingKindChange,
     onPendingRemove,
     onAddSlot,
@@ -202,10 +204,25 @@ export function ScheduleAxis({
                             isLast={isLast}
                             busy={busy}
                             onDurationChange={
-                                segment.editable ? onPendingDurationChange : undefined
+                                segment.editable && segment.pending_index != null
+                                    ? onPendingDurationChange
+                                    : undefined
                             }
-                            onKindChange={segment.editable ? onPendingKindChange : undefined}
-                            onRemove={segment.editable ? onPendingRemove : undefined}
+                            onActiveDurationChange={
+                                segment.editable && segment.sequence != null
+                                    ? onActiveDurationChange
+                                    : undefined
+                            }
+                            onKindChange={
+                                segment.editable && segment.pending_index != null
+                                    ? onPendingKindChange
+                                    : undefined
+                            }
+                            onRemove={
+                                segment.editable && segment.pending_index != null
+                                    ? onPendingRemove
+                                    : undefined
+                            }
                             onAdd={isLast ? onAddSlot : undefined}
                             contestStartTime={view?.contest_start_time}
                             progressFill={isActive ? active.fill : undefined}

@@ -4,18 +4,23 @@ import (
 	"contestr/pkg/logger"
 	"contestr/pkg/regatta"
 	"context"
+	"fmt"
 	"slices"
+	"strings"
 )
 
 const (
-	OvertakePoints    = 5
-	SolvePoints       = 5
-	SolveInTimePoints = 5
+	OvertakePoints    = regatta.DefaultOvertakeBonus
+	SolvePoints       = regatta.DefaultFullSolveBonus
+	SolveInTimePoints = regatta.DefaultSolveInTimeBonus
 )
 
 const (
-	SubmissionStatusOK string = "OK"
+	SubmissionStatusOK      string = "OK"
+	SubmissionStatusPartial string = "PARTIAL"
 )
+
+const contestElapsedUnknown = -1
 
 type Problem = int
 
@@ -23,15 +28,32 @@ type Participant = string
 
 type SubmissionTime = int
 
-type ContestResult = map[Problem]SubmissionTime
+type ScoredSubmission struct {
+	Time   SubmissionTime
+	Points int
+	Status string
+}
+
+type ProblemState struct {
+	BestPoints    int
+	BestTime      SubmissionTime
+	HasBest       bool
+	FullSolveTime SubmissionTime
+	HasFullSolve  bool
+	Submissions   []ScoredSubmission
+}
+
+type ContestResult = map[Problem]ProblemState
 
 type Group = []Participant
 
 type TourResult struct {
 	regatta.Tour
-	SegmentStart    int
-	Results         map[Participant]ContestResult `json:"-"`
-	ProblemsMapping map[Problem]string            `json:"-"`
+	SegmentStart          int
+	ContestElapsedSeconds int
+	ScoringSettings       regatta.ScoringSettings
+	Results               map[Participant]ContestResult `json:"-"`
+	ProblemsMapping       map[Problem]string            `json:"-"`
 }
 
 type ProblemResult struct {
@@ -56,40 +78,172 @@ type eventMeta struct {
 }
 
 func isSolvedInTime(segmentStart int, duration int, solveTime int) bool {
-	return solveTime <= segmentStart+duration
+	return solveTime >= segmentStart && solveTime <= segmentStart+duration
 }
 
-func overtakeCount(t *TourResult, participant Participant, problem Problem, solveTime int) int {
+func tourEnd(t *TourResult) int {
+	return t.SegmentStart + t.DurationInSeconds
+}
+
+func tourEnded(t *TourResult) bool {
+	return t.ContestElapsedSeconds == contestElapsedUnknown || t.ContestElapsedSeconds >= tourEnd(t)
+}
+
+func problemState(t *TourResult, participant Participant, problem Problem) (ProblemState, bool) {
+	participantResults := t.Results[participant]
+	if participantResults == nil {
+		return ProblemState{}, false
+	}
+	state, ok := participantResults[problem]
+	return state, ok
+}
+
+func pointsAtTime(state ProblemState, deadline int) int {
+	points, _, _ := bestSubmissionAtTime(state, deadline)
+	return points
+}
+
+func bestSubmissionAtTime(state ProblemState, deadline int) (int, SubmissionTime, bool) {
+	bestPoints := 0
+	bestTime := 0
+	hasBest := false
+	for _, sub := range state.Submissions {
+		if sub.Time > deadline || sub.Points <= 0 {
+			continue
+		}
+		if !hasBest || sub.Points > bestPoints || (sub.Points == bestPoints && sub.Time < bestTime) {
+			bestPoints = sub.Points
+			bestTime = sub.Time
+			hasBest = true
+		}
+	}
+	return bestPoints, bestTime, hasBest
+}
+
+func binaryOvertakeWinner(t *TourResult, participant Participant, problem Problem) bool {
+	state, ok := problemState(t, participant, problem)
+	if !ok || !state.HasFullSolve {
+		return false
+	}
+	if t.ScoringSettings.BinaryOvertakeMode == regatta.BinaryOvertakeModeDuringTour &&
+		!isSolvedInTime(t.SegmentStart, t.DurationInSeconds, state.FullSolveTime) {
+		return false
+	}
+
 	group := t.Groups[participant]
+	if len(group) <= 1 {
+		return false
+	}
+
 	count := 0
 	for _, opponent := range group {
 		if participant == opponent {
 			continue
 		}
-		opponentResults := t.Results[opponent]
-		opponentSolveTime, opponentSolved := opponentResults[problem]
-		if !opponentSolved || solveTime < opponentSolveTime {
+		opponentState, opponentSolved := problemState(t, opponent, problem)
+		if !opponentSolved || !opponentState.HasFullSolve || state.FullSolveTime < opponentState.FullSolveTime {
 			count++
 		}
 	}
-	return count
+	return count == len(group)-1
 }
 
-func isFirstInGroupRetrospective(t *TourResult, participant Participant, problem Problem, solveTime int) bool {
-	group := t.Groups[participant]
+func partialFullSolveWinner(t *TourResult, group Group, problem Problem) (Participant, bool, bool) {
+	bestTime := 0
+	var winners []Participant
+
+	for _, participant := range group {
+		state, ok := problemState(t, participant, problem)
+		if !ok || !state.HasFullSolve || !isSolvedInTime(t.SegmentStart, t.DurationInSeconds, state.FullSolveTime) {
+			continue
+		}
+		if len(winners) == 0 || state.FullSolveTime < bestTime {
+			bestTime = state.FullSolveTime
+			winners = []Participant{participant}
+			continue
+		}
+		if state.FullSolveTime == bestTime {
+			winners = append(winners, participant)
+		}
+	}
+
+	if len(winners) == 1 {
+		return winners[0], true, false
+	}
+	return "", false, len(winners) > 1
+}
+
+func partialTourEndWinner(t *TourResult, group Group, problem Problem) (Participant, bool) {
+	if !tourEnded(t) {
+		return "", false
+	}
+
+	end := tourEnd(t)
+	bestPoints := 0
+	var winners []Participant
+
+	for _, participant := range group {
+		state, ok := problemState(t, participant, problem)
+		if !ok {
+			continue
+		}
+		points := pointsAtTime(state, end)
+		if points <= 0 {
+			continue
+		}
+		if points > bestPoints {
+			bestPoints = points
+			winners = []Participant{participant}
+			continue
+		}
+		if points == bestPoints {
+			winners = append(winners, participant)
+		}
+	}
+
+	if bestPoints > 0 && len(winners) == 1 {
+		return winners[0], true
+	}
+	return "", false
+}
+
+func partialOvertakeWinner(t *TourResult, group Group, problem Problem) (Participant, bool, bool) {
 	if len(group) <= 1 {
-		return false
+		return "", false, false
 	}
-	return overtakeCount(t, participant, problem, solveTime) == len(group)-1
+	if winner, ok, tied := partialFullSolveWinner(t, group, problem); ok || tied {
+		return winner, ok, false
+	}
+	if winner, ok := partialTourEndWinner(t, group, problem); ok {
+		return winner, true, true
+	}
+	return "", false, false
 }
 
-func scoreForSolve(t *TourResult, participant Participant, problem Problem, solveTime int) int {
-	score := SolvePoints
-	if isSolvedInTime(t.SegmentStart, t.DurationInSeconds, solveTime) {
-		score += SolveInTimePoints
+func overtakeWinner(t *TourResult, participant Participant, problem Problem) bool {
+	if t.ScoringSettings.Mode != regatta.ScoringModePartial {
+		return binaryOvertakeWinner(t, participant, problem)
 	}
-	if isFirstInGroupRetrospective(t, participant, problem, solveTime) {
-		score += OvertakePoints
+	group := t.Groups[participant]
+	winner, ok, _ := partialOvertakeWinner(t, group, problem)
+	return ok && winner == participant
+}
+
+func scoreForProblem(t *TourResult, participant Participant, problem Problem) int {
+	state, ok := problemState(t, participant, problem)
+	if !ok || !state.HasBest {
+		return 0
+	}
+
+	score := state.BestPoints
+	if state.HasFullSolve {
+		score += t.ScoringSettings.FullSolveBonus
+		if isSolvedInTime(t.SegmentStart, t.DurationInSeconds, state.FullSolveTime) {
+			score += t.ScoringSettings.SolveInTimeBonus
+		}
+	}
+	if overtakeWinner(t, participant, problem) {
+		score += t.ScoringSettings.OvertakeBonus
 	}
 	return score
 }
@@ -108,7 +262,7 @@ func solveEvent(
 	}
 
 	inTime := isSolvedInTime(t.SegmentStart, t.DurationInSeconds, solveTime)
-	firstInGroup := isFirstInGroupRetrospective(t, participant, problem, solveTime)
+	firstInGroup := overtakeWinner(t, participant, problem)
 
 	return regatta.RegattaEvent{
 		Type:          regatta.EventTypeProblemSolved,
@@ -117,9 +271,34 @@ func solveEvent(
 		DisplayName:   displayName,
 		ProblemCode:   problemCode,
 		TeamNumber:    t.GroupNumbers[participant],
-		Points:        scoreForSolve(t, participant, problem, solveTime),
+		Points:        scoreForProblem(t, participant, problem),
 		SolvedInTime:  inTime,
 		FirstInGroup:  firstInGroup,
+	}
+}
+
+func partialTourEndScoredEvent(
+	meta eventMeta,
+	t *TourResult,
+	participant Participant,
+	problem Problem,
+	problemCode string,
+	scoreTime int,
+) regatta.RegattaEvent {
+	displayName := meta.names[participant]
+	if displayName == "" {
+		displayName = participant
+	}
+
+	return regatta.RegattaEvent{
+		Type:          regatta.EventTypeProblemSolved,
+		TimeSec:       scoreTime,
+		ParticipantID: participant,
+		DisplayName:   displayName,
+		ProblemCode:   problemCode,
+		TeamNumber:    t.GroupNumbers[participant],
+		Points:        scoreForProblem(t, participant, problem),
+		FirstInGroup:  true,
 	}
 }
 
@@ -134,10 +313,9 @@ func (t *TourResult) ParticipantScore(participant Participant) ParticipantScoreO
 
 	for _, problem := range t.Problems {
 		problemCode := t.ProblemsMapping[problem]
-
-		participantSolveTime, participantSolved := participantResults[problem]
-		if !participantSolved {
-			logger.Infof(context.Background(), "Participant %v did not solve problem %v", participant, problem)
+		state, participantScored := participantResults[problem]
+		if !participantScored || !state.HasBest {
+			logger.Infof(context.Background(), "Participant %v did not score problem %v", participant, problem)
 			result[problemCode] = ProblemResult{
 				problemCode: problemCode,
 				score:       0,
@@ -145,24 +323,26 @@ func (t *TourResult) ParticipantScore(participant Participant) ParticipantScoreO
 			continue
 		}
 
-		score := scoreForSolve(t, participant, problem, participantSolveTime)
+		score := scoreForProblem(t, participant, problem)
 		logger.Infof(context.Background(),
-			"Participant %v solved problem %v: score %v", participant, problem, score)
+			"Participant %v scored problem %v: score %v", participant, problem, score)
 
 		result[problemCode] = ProblemResult{
 			problemCode:        problemCode,
 			score:              score,
-			lastSubmissionTime: participantSolveTime - t.SegmentStart,
+			lastSubmissionTime: state.BestTime - t.SegmentStart,
 		}
 
-		events = append(events, solveEvent(
-			meta,
-			t,
-			participant,
-			problem,
-			problemCode,
-			participantSolveTime,
-		))
+		if state.HasFullSolve {
+			events = append(events, solveEvent(
+				meta,
+				t,
+				participant,
+				problem,
+				problemCode,
+				state.FullSolveTime,
+			))
+		}
 	}
 
 	return ParticipantScoreOutcome{Results: result, Events: events}
@@ -183,43 +363,96 @@ type Run struct {
 	ProbID int
 	Time   int
 	Status string
+	Points int
 }
 
 func CalculateResult(tc regatta.Tour, segmentStart int, runs []Run) *TourResult {
+	return CalculateResultWithSettings(tc, segmentStart, runs, regatta.DefaultScoringSettings())
+}
+
+func CalculateResultWithSettings(tc regatta.Tour, segmentStart int, runs []Run, settings regatta.ScoringSettings) *TourResult {
+	return CalculateResultWithSettingsAt(tc, segmentStart, runs, settings, contestElapsedUnknown)
+}
+
+func CalculateResultWithSettingsAt(
+	tc regatta.Tour,
+	segmentStart int,
+	runs []Run,
+	settings regatta.ScoringSettings,
+	contestElapsedSeconds int,
+) *TourResult {
+	settings = regatta.NormalizeScoringSettings(settings)
 	return &TourResult{
-		Tour:            tc,
-		SegmentStart:    segmentStart,
-		Results:         calcSubmissions(runs),
-		ProblemsMapping: tc.ProblemsIDsToNameMapping(tc.Problems),
+		Tour:                  tc,
+		SegmentStart:          segmentStart,
+		ContestElapsedSeconds: contestElapsedSeconds,
+		ScoringSettings:       settings,
+		Results:               calcSubmissions(runs, settings),
+		ProblemsMapping:       tc.ProblemsIDsToNameMapping(tc.Problems),
 	}
 }
 
-func calcSubmissions(submissions []Run) map[Participant]ContestResult {
+func calcSubmissions(submissions []Run, settings regatta.ScoringSettings) map[Participant]ContestResult {
 	results := make(map[Participant]ContestResult)
 
 	for _, submission := range submissions {
-		if submission.Status != SubmissionStatusOK {
+		points, keep := normalizedRunPoints(submission, settings)
+		if !keep {
 			continue
 		}
 
-		logger.Infof(context.Background(), "OK! UserID: %v, ProbID: %v, Time: %v", submission.UserID, submission.ProbID, submission.Time)
+		logger.Infof(context.Background(), "Scored submission! UserID: %v, ProbID: %v, Time: %v, Points: %v",
+			submission.UserID, submission.ProbID, submission.Time, points)
 
 		participant := submission.UserID
 		problem := submission.ProbID
 
 		participantResults, ok := results[participant]
 		if !ok {
-			results[participant] = map[Problem]int{
-				problem: submission.Time,
-			}
-		} else {
-			if _, alreadySolved := participantResults[problem]; !alreadySolved {
-				participantResults[problem] = submission.Time
-			}
+			participantResults = make(ContestResult)
+			results[participant] = participantResults
 		}
+
+		state := participantResults[problem]
+		scored := ScoredSubmission{
+			Time:   submission.Time,
+			Points: points,
+			Status: submission.Status,
+		}
+		state.Submissions = append(state.Submissions, scored)
+		if points > 0 && (!state.HasBest ||
+			points > state.BestPoints ||
+			(points == state.BestPoints && submission.Time < state.BestTime)) {
+			state.HasBest = true
+			state.BestPoints = points
+			state.BestTime = submission.Time
+		}
+		if points >= 100 && (!state.HasFullSolve || submission.Time < state.FullSolveTime) {
+			state.HasFullSolve = true
+			state.FullSolveTime = submission.Time
+		}
+		participantResults[problem] = state
 	}
 
 	return results
+}
+
+func normalizedRunPoints(run Run, settings regatta.ScoringSettings) (int, bool) {
+	if settings.Mode != regatta.ScoringModePartial {
+		if run.Status != SubmissionStatusOK {
+			return 0, false
+		}
+		return 100, true
+	}
+
+	points := run.Points
+	if points == 0 && run.Status == SubmissionStatusOK {
+		points = 100
+	}
+	if points < 0 {
+		points = 0
+	}
+	return points, points > 0 || run.Status == SubmissionStatusOK || run.Status == SubmissionStatusPartial
 }
 
 func tourForProblem(tours []regatta.Tour, probID Problem) *regatta.Tour {
@@ -235,103 +468,107 @@ func tourForProblem(tours []regatta.Tour, probID Problem) *regatta.Tour {
 	return nil
 }
 
-func cloneResults(src map[Participant]ContestResult) map[Participant]ContestResult {
-	dst := make(map[Participant]ContestResult, len(src))
-	for participant, problems := range src {
-		cp := make(ContestResult, len(problems))
-		for problem, t := range problems {
-			cp[problem] = t
-		}
-		dst[participant] = cp
-	}
-	return dst
-}
-
-func applySolve(results map[Participant]ContestResult, participant Participant, problem Problem, solveTime int) {
-	participantResults, ok := results[participant]
-	if !ok {
-		results[participant] = ContestResult{problem: solveTime}
-		return
-	}
-	if _, alreadySolved := participantResults[problem]; !alreadySolved {
-		participantResults[problem] = solveTime
-	}
-}
-
-func isFirstAC(results map[Participant]ContestResult, participant Participant, problem Problem) bool {
-	participantResults, ok := results[participant]
-	if !ok {
-		return true
-	}
-	_, solved := participantResults[problem]
-	return !solved
-}
-
 func BuildContestEvents(
 	tours []regatta.Tour,
 	runs []Run,
 	names map[string]string,
+	settingsArg ...regatta.ScoringSettings,
+) []regatta.RegattaEvent {
+	return BuildContestEventsAt(tours, runs, names, contestElapsedUnknown, settingsArg...)
+}
+
+func BuildContestEventsAt(
+	tours []regatta.Tour,
+	runs []Run,
+	names map[string]string,
+	contestElapsedSeconds int,
+	settingsArg ...regatta.ScoringSettings,
 ) []regatta.RegattaEvent {
 	if len(tours) == 0 {
 		return nil
 	}
 
+	settings := regatta.DefaultScoringSettings()
+	if len(settingsArg) > 0 {
+		settings = regatta.NormalizeScoringSettings(settingsArg[0])
+	}
+
 	sorted := regatta.SortToursBySequence(tours)
 	offsets := regatta.SegmentOffsets(sorted)
-
-	okRuns := make([]Run, 0, len(runs))
-	for _, run := range runs {
-		if run.Status == SubmissionStatusOK {
-			okRuns = append(okRuns, run)
-		}
-	}
-	slices.SortFunc(okRuns, func(a, b Run) int {
-		if a.Time != b.Time {
-			return a.Time - b.Time
-		}
-		if a.UserID != b.UserID {
-			if a.UserID < b.UserID {
-				return -1
-			}
-			return 1
-		}
-		return a.ProbID - b.ProbID
-	})
-
 	meta := eventMeta{names: names}
-	results := make(map[Participant]ContestResult)
 	var allEvents []regatta.RegattaEvent
 
-	for _, run := range okRuns {
-		if !isFirstAC(results, run.UserID, run.ProbID) {
+	for _, tour := range sorted {
+		if tour.IsPause {
 			continue
 		}
-
-		tour := tourForProblem(sorted, run.ProbID)
-		if tour == nil {
-			applySolve(results, run.UserID, run.ProbID, run.Time)
-			continue
-		}
-
-		snapshot := cloneResults(results)
 		segmentStart := offsets[tour.Sequence].Start
-		tr := &TourResult{
-			Tour:            *tour,
-			SegmentStart:    segmentStart,
-			Results:         snapshot,
-			ProblemsMapping: tour.ProblemsIDsToNameMapping(tour.Problems),
+		tr := CalculateResultWithSettingsAt(tour, segmentStart, runs, settings, contestElapsedSeconds)
+		for participant := range tour.Groups {
+			for _, problem := range tour.Problems {
+				state, ok := problemState(tr, participant, problem)
+				if !ok || !state.HasFullSolve {
+					continue
+				}
+				problemCode := tr.ProblemsMapping[problem]
+				if problemCode == "" {
+					continue
+				}
+				allEvents = append(allEvents, solveEvent(meta, tr, participant, problem, problemCode, state.FullSolveTime))
+			}
 		}
 
-		problemCode, ok := tr.ProblemsMapping[run.ProbID]
-		if !ok || problemCode == "" {
-			applySolve(results, run.UserID, run.ProbID, run.Time)
-			continue
+		if settings.Mode == regatta.ScoringModePartial {
+			allEvents = append(allEvents, buildPartialOvertakeEvents(meta, tr)...)
 		}
-
-		allEvents = append(allEvents, solveEvent(meta, tr, run.UserID, run.ProbID, problemCode, run.Time))
-
-		applySolve(results, run.UserID, run.ProbID, run.Time)
 	}
 
+	slices.SortFunc(allEvents, func(a, b regatta.RegattaEvent) int {
+		if a.TimeSec != b.TimeSec {
+			return a.TimeSec - b.TimeSec
+		}
+		if a.ParticipantID != b.ParticipantID {
+			return strings.Compare(a.ParticipantID, b.ParticipantID)
+		}
+		return strings.Compare(a.ProblemCode, b.ProblemCode)
+	})
+
 	return allEvents
+}
+
+func buildPartialOvertakeEvents(meta eventMeta, t *TourResult) []regatta.RegattaEvent {
+	var events []regatta.RegattaEvent
+	seen := make(map[string]bool)
+
+	for participant, group := range t.Groups {
+		groupNumber := t.GroupNumbers[participant]
+		for _, problem := range t.Problems {
+			key := fmt.Sprintf("%d:%d", groupNumber, problem)
+			if seen[key] {
+				continue
+			}
+			seen[key] = true
+
+			winner, ok, tourEndFallback := partialOvertakeWinner(t, group, problem)
+			if !ok || !tourEndFallback {
+				continue
+			}
+
+			problemCode := t.ProblemsMapping[problem]
+			if problemCode == "" {
+				continue
+			}
+			state, ok := problemState(t, winner, problem)
+			if !ok {
+				continue
+			}
+			_, scoreTime, ok := bestSubmissionAtTime(state, tourEnd(t))
+			if !ok {
+				continue
+			}
+			events = append(events, partialTourEndScoredEvent(meta, t, winner, problem, problemCode, scoreTime))
+		}
+	}
+
+	return events
 }

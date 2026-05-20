@@ -36,8 +36,7 @@ export function NextTourBanner({
     const isPause = displaySegment?.kind === "pause";
     const autostartAvailable = view.auto_start_available ?? false;
     const autostartOn = autostartAvailable && Boolean(view.auto_start_enabled);
-    const canAdvance =
-        !autostartOn &&
+    const hasAdvanceTarget =
         !isLastSlot &&
         (nextSegment?.status === "next" ||
             nextSegment?.status === "starting" ||
@@ -94,12 +93,17 @@ export function NextTourBanner({
                         onChange={onAutoStartChange}
                     />
                 )}
-                {canAdvance && (
+                {hasAdvanceTarget && (
                     <button
                         type="button"
                         className="admin-icon-btn admin-primary-btn tt-start-now-btn"
                         onClick={onStartNow}
-                        disabled={busy}
+                        disabled={busy || autostartOn}
+                        title={
+                            autostartOn
+                                ? "Отключите автозапуск, чтобы запустить слот вручную"
+                                : undefined
+                        }
                     >
                         <Play size={16} />
                         Запустить сейчас

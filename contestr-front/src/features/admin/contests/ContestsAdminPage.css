@@ -93,12 +93,18 @@
     position: relative;
 }
 
-.cf-contest-list__row .cf-icon-btn {
+.cf-contest-list__actions {
     position: absolute;
     right: 0.35rem;
     top: 50%;
     transform: translateY(-50%);
     z-index: 1;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+}
+
+.cf-contest-list__row .cf-icon-btn {
     border: none;
     background: transparent;
     transition: opacity 0.15s ease, color 0.15s ease;
@@ -110,20 +116,20 @@
 }
 
 @media (hover: hover) {
-    .cf-contest-list__row .cf-icon-btn {
+    .cf-contest-list__actions {
         opacity: 0;
         pointer-events: none;
     }
 
-    .cf-contest-list__row:hover .cf-icon-btn,
-    .cf-contest-list__row:focus-within .cf-icon-btn {
+    .cf-contest-list__row:hover .cf-contest-list__actions,
+    .cf-contest-list__row:focus-within .cf-contest-list__actions {
         opacity: 1;
         pointer-events: auto;
     }
 
     .cf-contest-list__row:hover .cf-contest-list-item,
     .cf-contest-list__row:focus-within .cf-contest-list-item {
-        padding-right: 3rem;
+        padding-right: 5.75rem;
     }
 }
 
@@ -317,6 +323,56 @@
     overflow-x: auto;
 }
 
+.cf-scoring-settings {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 0.65rem 0.75rem;
+    border: 1px solid #e0dcd0;
+    border-radius: 0.5rem;
+    background: #faf9f6;
+}
+
+.cf-scoring-settings__row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+    align-items: end;
+    gap: 0.5rem;
+}
+
+.cf-scoring-settings__row label {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-width: 0;
+    font-family: "Anonymous Pro", sans-serif;
+    font-size: var(--fs-p);
+    color: #4f4e4e;
+}
+
+.cf-scoring-settings__row label span {
+    color: #6b6a68;
+    font-size: 0.85em;
+}
+
+.cf-scoring-settings input,
+.cf-scoring-settings select {
+    width: 100%;
+    min-width: 0;
+    height: 2.25rem;
+    padding: 0 0.5rem;
+    border: 1px solid #e0dcd0;
+    border-radius: 0.35rem;
+    background: #fff;
+    font-family: "Anonymous Pro", sans-serif;
+    font-size: var(--fs-p);
+    box-sizing: border-box;
+}
+
+.cf-scoring-settings .cf-handles-save-btn {
+    justify-self: end;
+}
+
 .cf-handles-table {
     width: 100%;
     table-layout: fixed;
@@ -459,4 +515,8 @@
 .cf-icon-btn--plain:hover:not(:disabled) {
     border: none;
     color: #b42318;
+}
+
+.cf-icon-btn--add:hover:not(:disabled) {
+    color: #157347;
 }

@@ -1,3 +1,4 @@
+import { RefreshCw } from "lucide-react";
 import { useContests } from "@/shared/hooks/useContests";
 import type { TimetableView } from "@/client/types.gen";
 import { formatContestClock, formatElapsed } from "./time";
@@ -7,9 +8,11 @@ type Props = {
     contestId: number;
     onContestChange: (id: number) => void;
     view: TimetableView | null;
+    onRefresh: () => void;
+    busy: boolean;
 };
 
-export function ContestContextBar({ contestId, onContestChange, view }: Props) {
+export function ContestContextBar({ contestId, onContestChange, view, onRefresh, busy }: Props) {
     const { contests, isLoading } = useContests();
     const elapsed = useContestElapsed(view?.contest_start_time, view?.elapsed_seconds ?? 0);
 
@@ -42,6 +45,16 @@ export function ContestContextBar({ contestId, onContestChange, view }: Props) {
                             ))}
                         </select>
                     </label>
+                    <button
+                        type="button"
+                        className="tt-refresh-contest-btn"
+                        title="Обновить данные контеста"
+                        aria-label="Обновить данные контеста"
+                        onClick={onRefresh}
+                        disabled={busy || !contestId}
+                    >
+                        <RefreshCw size={16} aria-hidden />
+                    </button>
                 </div>
             </div>
         </div>

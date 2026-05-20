@@ -6,7 +6,9 @@ import (
 )
 
 type Service struct {
-	client *goforces.Client
+	client    *goforces.Client
+	apiKey    string
+	apiSecret string
 }
 
 func NewService(cfg *configs.Config) *Service {
@@ -14,6 +16,8 @@ func NewService(cfg *configs.Config) *Service {
 	client.SetAPISecret(cfg.Codeforces.APISecret)
 	client.SetAPIKey(cfg.Codeforces.APIKey)
 	return &Service{
-		client: client,
+		client:    client,
+		apiKey:    cfg.Codeforces.APIKey,
+		apiSecret: cfg.Codeforces.APISecret,
 	}
 }
