@@ -1,3 +1,23 @@
+import { formatDurationCompact, minActiveDurationSeconds } from "./time";
+
+export function activeSegmentMinDurationError(minSeconds: number): string {
+    return `Нельзя сделать текущий сегмент короче уже прошедшего времени. Минимум сейчас: ${formatDurationCompact(minSeconds)}.`;
+}
+
+function translateElapsedDurationError(details: string): string | null {
+    const match = details.match(
+        /duration cannot be less than elapsed time in segment \((\d+)s\)/,
+    );
+    if (!match) {
+        return null;
+    }
+    const elapsedIn = Number(match[1]);
+    if (!Number.isFinite(elapsedIn)) {
+        return null;
+    }
+    return activeSegmentMinDurationError(minActiveDurationSeconds(elapsedIn, 0));
+}
+
 const ERROR_TRANSLATIONS: Record<string, string> = {
     "bad request": "Некорректный запрос.",
     conflict: "Конфликт состояния.",
@@ -55,6 +75,12 @@ export function translateAdminMessage(message?: string) {
         }
         if (details.includes("overlap")) {
             return "Некорректное расписание: туры пересекаются по времени.";
+        }
+        if (details.includes("duration cannot be less than elapsed")) {
+            return (
+                translateElapsedDurationError(details) ??
+                activeSegmentMinDurationError(60)
+            );
         }
         return "Некорректное расписание.";
     }

@@ -7,6 +7,7 @@ import type {
     TourSettings,
 } from "@/client/types.gen";
 import { readApiError } from "@/features/admin/timetable/errors";
+import { formatImportSuccessMessage } from "./messages";
 import { mergeHandleDraft, parseParticipantList } from "./parseParticipantImport";
 
 type LoadState = "idle" | "loading" | "error";
@@ -271,10 +272,6 @@ export function useAdminContests() {
         }
     }, [selectedContestId, showHandlesMessage]);
 
-    const saveHandles = useCallback(async () => {
-        await persistHandles(draftHandles, "Участники сохранены");
-    }, [draftHandles, persistHandles]);
-
     const addParticipant = useCallback(async (handle: string, name: string) => {
         const h = handle.trim();
         if (!h) {
@@ -332,6 +329,13 @@ export function useAdminContests() {
             JSON.stringify(normalize(draftHandles)) !== JSON.stringify(normalize(handles))
         );
     }, [draftHandles, handles]);
+
+    const flushHandlesDraft = useCallback(async () => {
+        if (!handlesDirty) {
+            return true;
+        }
+        return persistHandles(draftHandles, "Участники сохранены");
+    }, [draftHandles, handlesDirty, persistHandles]);
 
     const settingsDirty = useMemo(() => {
         return (
@@ -448,7 +452,7 @@ export function useAdminContests() {
     }, []);
 
     const importHandlesFromList = useCallback(
-        (text: string) => {
+        async (text: string) => {
             if (selectedContestId == null) {
                 return {
                     ok: false as const,
@@ -477,19 +481,27 @@ export function useAdminContests() {
                 };
             }
 
-            if (entries.length > 0) {
-                setDraftHandles((prev) => mergeHandleDraft(prev, entries));
+            if (entries.length === 0) {
+                return {
+                    ok: false as const,
+                    entriesCount: 0,
+                    skippedOtherContest,
+                    invalidLines,
+                    detail: "",
+                };
             }
 
+            const merged = mergeHandleDraft(draftHandles, entries);
+            const saved = await persistHandles(merged, formatImportSuccessMessage(entries.length, skippedOtherContest));
             return {
-                ok: entries.length > 0,
+                ok: saved,
                 entriesCount: entries.length,
                 skippedOtherContest,
                 invalidLines,
-                detail: "",
+                detail: saved ? "" : "Не удалось сохранить импорт",
             };
         },
-        [selectedContestId],
+        [draftHandles, persistHandles, selectedContestId],
     );
 
     return {
@@ -505,14 +517,13 @@ export function useAdminContests() {
         contestsMessageKind,
         handlesMessage,
         handlesMessageKind,
-        handlesDirty,
         settingsDirty,
         draftScoringSettings,
         draftTourSettings,
         addContest,
         deleteContest,
         addParticipant,
-        saveHandles,
+        flushHandlesDraft,
         saveContestSettings,
         refreshContest,
         deleteHandle,

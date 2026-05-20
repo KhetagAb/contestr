@@ -2,7 +2,7 @@ import { useMemo, type CSSProperties } from "react";
 import type { TimelineSegment, TimetableView } from "@/client/types.gen";
 import { AxisSegment } from "./AxisSegment";
 import { computeActiveSegmentProgress } from "./tourProgress";
-import { formatTourClock } from "./time";
+import { canInsertPendingSlotAfter, formatTourClock, pendingInsertIndexAfter } from "./time";
 import { useContestElapsed } from "./useContestElapsed";
 
 type Props = {
@@ -14,7 +14,7 @@ type Props = {
     onActiveDurationChange: (duration: number) => void | Promise<unknown>;
     onPendingKindChange: (pendingIndex: number, kind: "tour" | "pause") => void;
     onPendingRemove: (pendingIndex: number) => void;
-    onAddSlot: () => void;
+    onAddSlotAfter: (insertIndex: number) => void;
 };
 
 function boundaryTicks(segments: TimelineSegment[]): number[] {
@@ -128,7 +128,7 @@ export function ScheduleAxis({
     onActiveDurationChange,
     onPendingKindChange,
     onPendingRemove,
-    onAddSlot,
+    onAddSlotAfter,
 }: Props) {
     const elapsed = useContestElapsed(view?.contest_start_time, view?.elapsed_seconds ?? 0);
 
@@ -194,14 +194,13 @@ export function ScheduleAxis({
                     );
                 })}
                 {segments.map((segment, index) => {
-                    const isLast = index === segments.length - 1;
                     const active = layout.activeProgress;
                     const isActive = active?.index === index;
+                    const canAddAfter = canInsertPendingSlotAfter(segment);
                     return (
                         <AxisSegment
                             key={`${segment.sequence ?? "p"}-${segment.pending_index ?? index}`}
                             segment={segment}
-                            isLast={isLast}
                             busy={busy}
                             onDurationChange={
                                 segment.editable && segment.pending_index != null
@@ -223,7 +222,12 @@ export function ScheduleAxis({
                                     ? onPendingRemove
                                     : undefined
                             }
-                            onAdd={isLast ? onAddSlot : undefined}
+                            onAdd={
+                                canAddAfter
+                                    ? () =>
+                                          onAddSlotAfter(pendingInsertIndexAfter(segment))
+                                    : undefined
+                            }
                             contestStartTime={view?.contest_start_time}
                             progressFill={isActive ? active.fill : undefined}
                             progressColorFrom={isActive ? active.colorFrom : undefined}

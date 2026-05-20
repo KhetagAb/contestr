@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { adminAuthHeaders } from "@/features/admin/auth/adminAuth";
 import type { ScheduleSlot, TimetableView } from "@/client/types.gen";
-import { useContests } from "@/shared/hooks/useContests";
-import { readApiError } from "./errors";
+import { activeSegmentMinDurationError, readApiError } from "./errors";
 import { DURATION_TEMPLATE_MINUTES } from "./durationTemplate";
 import {
     buildDraftTimelineSegments,
     createSlotFromPrevious,
+    minActiveDurationSeconds,
     pendingSlotsFingerprint,
 } from "./time";
 
@@ -25,9 +25,7 @@ function normalizeSlots(slots: ScheduleSlot[]): ScheduleSlot[] {
     return slots.map(normalizeSlot);
 }
 
-export function useTimetable() {
-    const { contests, refetch: refetchContests } = useContests();
-    const [contestId, setContestId] = useState<number>(0);
+export function useContestTimetable(contestId: number) {
     const [view, setView] = useState<TimetableView | null>(null);
     const [draftPending, setDraftPending] = useState<ScheduleSlot[]>([]);
     const [savedFingerprint, setSavedFingerprint] = useState("");
@@ -37,13 +35,6 @@ export function useTimetable() {
     const [messageKind, setMessageKind] = useState<"error" | "success" | "info">("info");
     const [hasSchedule, setHasSchedule] = useState(false);
     const loadRequestId = useRef(0);
-
-    const contest = useMemo(
-        () => contests.find((c) => c.contest_id === contestId),
-        [contestId, contests],
-    );
-
-    const canEditSchedule = contestId > 0;
 
     const resetScheduleState = useCallback(() => {
         setView(null);
@@ -55,21 +46,10 @@ export function useTimetable() {
     }, []);
 
     useEffect(() => {
-        if (contests.length === 0) {
-            setContestId(0);
-            resetScheduleState();
-            return;
-        }
-        if (!contests.some((c) => c.contest_id === contestId)) {
-            setContestId(contests[0].contest_id);
-        }
-    }, [contests, contestId, resetScheduleState]);
-
-    useEffect(() => {
-        if (!canEditSchedule) {
+        if (!Number.isInteger(contestId) || contestId <= 0) {
             resetScheduleState();
         }
-    }, [canEditSchedule, resetScheduleState]);
+    }, [contestId, resetScheduleState]);
 
     const dirty = useMemo(
         () => pendingSlotsFingerprint(draftPending) !== savedFingerprint,
@@ -171,16 +151,25 @@ export function useTimetable() {
         setMessage("");
     }, []);
 
+    const addSlotAfter = useCallback((insertIndex: number) => {
+        setDraftPending((current) => {
+            const index = Math.max(0, Math.min(insertIndex, current.length));
+            const previous = index > 0 ? current[index - 1] : current[0];
+            const newSlot = createSlotFromPrevious(previous);
+            const next = [...current];
+            next.splice(index, 0, newSlot);
+            return next;
+        });
+        setMessage("");
+    }, []);
+
     const addSlot = useCallback(() => {
-        if (contestId <= 0) {
-            return;
-        }
         setDraftPending((current) => {
             const last = current[current.length - 1];
             return [...current, createSlotFromPrevious(last)];
         });
         setMessage("");
-    }, [contestId]);
+    }, []);
 
     const removeSlot = useCallback((pendingIndex: number) => {
         setDraftPending((current) => current.filter((_, i) => i !== pendingIndex));
@@ -196,16 +185,13 @@ export function useTimetable() {
     }, [view]);
 
     const applyDurationTemplate = useCallback(() => {
-        if (contestId <= 0) {
-            return;
-        }
         const slots: ScheduleSlot[] = DURATION_TEMPLATE_MINUTES.map((minutes) => ({
             duration: minutes * 60,
             kind: "tour" as const,
         }));
         setDraftPending(slots);
         setMessage("");
-    }, [contestId]);
+    }, []);
 
     const saveTimetable = useCallback(async () => {
         setActionLoading(true);
@@ -241,8 +227,19 @@ export function useTimetable() {
 
     const updateActiveDuration = useCallback(
         async (duration: number) => {
-            if (contestId <= 0) {
-                return false;
+            const active = view?.timeline_segments?.find(
+                (s) => s.status === "active" && s.sequence != null,
+            );
+            if (active && view) {
+                const minSeconds = minActiveDurationSeconds(
+                    view.elapsed_seconds ?? 0,
+                    active.start_time,
+                );
+                if (duration < minSeconds) {
+                    setMessageKind("error");
+                    setMessage(activeSegmentMinDurationError(minSeconds));
+                    return false;
+                }
             }
 
             setActionLoading(true);
@@ -273,7 +270,7 @@ export function useTimetable() {
             setMessage("");
             return true;
         },
-        [applyView, contestId],
+        [applyView, contestId, view],
     );
 
     const setAutoStartEnabled = useCallback(
@@ -338,40 +335,9 @@ export function useTimetable() {
         return true;
     }, [applyView, contestId]);
 
-    const refreshContest = useCallback(async () => {
-        if (contestId <= 0) {
-            return false;
-        }
-
-        setActionLoading(true);
-        setMessage("");
-
-        const response = await fetch(`/api/admin/contests/${contestId}/refresh`, {
-            method: "POST",
-            headers: adminAuthHeaders(),
-        });
-
-        setActionLoading(false);
-
-        if (!response.ok) {
-            setMessageKind("error");
-            setMessage(await readApiError(response));
-            return false;
-        }
-
-        await refetchContests();
-        await loadTimetable(true);
-        setMessageKind("success");
-        setMessage("Данные контеста обновлены");
-        return true;
-    }, [contestId, loadTimetable, refetchContests]);
-
     const busy = loadState === "loading" || actionLoading;
 
     return {
-        contestId,
-        setContestId,
-        contest,
         view,
         displaySegments,
         draftPending,
@@ -381,11 +347,10 @@ export function useTimetable() {
         message,
         messageKind,
         hasSchedule,
-        canEditSchedule,
-        loadTimetable,
         setPendingDuration,
         setPendingKind,
         addSlot,
+        addSlotAfter,
         removeSlot,
         applyDurationTemplate,
         revertChanges,
@@ -393,6 +358,5 @@ export function useTimetable() {
         updateActiveDuration,
         setAutoStartEnabled,
         advance,
-        refreshContest,
     };
 }

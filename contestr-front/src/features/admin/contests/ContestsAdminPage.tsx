@@ -1,7 +1,6 @@
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FocusEvent, type FormEvent } from "react";
 import { Check, Plus, RefreshCw, Save, Trash2, Upload, X } from "lucide-react";
 import { useAdminContests } from "./useAdminContests";
-import { formatImportSuccessMessage } from "./messages";
 import "./ContestsAdminPage.css";
 
 function PanelStatus({
@@ -86,8 +85,8 @@ export default function ContestsAdminPage() {
         }
     };
 
-    const handleApplyImport = () => {
-        const result = ac.importHandlesFromList(importText);
+    const handleApplyImport = async () => {
+        const result = await ac.importHandlesFromList(importText);
         if (!result.ok) {
             ac.showHandlesMessage(
                 result.detail || result.invalidLines[0] || "Не удалось разобрать список",
@@ -96,13 +95,20 @@ export default function ContestsAdminPage() {
             return;
         }
 
-        let text = formatImportSuccessMessage(result.entriesCount, result.skippedOtherContest);
         if (result.invalidLines.length > 0) {
-            text += `. Ошибок в строках: ${result.invalidLines.length}`;
+            ac.showHandlesMessage(`Ошибок в строках: ${result.invalidLines.length}`, "info");
         }
-        ac.showHandlesMessage(text, "success");
         setImportText("");
         setShowImportList(false);
+    };
+
+    const handleHandlesTableBlur = (event: FocusEvent<HTMLDivElement>) => {
+        const wrap = event.currentTarget;
+        requestAnimationFrame(() => {
+            if (!wrap.contains(document.activeElement)) {
+                void ac.flushHandlesDraft();
+            }
+        });
     };
 
     return (
@@ -403,7 +409,7 @@ export default function ContestsAdminPage() {
                                 </div>
                             </section>
 
-                            <div className="cf-handles-table-wrap">
+                            <div className="cf-handles-table-wrap" onBlur={handleHandlesTableBlur}>
                                 <table className="cf-handles-table">
                                     <colgroup>
                                         <col className="cf-handles-table__col-handle" />
@@ -546,7 +552,7 @@ export default function ContestsAdminPage() {
                                             disabled={ac.busy || !importText.trim()}
                                             onClick={handleApplyImport}
                                         >
-                                            Применить к таблице
+                                            Импортировать
                                         </button>
                                         <button
                                             type="button"
@@ -560,8 +566,8 @@ export default function ContestsAdminPage() {
                                 </div>
                             )}
 
-                            <footer className="cf-handles-panel-footer">
-                                {!showImportList && (
+                            {!showImportList && (
+                                <footer className="cf-handles-panel-footer">
                                     <button
                                         type="button"
                                         className="cf-secondary-btn cf-secondary-btn--compact"
@@ -571,18 +577,8 @@ export default function ContestsAdminPage() {
                                         <Upload size={16} aria-hidden />
                                         Импорт
                                     </button>
-                                )}
-                                <button
-                                    type="button"
-                                    className="cf-handles-save-btn"
-                                    title="Сохранить"
-                                    aria-label="Сохранить участников"
-                                    onClick={() => void ac.saveHandles()}
-                                    disabled={ac.busy || !ac.handlesDirty}
-                                >
-                                    <Save size={16} aria-hidden />
-                                </button>
-                            </footer>
+                                </footer>
+                            )}
 
                             <PanelStatus
                                 message={ac.handlesMessage}

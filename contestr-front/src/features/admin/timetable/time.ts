@@ -37,9 +37,24 @@ export function formatDurationCompact(seconds: number): string {
     return `${minutes} мин`;
 }
 
+/** «5 мин» — до старта слота (число для подписи «через …» в плашке) */
+export function formatThroughMinutes(untilSeconds: number): string {
+    const minutes = Math.max(0, Math.round(Math.max(0, untilSeconds) / 60));
+    return `${minutes} мин`;
+}
+
 export function formatDurationInputValue(seconds: number): string {
     const minutes = Math.max(1, Math.round(Math.max(0, seconds) / 60));
     return String(minutes);
+}
+
+/** Минимальная длительность активного сегмента (секунды), кратно 1 минуте вверх. */
+export function minActiveDurationSeconds(elapsedSeconds: number, segmentStart: number): number {
+    const elapsedIn = Math.max(0, elapsedSeconds - segmentStart);
+    if (elapsedIn <= 0) {
+        return 60;
+    }
+    return Math.ceil(elapsedIn / 60) * 60;
 }
 
 export function parseDurationInput(input: string): number | null {
@@ -110,6 +125,10 @@ export function buildDraftTimelineSegments(
     let competitive = competitiveRoundsInFact(fact);
     const pendingSegments: TimelineSegment[] = [];
 
+    const serverPending = (view.timeline_segments ?? []).filter(
+        (s) => s.pending_index != null,
+    );
+
     for (let i = 0; i < draftPending.length; i++) {
         const slot = draftPending[i];
         const kind = slot.kind === "pause" ? "pause" : "tour";
@@ -118,19 +137,36 @@ export function buildDraftTimelineSegments(
             competitive += 1;
             round = competitive;
         }
+        const serverSeg = serverPending.find((s) => s.pending_index === i);
         pendingSegments.push({
             pending_index: i,
             kind,
-            round,
+            round: kind === "tour" ? (serverSeg?.round ?? round) : null,
             duration: slot.duration,
             start_time: cursor,
-            status: "future",
+            status: serverSeg?.status ?? "future",
             editable: true,
         });
         cursor += slot.duration;
     }
 
     return [...fact, ...pendingSegments];
+}
+
+/** Можно ли вставить pending-слот сразу после этого сегмента на оси. */
+export function canInsertPendingSlotAfter(segment: TimelineSegment): boolean {
+    if (segment.status === "past") {
+        return false;
+    }
+    return segment.pending_index != null || segment.sequence != null;
+}
+
+/** Индекс в pending_slots для вставки нового слота сразу после этого сегмента на оси. */
+export function pendingInsertIndexAfter(segment: TimelineSegment): number {
+    if (segment.pending_index != null) {
+        return segment.pending_index + 1;
+    }
+    return 0;
 }
 
 export function segmentLabel(segment: TimelineSegment): string {
