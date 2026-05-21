@@ -17,17 +17,12 @@ func FormGroupsWithSwapProbability(ratedParticipants []string, groupSize int, sw
 	if n == 0 {
 		return [][]string{}
 	}
-	if groupSize <= 0 {
-		groupSize = 1
+	if groupSize <= 1 {
+		groupSize = 2
 	}
-	if swapBorderProbability < 0 {
-		swapBorderProbability = 0
-	}
-	if swapBorderProbability > 1 {
-		swapBorderProbability = 1
-	}
+	swapBorderProbability = max(0, min(1, swapBorderProbability))
 
-	participants := append([]string(nil), ratedParticipants...)
+	participants := append([]string{}, ratedParticipants...)
 
 	for i := 0; i < n-1; i++ {
 		if rand.Float64() <= swapBorderProbability {
@@ -44,16 +39,16 @@ func FormGroupsWithSwapProbability(ratedParticipants []string, groupSize int, sw
 		result = append(result, participants[i:intervalEnd])
 	}
 
-	last := len(result) - 1
-	if last >= 1 && len(result[last]) == 1 {
-		prev := result[last-1]
-		if len(prev) >= 3 {
-			result[last] = []string{prev[2], result[last][0]}
-			result[last-1] = prev[:2]
-		} else {
-			result[last-1] = append(append([]string(nil), prev...), result[last][0])
-			result = result[:last]
-		}
+	lastIndex := len(result) - 1
+	last := result[len(result)-1]
+	if lastIndex >= 1 && len(last) < len(result[0])-1 {
+		prev := result[lastIndex-1]
+		tail := append(append([]string{}, prev...), result[lastIndex]...)
+
+		newPrev := tail[:len(tail)/2+len(tail)%2]
+		newLast := tail[len(tail)/2+len(tail)%2:]
+		result[lastIndex-1] = newPrev
+		result[lastIndex] = newLast
 	}
 
 	return result
