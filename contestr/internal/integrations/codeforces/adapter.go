@@ -76,7 +76,17 @@ func (a *CodeforcesAdapter) FetchContest(ctx context.Context, contestID int, opt
 			return nil, err
 		}
 	} else {
-		submissions = a.buildBinarySubmissions(contestID, standings.Rows, standings.Problems, allowedHandles)
+		submissions, err = a.fetchPartialSubmissions(
+			ctx,
+			contestID,
+			standings.Rows,
+			standings.Problems,
+			allowedHandles,
+		)
+		if err != nil {
+			return nil, err
+		}
+		normalizeBinarySubmissions(submissions)
 	}
 
 	logger.Infof(ctx, "[CF] Parsed %d submissions", len(submissions))
@@ -116,6 +126,10 @@ func buildParticipants(contestID int, rows []goforces.RanklistRow, handleMapping
 		return participants, allowedHandles
 	}
 
+	// FIXME: при пустом handle-маппинге участники берутся только из standings Codeforces.
+	// На старте контеста standings пустой → participants пустой → нельзя сформировать группы
+	// соревнующихся до появления посылок. Нужен источник участников до старта (обязательный
+	// маппинг, отдельный импорт или иной список registrants), а не fallback на standings.
 	seen := make(map[string]bool)
 	for _, row := range rows {
 		rawHandle := rawRowHandle(contestID, row)
@@ -145,54 +159,12 @@ func rawRowHandle(contestID int, row goforces.RanklistRow) string {
 	return fmt.Sprintf("team_%d", contestID)
 }
 
-func (a *CodeforcesAdapter) buildBinarySubmissions(contestID int, rows []goforces.RanklistRow, problems []goforces.Problem, allowedHandles map[string]bool) []regatta.ContestSubmission {
-	submissions := make([]regatta.ContestSubmission, 0)
-	for _, row := range rows {
-		handle := normalizeCFHandle(rawRowHandle(contestID, row))
-
-		if !allowedHandles[handle] {
-			continue
-		}
-
-		for i, problemResult := range row.ProblemResults {
-			problemID := i + 1
-			problemIndex := ""
-			if len(problems) > i {
-				problemIndex = problems[i].Index
-			} else {
-				problemIndex = string(rune('A' + i))
-			}
-
-			if problemResult.Points > 0 {
-				submissionTime := 0
-				if problemResult.BestSubmissionTimeSeconds > 0 {
-					submissionTime = int(problemResult.BestSubmissionTimeSeconds)
-				}
-
-				submissions = append(submissions, regatta.ContestSubmission{
-					ParticipantID:     handle,
-					ProblemID:         problemID,
-					Time:              submissionTime,
-					Status:            "OK",
-					Points:            100,
-					OriginalProblemID: problemIndex,
-				})
-			}
-
-			if problemResult.RejectedAttemptCount > 0 {
-				for j := 0; j < int(problemResult.RejectedAttemptCount); j++ {
-					submissions = append(submissions, regatta.ContestSubmission{
-						ParticipantID:     handle,
-						ProblemID:         problemID,
-						Time:              0,
-						Status:            "WRONG_ANSWER", // TODO А почему тут только WA?
-						OriginalProblemID: problemIndex,
-					})
-				}
-			}
+func normalizeBinarySubmissions(submissions []regatta.ContestSubmission) {
+	for i := range submissions {
+		if submissions[i].Status == "OK" {
+			submissions[i].Points = 100
 		}
 	}
-	return submissions
 }
 
 func (a *CodeforcesAdapter) fetchPartialSubmissions(
@@ -212,7 +184,17 @@ func (a *CodeforcesAdapter) fetchPartialSubmissions(
 		problemIDs[problem.Index] = i + 1
 	}
 
-	submissions := make([]regatta.ContestSubmission, 0, len(statusSubmissions))
+	submissions := appendStatusSubmissions(nil, statusSubmissions, problemIDs, allowedHandles)
+
+	return appendPartialStandingsFallback(contestID, submissions, rows, problems, allowedHandles), nil
+}
+
+func appendStatusSubmissions(
+	submissions []regatta.ContestSubmission,
+	statusSubmissions []StatusSubmission,
+	problemIDs map[string]int,
+	allowedHandles map[string]bool,
+) []regatta.ContestSubmission {
 	for _, sub := range statusSubmissions {
 		if len(sub.Author.Members) == 0 {
 			continue
@@ -236,10 +218,6 @@ func (a *CodeforcesAdapter) fetchPartialSubmissions(
 			points = 100
 		}
 
-		if points <= 0 && sub.Verdict != "OK" {
-			continue
-		}
-
 		submissions = append(submissions, regatta.ContestSubmission{
 			ParticipantID:     handle,
 			ProblemID:         problemID,
@@ -249,8 +227,7 @@ func (a *CodeforcesAdapter) fetchPartialSubmissions(
 			OriginalProblemID: sub.Problem.Index,
 		})
 	}
-
-	return appendPartialStandingsFallback(contestID, submissions, rows, problems, allowedHandles), nil
+	return submissions
 }
 
 func appendPartialStandingsFallback(

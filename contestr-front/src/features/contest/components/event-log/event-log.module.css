@@ -4,12 +4,84 @@
     max-width: 100%;
 }
 
-.eventLogTitle {
-    margin: 0 0 0.5rem;
-    font-family: "Montserrat Alternates", sans-serif;
-    font-size: var(--fs-h2);
-    font-weight: 600;
-    color: #4f4e4e;
+.eventLogFooter {
+    display: flex;
+    align-items: center;
+    margin-top: 0.65rem;
+    padding-left: 0.15rem;
+}
+
+.eventLogFilterToggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0;
+    cursor: pointer;
+    user-select: none;
+}
+
+.eventLogFilterLabel {
+    font-family: "Anonymous Pro", monospace;
+    font-size: var(--fs-button);
+    color: #6b6a68;
+    line-height: 1.25;
+}
+
+.eventLogFilterInput {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+.eventLogFilterSwitch {
+    position: relative;
+    flex-shrink: 0;
+    width: 2.35rem;
+    height: 1.3rem;
+    border-radius: 999px;
+    background: #d8d4cb;
+    box-shadow: inset 0 1px 2px rgba(79, 78, 78, 0.1);
+    transition: background-color 0.2s ease;
+}
+
+.eventLogFilterSwitch::after {
+    content: "";
+    position: absolute;
+    top: 0.15rem;
+    left: 0.15rem;
+    width: 1rem;
+    height: 1rem;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(79, 78, 78, 0.18);
+    transition: transform 0.2s ease;
+}
+
+.eventLogFilterInput:checked + .eventLogFilterSwitch {
+    background: #9a7ab0;
+}
+
+.eventLogFilterInput:checked + .eventLogFilterSwitch::after {
+    transform: translateX(1.05rem);
+}
+
+.eventLogFilterInput:focus-visible + .eventLogFilterSwitch {
+    outline: 2px solid #b39bc9;
+    outline-offset: 2px;
+}
+
+.eventLogEmpty {
+    margin: 0;
+    padding: 0.5rem 0.85rem;
+    font-family: "Anonymous Pro", monospace;
+    font-size: var(--fs-button);
+    color: #8a8782;
 }
 
 .eventLogPanel {
@@ -46,53 +118,6 @@
     overflow: hidden;
 }
 
-.eventLogOutsideBlock {
-    display: flex;
-    flex-direction: row;
-    align-items: stretch;
-    gap: 0.35rem;
-}
-
-.eventLogOutsideMain {
-    flex: 1 1 0;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-}
-
-.eventLogOutsideMain .eventLogList {
-    width: auto;
-    max-width: 100%;
-    min-width: 0;
-}
-
-.eventLogPenaltyStripe {
-    flex: 0 0 1.5rem;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0.35rem 0.15rem;
-    border: 1px solid #b39bc9;
-    border-radius: 0.4rem;
-    background: #efe8f5;
-    color: #5c4578;
-    font-family: "Montserrat Alternates", sans-serif;
-    font-size: 0.72rem;
-    font-weight: 400;
-    line-height: 1.2;
-    writing-mode: vertical-rl;
-    text-orientation: mixed;
-    letter-spacing: 0.04em;
-    white-space: nowrap;
-    pointer-events: none;
-}
-
-.eventLogGroupDivider {
-    margin: 0;
-    border: 0;
-    border-top: 1px solid #ebe8e1;
-}
-
 .eventLogList {
     margin: 0;
     padding: 0;
@@ -100,17 +125,13 @@
     width: 100%;
     min-width: fit-content;
     display: grid;
-    grid-template-columns: 5.75rem 13rem minmax(5rem, max-content) 9.75rem 3.25rem;
+    grid-template-columns: 6.75rem 13rem minmax(5rem, max-content) 9.75rem 3.25rem;
     column-gap: 0.35rem;
     align-items: baseline;
 }
 
 .eventLogList .eventLogItem:not(:last-child) .eventLogLine {
     border-bottom: 1px solid #ebe8e1;
-}
-
-.eventLogTourCardMixed .eventLogOutsideMain .eventLogItem:last-child .eventLogLine {
-    border-bottom: none;
 }
 
 .eventLogItem {
@@ -129,9 +150,80 @@
     border-bottom: none;
 }
 
+@keyframes eventLogLineEnter {
+    from {
+        opacity: 0;
+        transform: translateY(-0.4rem);
+        background-color: #e8f5e9;
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+        background-color: transparent;
+    }
+}
+
+.eventLogLineEnter {
+    animation: eventLogLineEnter 0.55s ease-out both;
+    animation-delay: var(--event-enter-delay, 0ms);
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .eventLogLineEnter {
+        animation: none;
+    }
+}
+
+.eventLogLineRejected {
+    color: #8a8782;
+}
+
+.eventLogLineRejected .eventChip {
+    color: #8a8782;
+    border-color: #d8d4cb;
+    background: #f5f3ef;
+}
+
+.eventLogTimeCell {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    white-space: nowrap;
+}
+
 .eventLogTime {
     font-variant-numeric: tabular-nums;
-    white-space: nowrap;
+}
+
+.eventOutsideTourChip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    padding: 0.1em 0.35em;
+    border: 1px solid #b39bc9;
+    border-radius: 0.35rem;
+    background: #efe8f5;
+    color: #5c4578;
+    line-height: 1;
+}
+
+.eventOutsideTourIcon {
+    display: block;
+    width: 1em;
+    height: 1em;
+    flex-shrink: 0;
+    color: #5c4578;
+}
+
+.eventLogLineRejected .eventOutsideTourChip {
+    border-color: #c9bdd8;
+    background: #f3eff7;
+    color: #7a6a92;
+}
+
+.eventLogLineRejected .eventOutsideTourIcon {
+    color: #7a6a92;
 }
 
 .eventLogName {

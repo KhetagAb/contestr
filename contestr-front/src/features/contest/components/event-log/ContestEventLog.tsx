@@ -1,9 +1,16 @@
+import { useMemo, useState } from "react";
 import type { RegattaEvent } from "@/client";
 import { tourIndexFromProblemCode } from "@/shared/utils/eventLog";
 import { EventLogLine } from "./EventLogLine";
+import { eventEnterDelayMs, regattaEventKey } from "./eventLogKeys";
 import styles from "./event-log.module.css";
 
-const PENALTY_STRIPE_LABEL = "Вне тура";
+function filterVisibleEvents(events: RegattaEvent[], showRejected: boolean) {
+    if (showRejected) {
+        return events;
+    }
+    return events.filter((e) => e.type !== "problem_rejected");
+}
 
 type Props = {
     events: RegattaEvent[];
@@ -12,8 +19,7 @@ type Props = {
 type TourBlock = {
     tourIndex: number;
     showTourDivider: boolean;
-    afterTourEvents: RegattaEvent[];
-    inTimeEvents: RegattaEvent[];
+    tourEvents: RegattaEvent[];
 };
 
 function groupEventsByTour(events: RegattaEvent[]): Map<number, RegattaEvent[]> {
@@ -36,16 +42,6 @@ function groupEventsByTour(events: RegattaEvent[]): Map<number, RegattaEvent[]> 
     return groups;
 }
 
-function splitTourEvents(tourEvents: RegattaEvent[]): {
-    afterTourEvents: RegattaEvent[];
-    inTimeEvents: RegattaEvent[];
-} {
-    return {
-        afterTourEvents: tourEvents.filter((e) => e.solved_in_time === false),
-        inTimeEvents: tourEvents.filter((e) => e.solved_in_time === true),
-    };
-}
-
 function buildTourBlocks(events: RegattaEvent[]): TourBlock[] {
     if (events.length === 0) {
         return [];
@@ -64,21 +60,14 @@ function buildTourBlocks(events: RegattaEvent[]): TourBlock[] {
             continue;
         }
 
-        const { afterTourEvents, inTimeEvents } = splitTourEvents(tourEvents);
-
         blocks.push({
             tourIndex,
             showTourDivider: tourIndex > 0,
-            afterTourEvents,
-            inTimeEvents,
+            tourEvents,
         });
     }
 
     return blocks;
-}
-
-function eventKey(event: RegattaEvent, tourIndex: number): string {
-    return `${tourIndex}-${event.time_sec}-${event.participant_id}-${event.problem_code}`;
 }
 
 function EventLogRows({
@@ -90,85 +79,84 @@ function EventLogRows({
 }) {
     return (
         <>
-            {tourEvents.map((event) => (
-                <li key={eventKey(event, tourIndex)} className={styles.eventLogItem}>
-                    <EventLogLine event={event} />
+            {tourEvents.map((event, index) => (
+                <li
+                    key={regattaEventKey(event, tourIndex)}
+                    className={styles.eventLogItem}
+                >
+                    <EventLogLine
+                        event={event}
+                        enterDelayMs={eventEnterDelayMs(index)}
+                    />
                 </li>
             ))}
         </>
     );
 }
 
-function TourCard({ block }: { block: TourBlock }) {
-    const { afterTourEvents, inTimeEvents, tourIndex } = block;
-    const showStripe =
-        afterTourEvents.length > 0 && inTimeEvents.length > 0;
-    const cardClass = showStripe
-        ? `${styles.eventLogTourCard} ${styles.eventLogTourCardMixed}`
-        : styles.eventLogTourCard;
-
+function TourCard({ tourEvents, tourIndex }: { tourEvents: RegattaEvent[]; tourIndex: number }) {
     return (
-        <div className={cardClass}>
-            {afterTourEvents.length > 0 && (
-                <div className={styles.eventLogOutsideBlock}>
-                    <div className={styles.eventLogOutsideMain}>
-                        <ol className={styles.eventLogList}>
-                            <EventLogRows
-                                tourEvents={afterTourEvents}
-                                tourIndex={tourIndex}
-                            />
-                        </ol>
-                        {showStripe && (
-                            <div
-                                className={styles.eventLogGroupDivider}
-                                role="separator"
-                            />
-                        )}
-                    </div>
-                    {showStripe && (
-                        <aside
-                            className={styles.eventLogPenaltyStripe}
-                            aria-label="Посылки вне тура"
-                        >
-                            {PENALTY_STRIPE_LABEL}
-                        </aside>
-                    )}
-                </div>
-            )}
-
-            {inTimeEvents.length > 0 && (
-                <ol className={styles.eventLogList}>
-                    <EventLogRows tourEvents={inTimeEvents} tourIndex={tourIndex} />
-                </ol>
-            )}
+        <div className={styles.eventLogTourCard}>
+            <ol className={styles.eventLogList}>
+                <EventLogRows tourEvents={tourEvents} tourIndex={tourIndex} />
+            </ol>
         </div>
     );
 }
 
 export function ContestEventLog({ events }: Props) {
+    const [showRejected, setShowRejected] = useState(false);
+
+    const visibleEvents = useMemo(
+        () => filterVisibleEvents(events, showRejected),
+        [events, showRejected]
+    );
+
+    const blocks = useMemo(() => buildTourBlocks(visibleEvents), [visibleEvents]);
+
     if (events.length === 0) {
         return null;
     }
 
-    const blocks = buildTourBlocks(events);
-
     return (
         <section className={styles.eventLog} aria-label="История событий">
-            <h3 className={styles.eventLogTitle}>История</h3>
             <div className={styles.eventLogPanel}>
-                {blocks.map((block) => (
-                    <div key={`block-${block.tourIndex}`} className={styles.eventLogTourBlock}>
-                        {block.showTourDivider && (
-                            <div
-                                className={styles.eventLogTourDivider}
-                                aria-label={`Тур ${block.tourIndex}`}
-                            >
-                                Тур {block.tourIndex}
-                            </div>
-                        )}
-                        <TourCard block={block} />
-                    </div>
-                ))}
+                {blocks.length === 0 ? (
+                    <p className={styles.eventLogEmpty}>Нет удачных событий для отображения</p>
+                ) : (
+                    blocks.map((block) => (
+                        <div
+                            key={`block-${block.tourIndex}`}
+                            className={styles.eventLogTourBlock}
+                        >
+                            {block.showTourDivider && (
+                                <div
+                                    className={styles.eventLogTourDivider}
+                                    aria-label={`Тур ${block.tourIndex}`}
+                                >
+                                    Тур {block.tourIndex}
+                                </div>
+                            )}
+                            <TourCard
+                                tourEvents={block.tourEvents}
+                                tourIndex={block.tourIndex}
+                            />
+                        </div>
+                    ))
+                )}
+            </div>
+            <div className={styles.eventLogFooter}>
+                <label className={styles.eventLogFilterToggle}>
+                    <span className={styles.eventLogFilterLabel}>Неудачные посылки</span>
+                    <input
+                        type="checkbox"
+                        role="switch"
+                        className={styles.eventLogFilterInput}
+                        checked={showRejected}
+                        onChange={(e) => setShowRejected(e.target.checked)}
+                    />
+                    <span className={styles.eventLogFilterSwitch} aria-hidden />
+                </label>
             </div>
         </section>
     );

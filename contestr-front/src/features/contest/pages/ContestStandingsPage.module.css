@@ -1,20 +1,101 @@
-.table, .table th, .table td{
-    border: .5px solid rgb(255, 255, 255);
-    border-collapse: collapse;
+.standingsSection {
     width: fit-content;
-    text-align: center;
+    max-width: 100%;
+    box-sizing: border-box;
+    margin: 0 var(--space-s) var(--space-s) 0;
 }
 
-.tableHeader {
-    background-color: #DCDCDC;
+.standingsCard {
+    border: 1px solid #e0dcd0;
+    border-radius: 0.5rem;
+    background: #fbf8f3;
+    width: fit-content;
+    max-width: 100%;
+    overflow: hidden;
+}
+
+.standingsCardTitle {
+    margin: 0;
+    padding: 0.45rem 0.85rem;
+    font-family: "Montserrat Alternates", sans-serif;
+    font-size: var(--fs-h2);
+    font-weight: 600;
+    color: #4f4e4e;
+    background: #f0eee1;
+    border-bottom: 1px solid #e0dcd0;
+}
+
+.standingsTable {
+    border-collapse: collapse;
+    border-spacing: 0;
+    width: fit-content;
+    text-align: center;
+    font-family: "Anonymous Pro", monospace;
+    font-size: var(--fs-button);
+    color: #4f4e4e;
+}
+
+.standingsTable th,
+.standingsTable td {
+    border: 1px solid #ebe8e1;
+    padding: 0.35rem 0.65rem;
+    font-variant-numeric: tabular-nums;
+}
+
+.standingsTable thead tr:first-child th {
+    border-top: none;
+}
+
+.standingsTable tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.standingsTable tr th:first-child,
+.standingsTable tr td:first-child {
+    border-left: none;
+}
+
+.standingsTable tr th:last-child,
+.standingsTable tr td:last-child {
+    border-right: none;
+}
+
+.standingsTableHeader {
+    background-color: #f0eee1;
     height: 35px;
     user-select: none;
-      -webkit-user-select: none;
+    -webkit-user-select: none;
+    font-family: "Montserrat Alternates", sans-serif;
+    font-size: var(--fs-button);
+    font-weight: 600;
+    color: #6b6a68;
+}
 
+.tasksGroupHeader {
+    text-align: center;
+    vertical-align: middle;
+}
+
+.taskColumn {
+    width: 3.25rem;
+    min-width: 3rem;
+    max-width: 3.5rem;
+    padding: 0.3rem 0.2rem;
+    box-sizing: border-box;
+}
+
+.taskColumn .headerColumn {
+    margin: 0;
+    gap: 0.2rem;
+    justify-content: center;
 }
 
 .canSort {
     cursor: pointer;
+}
+
+.canSort:hover {
+    color: #e58995;
 }
 
 .headerColumn {
@@ -25,16 +106,47 @@
     gap: 10px;
 }
 
-.select-page {
-    border-radius: 40px;
+.nameColumn {
+    min-width: 18rem;
+    max-width: 26rem;
+    text-align: left;
+    white-space: normal;
+    line-height: 1.35;
 }
 
-.teamCell{
-    height: 100%;
+.groupChip {
+    display: inline-block;
+    padding: 0.05em 0.5em;
+    border: 1px solid #c4bfb3;
+    border-radius: 0.35rem;
+    background: #fff;
+    line-height: 1.25;
+}
+
+.taskSolved {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.1rem;
+}
+
+.taskScore {
+    font-weight: 600;
 }
 
 .taskTime {
-    font-size: 0.5em;
+    font-size: 0.78em;
+    color: #6b6a68;
+    line-height: 1.2;
+}
+
+.taskEmpty {
+    color: #6b6a68;
+}
+
+.taskFailed {
+    color: #b3261e;
+    font-weight: 600;
 }
 
 .newRow {
@@ -55,4 +167,19 @@
         background-color: #d4f7d4;
         opacity: 1;
     }
+}
+
+/* legacy recentParcelsTable */
+.table,
+.table th,
+.table td {
+    border: 1px solid #ebe8e1;
+    border-collapse: collapse;
+    width: fit-content;
+    text-align: center;
+}
+
+.tableHeader {
+    background-color: #f0eee1;
+    height: 35px;
 }

@@ -122,7 +122,9 @@ func (s *Regatta) GetContestResult(ctx context.Context, contestID int) (regatta.
 
 			for problem, problemResult := range participantResult {
 				contestStandingsByParticipants[participant][problem] = problemResult
-				participantTotal[participant] += problemResult.score
+				if problemResult.score > 0 {
+					participantTotal[participant] += problemResult.score
+				}
 			}
 		}
 	}

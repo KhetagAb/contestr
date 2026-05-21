@@ -31,7 +31,8 @@
 
     --grid-min: clamp(15rem, 40vw, 30rem);
     --card-min: clamp(20rem, 40vw, 50rem);
-    --container-margin-left: clamp(1rem, 5vw, 8rem);
+    --sidebar-width: 60px;
+    --main-offset-left: calc(var(--sidebar-width) + var(--space-xs));
     --container-login: clamp(--step--2);
 
     --bp-mobile: 600px;
@@ -50,8 +51,12 @@
     /*}*/
 
     #MyDiv {
-        margin-left: 1em;
+        margin-left: calc(50px + var(--space-xs));
         grid-template-columns: 1fr;
+    }
+
+    :root {
+        --sidebar-width: 50px;
     }
 
     .sidebar {
@@ -111,10 +116,8 @@ body {
     gap: var(--space-m);
     align-items: start;
     justify-content: stretch;
-    margin-left: var(--container-margin-left);
-    padding: var(--space-m);
-    padding-right: 0;
-    padding-top: 0;
+    margin-left: var(--main-offset-left);
+    padding: var(--space-s) var(--space-m) var(--space-m);
 }
 
 /*.container_row {*/
@@ -210,7 +213,6 @@ ul {
 }
 
 .sidebar-hover {
-    --sidebar-width: 60px;
     --sidebar-bg: #f0eee1;
     --sidebar-accent: #e58995;
     --sidebar-accent-border: rgba(229, 137, 149, 0.28);
@@ -317,6 +319,12 @@ ul {
     align-items: center;
     width: 100%;
     margin-bottom: 10px;
+}
+
+.sidebar-contests-menu-icon {
+    width: 1.35rem;
+    height: 1.35rem;
+    flex-shrink: 0;
 }
 
 .menu-item-container .icon-box {

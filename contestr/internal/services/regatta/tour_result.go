@@ -277,6 +277,33 @@ func solveEvent(
 	}
 }
 
+func rejectedEvent(
+	meta eventMeta,
+	t *TourResult,
+	participant Participant,
+	problem Problem,
+	problemCode string,
+	submissionTime SubmissionTime,
+	status string,
+) regatta.RegattaEvent {
+	displayName := meta.names[participant]
+	if displayName == "" {
+		displayName = participant
+	}
+
+	return regatta.RegattaEvent{
+		Type:          regatta.EventTypeProblemRejected,
+		TimeSec:       submissionTime,
+		ParticipantID: participant,
+		DisplayName:   displayName,
+		ProblemCode:   problemCode,
+		TeamNumber:    t.GroupNumbers[participant],
+		Points:        0,
+		SolvedInTime:  isSolvedInTime(t.SegmentStart, t.DurationInSeconds, submissionTime),
+		Verdict:       regatta.ShortSubmissionVerdict(status),
+	}
+}
+
 func partialTourEndScoredEvent(
 	meta eventMeta,
 	t *TourResult,
@@ -314,11 +341,21 @@ func (t *TourResult) ParticipantScore(participant Participant) ParticipantScoreO
 	for _, problem := range t.Problems {
 		problemCode := t.ProblemsMapping[problem]
 		state, participantScored := participantResults[problem]
-		if !participantScored || !state.HasBest {
+		if !participantScored {
 			logger.Infof(context.Background(), "Participant %v did not score problem %v", participant, problem)
 			result[problemCode] = ProblemResult{
 				problemCode: problemCode,
 				score:       0,
+			}
+			continue
+		}
+
+		if !state.HasBest {
+			rejected := rejectedAttemptCount(state)
+			logger.Infof(context.Background(), "Participant %v did not score problem %v", participant, problem)
+			result[problemCode] = ProblemResult{
+				problemCode: problemCode,
+				score:       -rejected,
 			}
 			continue
 		}
@@ -437,10 +474,32 @@ func calcSubmissions(submissions []Run, settings regatta.ScoringSettings) map[Pa
 	return results
 }
 
+func isRejectedSubmission(sub ScoredSubmission) bool {
+	if sub.Points > 0 {
+		return false
+	}
+	switch sub.Status {
+	case SubmissionStatusOK, SubmissionStatusPartial:
+		return false
+	default:
+		return true
+	}
+}
+
+func rejectedAttemptCount(state ProblemState) int {
+	count := 0
+	for _, sub := range state.Submissions {
+		if isRejectedSubmission(sub) {
+			count++
+		}
+	}
+	return count
+}
+
 func normalizedRunPoints(run Run, settings regatta.ScoringSettings) (int, bool) {
 	if settings.Mode != regatta.ScoringModePartial {
 		if run.Status != SubmissionStatusOK {
-			return 0, false
+			return 0, true
 		}
 		return 100, true
 	}
@@ -452,7 +511,10 @@ func normalizedRunPoints(run Run, settings regatta.ScoringSettings) (int, bool) 
 	if points < 0 {
 		points = 0
 	}
-	return points, points > 0 || run.Status == SubmissionStatusOK || run.Status == SubmissionStatusPartial
+	if points > 0 || run.Status == SubmissionStatusOK || run.Status == SubmissionStatusPartial {
+		return points, true
+	}
+	return 0, isRejectedSubmission(ScoredSubmission{Status: run.Status})
 }
 
 func tourForProblem(tours []regatta.Tour, probID Problem) *regatta.Tour {
@@ -506,15 +568,25 @@ func BuildContestEventsAt(
 		tr := CalculateResultWithSettingsAt(tour, segmentStart, runs, settings, contestElapsedSeconds)
 		for participant := range tour.Groups {
 			for _, problem := range tour.Problems {
-				state, ok := problemState(tr, participant, problem)
-				if !ok || !state.HasFullSolve {
-					continue
-				}
 				problemCode := tr.ProblemsMapping[problem]
 				if problemCode == "" {
 					continue
 				}
-				allEvents = append(allEvents, solveEvent(meta, tr, participant, problem, problemCode, state.FullSolveTime))
+
+				state, ok := problemState(tr, participant, problem)
+				if ok {
+					for _, sub := range state.Submissions {
+						if !isRejectedSubmission(sub) {
+							continue
+						}
+						allEvents = append(allEvents,
+							rejectedEvent(meta, tr, participant, problem, problemCode, sub.Time, sub.Status))
+					}
+					if state.HasFullSolve {
+						allEvents = append(allEvents,
+							solveEvent(meta, tr, participant, problem, problemCode, state.FullSolveTime))
+					}
+				}
 			}
 		}
 

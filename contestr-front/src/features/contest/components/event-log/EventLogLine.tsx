@@ -1,4 +1,6 @@
+import type { CSSProperties } from "react";
 import type { RegattaEvent } from "@/client";
+import { AppointmentMissedIcon } from "@/shared/icons/AppointmentMissedIcon";
 import { formatContestTime } from "@/shared/utils/eventLog";
 import { formatGroupCode } from "@/shared/utils/groupCode";
 import { EventBonusBadges } from "./EventBonusBadges";
@@ -6,17 +8,39 @@ import styles from "./event-log.module.css";
 
 type Props = {
     event: RegattaEvent;
+    /** Каскад при первом появлении строки в DOM (reload или новое событие с poll). */
+    enterDelayMs?: number;
 };
 
-export function EventLogLine({ event }: Props) {
+export function EventLogLine({ event, enterDelayMs = 0 }: Props) {
     const time = formatContestTime(event.time_sec);
     const teamNumber = event.team_number ?? 0;
     const groupCode = formatGroupCode(teamNumber);
     const isOvertakeEvent = event.type === "problem_overtake";
+    const isRejectedEvent = event.type === "problem_rejected";
+    const isOutsideTour = event.solved_in_time === false;
+
+    const lineStyle = {
+        "--event-enter-delay": `${enterDelayMs}ms`,
+    } as CSSProperties;
 
     return (
-        <div className={styles.eventLogLine}>
-            <span className={styles.eventLogTime}>{time}</span>
+        <div
+            className={`${styles.eventLogLine} ${styles.eventLogLineEnter}${isRejectedEvent ? ` ${styles.eventLogLineRejected}` : ""}`}
+            style={lineStyle}
+        >
+            <span className={styles.eventLogTimeCell}>
+                <span className={styles.eventLogTime}>{time}</span>
+                {isOutsideTour && (
+                    <span
+                        className={styles.eventOutsideTourChip}
+                        title="Вне тура"
+                        aria-label="Посылка вне тура"
+                    >
+                        <AppointmentMissedIcon className={styles.eventOutsideTourIcon} />
+                    </span>
+                )}
+            </span>
             <span className={styles.eventLogName}>
                 <span
                     className={`${styles.eventChip} ${styles.eventGroupChip}`}
@@ -29,7 +53,16 @@ export function EventLogLine({ event }: Props) {
                 </span>
             </span>
             <span className={styles.eventLogAction}>
-                {isOvertakeEvent ? (
+                {isRejectedEvent ? (
+                    <>
+                        получает{" "}
+                        <span className={styles.eventChip}>
+                            {event.verdict ?? "?"}
+                        </span>{" "}
+                        по задаче{" "}
+                        <span className={styles.eventChip}>{event.problem_code}</span>
+                    </>
+                ) : isOvertakeEvent ? (
                     <>
                         получил бонус за обгон в задаче{" "}
                         <span className={styles.eventChip}>{event.problem_code}</span>
@@ -42,12 +75,14 @@ export function EventLogLine({ event }: Props) {
                 )}
             </span>
             <span className={styles.eventLogBadgesCell}>
-                {!isOvertakeEvent && (
+                {!isOvertakeEvent && !isRejectedEvent && (
                     <EventBonusBadges first_in_group={event.first_in_group} />
                 )}
             </span>
             <span className={styles.eventLogPoints}>
-                <span className={styles.eventChip}>+{event.points}</span>
+                {!isRejectedEvent && (
+                    <span className={styles.eventChip}>+{event.points}</span>
+                )}
             </span>
         </div>
     );

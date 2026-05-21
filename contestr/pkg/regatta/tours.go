@@ -64,7 +64,7 @@ type ContestStandings struct {
 type ProblemResult struct {
 	ProblemCode        string `json:"problem_code"`
 	Score              int    `json:"score"`
-	LastSubmissionTime int    `json:"last_submission_time"`
+	LastSubmissionTime int    `json:"last_submission_time,omitempty"`
 }
 
 type ContestRow struct {

@@ -340,6 +340,103 @@ func TestPartialMode_zeroNeverGetsOvertake(t *testing.T) {
 	}
 }
 
+func TestParticipantScore_rejectedAttemptsNegativeScore(t *testing.T) {
+	tour := testTour()
+	tr := CalculateResult(tour, 0, []Run{
+		{UserID: "alice", ProbID: 1, Time: 100, Status: "WRONG_ANSWER"},
+		{UserID: "alice", ProbID: 1, Time: 200, Status: "WRONG_ANSWER"},
+	})
+
+	if got := tr.ParticipantScore("alice").Results["1A"].score; got != -2 {
+		t.Fatalf("alice score = %d, want -2 (two rejected attempts)", got)
+	}
+}
+
+func TestParticipantScore_noAttemptsZeroScore(t *testing.T) {
+	tour := testTour()
+	tr := CalculateResult(tour, 0, []Run{})
+
+	if got := tr.ParticipantScore("alice").Results["1A"].score; got != 0 {
+		t.Fatalf("alice score = %d, want 0 (no attempts)", got)
+	}
+}
+
+func TestParticipantScore_solvedPositiveScoreNoRejected(t *testing.T) {
+	tour := testTour()
+	tr := CalculateResult(tour, 0, []Run{
+		{UserID: "alice", ProbID: 1, Time: 100, Status: "WRONG_ANSWER"},
+		{UserID: "alice", ProbID: 1, Time: 500, Status: SubmissionStatusOK},
+	})
+
+	got := tr.ParticipantScore("alice").Results["1A"].score
+	if got <= 0 {
+		t.Fatalf("alice score = %d, want positive solve score", got)
+	}
+}
+
+func TestBuildContestEvents_includesRejectedSubmissions(t *testing.T) {
+	tour := testTour()
+	events := BuildContestEvents([]regatta.Tour{tour}, []Run{
+		{UserID: "alice", ProbID: 1, Time: 100, Status: "WRONG_ANSWER"},
+		{UserID: "alice", ProbID: 1, Time: 200, Status: "WRONG_ANSWER"},
+		{UserID: "alice", ProbID: 1, Time: 500, Status: SubmissionStatusOK},
+	}, nil)
+
+	var rejected, solved int
+	for _, e := range events {
+		switch e.Type {
+		case regatta.EventTypeProblemRejected:
+			rejected++
+			if e.ParticipantID != "alice" || e.ProblemCode != "1A" || e.Points != 0 || e.Verdict != "WA" {
+				t.Fatalf("unexpected rejected event: %+v", e)
+			}
+		case regatta.EventTypeProblemSolved:
+			solved++
+		}
+	}
+
+	if rejected != 2 {
+		t.Fatalf("rejected events = %d, want 2", rejected)
+	}
+	if solved != 1 {
+		t.Fatalf("solved events = %d, want 1", solved)
+	}
+}
+
+func TestBuildContestEvents_partialModeRejectedTimes(t *testing.T) {
+	tour := testTour()
+	settings := regatta.DefaultScoringSettings()
+	settings.Mode = regatta.ScoringModePartial
+	events := BuildContestEvents([]regatta.Tour{tour}, []Run{
+		{UserID: "alice", ProbID: 1, Time: 100, Status: "WRONG_ANSWER"},
+		{UserID: "alice", ProbID: 1, Time: 200, Status: "WRONG_ANSWER"},
+	}, nil, settings)
+
+	var times []int
+	for _, e := range events {
+		if e.Type == regatta.EventTypeProblemRejected {
+			times = append(times, e.TimeSec)
+		}
+	}
+	if len(times) != 2 {
+		t.Fatalf("rejected events = %d, want 2", len(times))
+	}
+	if times[0] != 100 || times[1] != 200 {
+		t.Fatalf("rejected times = %v, want [100 200]", times)
+	}
+}
+
+func TestBuildContestEvents_rejectedVerdictTL(t *testing.T) {
+	tour := testTour()
+	events := BuildContestEvents([]regatta.Tour{tour}, []Run{
+		{UserID: "alice", ProbID: 1, Time: 300, Status: "TIME_LIMIT_EXCEEDED"},
+	}, nil)
+
+	if len(events) != 1 || events[0].Type != regatta.EventTypeProblemRejected || events[0].Verdict != "TL" {
+		t.Fatalf("events = %+v, want one rejected TL event", events)
+	}
+}
+
 func TestBinaryMode_duringTourOnlyOvertakeOption(t *testing.T) {
 	tour := testTour()
 	settings := regatta.DefaultScoringSettings()

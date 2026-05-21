@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { FiFileText } from "react-icons/fi";
+import { FiMenu } from "react-icons/fi";
 import { useContests } from "@/shared/hooks/useContests";
 import logo from "@/assets/icons/logo.svg";
 import adminUserIcon from "@/assets/images/admin-user-icon.png";
@@ -44,8 +44,11 @@ export function Sidebar({ adminSession }: SidebarProps) {
                     onMouseEnter={() => setHoveredMenu("contests")}
                     onMouseLeave={() => setHoveredMenu(null)}
                 >
-                    <div className="icon-box">
-                        <FiFileText size={35} />
+                    <div
+                        className="icon-box"
+                        aria-label="Список контестов"
+                    >
+                        <FiMenu className="sidebar-contests-menu-icon" aria-hidden />
                     </div>
                     <Submenu isOpen={hoveredMenu === "contests"}>
                         {isLoading && (

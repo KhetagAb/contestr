@@ -510,6 +510,7 @@ components:
           enum:
             - problem_solved
             - problem_overtake
+            - problem_rejected
         time_sec:
           type: integer
           description: Время посылки в секундах от старта контеста
@@ -530,12 +531,15 @@ components:
         first_in_group:
           type: boolean
           description: Бонус за первое решение в группе
+        verdict:
+          type: string
+          description: Краткий код вердикта посылки (WA, TL и т.д.) для событий problem_rejected
     ProblemResult:
       type: object
       required:
         - problem_code
         - score
-      description: Результаты по задаче, c буквой задачи, счётом и временем последней попытки. Если score < 0, то попытка неудачна. Время последней посылки отправляется только для удачных посылок
+      description: Результаты по задаче с буквой задачи, счётом и временем последней удачной попытки. score 0 — нет зачётного результата по задаче
       properties:
         problem_code:
           type: string

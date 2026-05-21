@@ -3,14 +3,13 @@ import {
     createColumnHelper,
     flexRender,
     getCoreRowModel,
-    getFacetedMinMaxValues,
-    getFilteredRowModel,
     getSortedRowModel,
     useReactTable,
 } from "@tanstack/react-table";
 import { SlArrowDown, SlArrowUp } from "react-icons/sl";
 import type { ProblemResult, RegattaContestRow } from "@/client";
 import { ContestEventLog } from "@/features/contest/components/event-log/ContestEventLog";
+import { TaskCell } from "@/features/contest/components/standings/TaskCell";
 import { useContestStandings } from "@/features/contest/hooks/useContestStandings";
 import { formatGroupCode } from "@/shared/utils/groupCode";
 import styles from "./ContestStandingsPage.module.css";
@@ -23,7 +22,11 @@ const columns = [
     columnHelper.accessor("team_number", {
         cell: (info) => {
             const n = info.getValue();
-            return <span title={`Группа ${n}`}>{formatGroupCode(n)}</span>;
+            return (
+                <span className={styles.groupChip} title={`Группа ${n}`}>
+                    {formatGroupCode(n)}
+                </span>
+            );
         },
         header: () => "Группа",
     }),
@@ -37,46 +40,63 @@ const columns = [
     }),
 ];
 
+/** Фоны групп — тёплые оттенки в духе #fbf8f3 / event-log, но различимые */
 const teamColors = [
-    "#cdd7d9dd",
-    "#e1e4f2dd",
-    "#c9cce2dd",
-    "#F5CBCBdd",
-    "#f5dce5dd",
-    "#FFEAEAdd",
-    "#D4E6F1dd",
-    "#E8F5E9dd",
-    "#f9f3e8dd",
-    "#FCE4ECdd",
-    "#E0F7FAdd",
-    "#F1F8E9dd",
-    "#f9eededd",
-    "#D7CCC8dd",
-    "#e5d0e8dd",
-    "#ced1e3dd",
-    "#c9dedcdd",
-    "#f8dfd7dd",
-    "#e1ead6dd",
-    "#fad8e4dd",
-    "#d2dce5dd",
-    "#CFD8DCdd",
+    "#f9f3e8ee",
+    "#efe8f5ee",
+    "#e8f3eaee",
+    "#f5ebe8ee",
+    "#e8eef5ee",
+    "#f5f0e8ee",
+    "#ebe8e1ee",
+    "#f0ebe8ee",
+    "#e8f5f0ee",
+    "#f5e8f0ee",
+    "#f2efe8ee",
+    "#ebe5f0ee",
+    "#e8f0ebee",
+    "#f8f3e8ee",
+    "#efeae8ee",
+    "#e5eef5ee",
+    "#f0e8f2ee",
+    "#e8f2f5ee",
+    "#f5f2e8ee",
+    "#ebe8f5ee",
+    "#f3ebe8ee",
+    "#e8ebe8ee",
 ];
 
-function scoreToGreenColor(score: number) {
-    if (score <= 0) return "transparent";
-    const clamped = Math.min(1, Math.max(0, score));
-    const alpha = clamped;
-    const g = Math.floor(255 * clamped);
-    return `rgba(0, ${g}, 0, ${alpha})`;
+function scoreToGreenColor(ratio: number) {
+    if (ratio <= 0) return "transparent";
+    const t = Math.min(1, Math.max(0, ratio));
+    const eased = Math.pow(t, 0.68);
+    const r = Math.round(244 + (155 - 244) * eased);
+    const g = Math.round(249 + (192 - 249) * eased);
+    const b = Math.round(240 + (148 - 240) * eased);
+    const alpha = 0.68 + 0.32 * eased;
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
 }
 
-const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins.toString().padStart(2, "0")}:${secs
-        .toString()
-        .padStart(2, "0")}`;
-};
+function taskCellBackground(score: number, globalMaxPositive: number) {
+    if (score <= 0) {
+        return score < 0 ? "rgba(252, 232, 232, 0.5)" : "transparent";
+    }
+    if (globalMaxPositive <= 0) return "transparent";
+    return scoreToGreenColor(score / globalMaxPositive);
+}
+
+function globalMaxPositiveScore(rows: RegattaContestRow[] | undefined) {
+    if (!rows?.length) return 0;
+    let max = 0;
+    for (const row of rows) {
+        for (const p of row.problem_results) {
+            if (p.score > 0) {
+                max = Math.max(max, p.score);
+            }
+        }
+    }
+    return max;
+}
 
 function colorTeam(
     row: RegattaContestRow,
@@ -101,6 +121,14 @@ function colorTeam(
     };
 }
 
+function findProblem(row: RegattaContestRow, taskId: string): ProblemResult | undefined {
+    return row.problem_results?.find((p) => p.problem_code === taskId);
+}
+
+function taskSortValue(row: RegattaContestRow, taskName: string): number {
+    return findProblem(row, taskName)?.score ?? 0;
+}
+
 export default function ContestStandingsPage() {
     const { data, isSuccess } = useContestStandings();
 
@@ -117,153 +145,168 @@ export default function ContestStandingsPage() {
         () =>
             (isSuccess &&
                 data.rows &&
-                data.rows.find((r) => r.user_id === hightlighted_user_id)
-                    ?.team_number) ||
+                data.rows.find((r) => r.user_id === hightlighted_user_id)?.team_number) ||
             undefined,
         [data, isSuccess]
     );
 
+    const taskColumns = useMemo(
+        () =>
+            tasks
+                ? tasks.map((taskName) =>
+                      columnHelper.accessor((row) => taskSortValue(row, taskName), {
+                          id: `task_${taskName}`,
+                          header: taskName,
+                          cell: (props) => {
+                              const problem = findProblem(props.row.original, taskName);
+                              return <TaskCell problem={problem} />;
+                          },
+                      })
+                  )
+                : [],
+        [tasks]
+    );
+
     const table = useReactTable({
-        columns: [
-            ...columns,
-            ...(tasks
-                ? [
-                      columnHelper.group({
-                          id: "tasks",
-                          header: () => "Задачи",
-                          columns: tasks.map((taskName, i) =>
-                              columnHelper.accessor(`problem_results`, {
-                                  id: `task_${taskName}`,
-                                  header: taskName,
-                                  cell: (props) => {
-                                      const problem = props.row.original.problem_results[i];
-                                      return (
-                                          <div>
-                                              {problem ? problem.score : "—"}
-                                              {problem?.last_submission_time && (
-                                                  <div className={styles.taskTime}>
-                                                      {formatTime(problem.last_submission_time)}
-                                                  </div>
-                                              )}
-                                          </div>
-                                      );
-                                  },
-                              })
-                          ),
-                      }),
-                  ]
-                : []),
-        ],
+        columns: [...columns, ...taskColumns],
         data: data?.rows || [],
-        debugTable: true,
         getCoreRowModel: getCoreRowModel(),
         getSortedRowModel: getSortedRowModel(),
-        getFilteredRowModel: getFilteredRowModel(),
-        getFacetedMinMaxValues: getFacetedMinMaxValues(),
     });
 
+    const contestTitle = data?.contest_name?.trim() || "Контест";
+    const taskList = tasks || [];
+
+    const maxPositiveScore = useMemo(
+        () => globalMaxPositiveScore(data?.rows),
+        [data?.rows]
+    );
+
+    const renderSortableTh = (
+        columnId: string,
+        label: string,
+        rowSpan?: number,
+        colSpan?: number,
+        extraClassName?: string
+    ) => {
+        const column = table.getColumn(columnId);
+        const sorted = column?.getIsSorted();
+        const canSort = column?.getCanSort() ?? false;
+        const thClass = [extraClassName, canSort ? styles.canSort : undefined]
+            .filter(Boolean)
+            .join(" ");
+        return (
+            <th
+                key={columnId}
+                rowSpan={rowSpan}
+                colSpan={colSpan}
+                className={thClass || undefined}
+                onClick={canSort ? column?.getToggleSortingHandler() : undefined}
+            >
+                <div className={styles.headerColumn}>
+                    <div>{label}</div>
+                    {sorted === "asc" ? (
+                        <SlArrowUp size="12px" />
+                    ) : sorted === "desc" ? (
+                        <SlArrowDown size="12px" />
+                    ) : null}
+                </div>
+            </th>
+        );
+    };
+
     return (
-        <div>
-            <h2>Таблица результатов</h2>
-            <table className={styles.table}>
-                <thead>
-                    {table.getHeaderGroups().map((headerGroup) => (
-                        <tr key={headerGroup.id} className={styles.tableHeader}>
-                            {headerGroup.headers.map((header) => {
-                                const columnRelativeDepth = header.depth - header.column.depth;
-                                if (columnRelativeDepth > 1) return null;
-                                let rowSpan = 1;
-                                if (header.isPlaceholder) {
-                                    const leafs = header.getLeafHeaders();
-                                    rowSpan = leafs[leafs.length - 1].depth - header.depth;
-                                }
-                                return (
-                                    <th
-                                        key={header.id}
-                                        colSpan={header.colSpan}
-                                        rowSpan={2 - rowSpan}
-                                        className={
-                                            header.column.getCanSort() ? styles.canSort : ""
-                                        }
-                                        onClick={header.column.getToggleSortingHandler()}
-                                    >
-                                        <div className={styles.headerColumn}>
-                                            <div>
-                                                {flexRender(
-                                                    header.column.columnDef.header,
-                                                    header.getContext()
-                                                )}
-                                            </div>
-                                            {{
-                                                asc: <SlArrowUp size="12px" />,
-                                                desc: <SlArrowDown size="12px" />,
-                                            }[header.column.getIsSorted() as string] ?? null}
-                                        </div>
+        <section className={styles.standingsSection} aria-label={contestTitle}>
+            <div className={styles.standingsCard}>
+                <h2 className={styles.standingsCardTitle}>{contestTitle}</h2>
+                <table className={styles.standingsTable}>
+                    <thead>
+                        {taskList.length > 0 ? (
+                            <>
+                                <tr className={styles.standingsTableHeader}>
+                                    {renderSortableTh("team_number", "Группа", 2)}
+                                    {renderSortableTh("display_name", "Имя", 2, undefined, styles.nameColumn)}
+                                    {renderSortableTh("total_score", "Счет", 2)}
+                                    <th colSpan={taskList.length} className={styles.tasksGroupHeader}>
+                                        Задачи
                                     </th>
-                                );
-                            })}
-                        </tr>
-                    ))}
-                </thead>
-                <tbody>
-                    {table.getRowModel().rows.map((row) => {
-                        const rowHightlight = colorTeam(
-                            row.original,
-                            hightlighted_user_team_number
-                        );
-                        return (
-                            <tr key={row.id}>
-                                {row.getVisibleCells().map((cell) => {
-                                    const taskId = cell.column.id.replace("task_", "");
-                                    const columnValues =
-                                        table
-                                            .getColumn(cell.column.id)
-                                            ?.getFacetedRowModel()
-                                            .rows.map((row) => {
-                                                const problemResults = row.original.problem_results;
-                                                const problem = problemResults?.find(
-                                                    (p) => p.problem_code === taskId
-                                                );
-                                                return problem?.score ?? 0;
-                                            }) ?? [0];
-
-                                    const minmaxValues = columnValues
-                                        ? Math.max(...columnValues)
-                                        : 0;
-
-                                    const ddd = cell.getValue() as
-                                        | Array<ProblemResult>
-                                        | undefined;
-                                    const curScore =
-                                        ddd?.find?.((p) => p.problem_code === taskId)?.score || 0;
-                                    return (
-                                        <td
-                                            key={cell.id}
-                                            style={{
-                                                backgroundColor: [
-                                                    "team_number",
-                                                    "display_name",
-                                                    "user_id",
-                                                ].includes(cell.column.id)
-                                                    ? rowHightlight.backgroundColor
-                                                    : scoreToGreenColor(curScore / minmaxValues),
-                                                borderTop: rowHightlight.border,
-                                                borderBottom: rowHightlight.border,
-                                            }}
-                                        >
-                                            {flexRender(
-                                                cell.column.columnDef.cell,
-                                                cell.getContext()
-                                            )}
-                                        </td>
-                                    );
-                                })}
+                                </tr>
+                                <tr className={styles.standingsTableHeader}>
+                                    {taskList.map((taskName) =>
+                                        renderSortableTh(
+                                            `task_${taskName}`,
+                                            taskName,
+                                            undefined,
+                                            undefined,
+                                            styles.taskColumn
+                                        )
+                                    )}
+                                </tr>
+                            </>
+                        ) : (
+                            <tr className={styles.standingsTableHeader}>
+                                {renderSortableTh("team_number", "Группа")}
+                                {renderSortableTh("display_name", "Имя", undefined, undefined, styles.nameColumn)}
+                                {renderSortableTh("total_score", "Счет")}
                             </tr>
-                        );
-                    })}
-                </tbody>
-            </table>
+                        )}
+                    </thead>
+                    <tbody>
+                        {table.getRowModel().rows.map((row) => {
+                            const rowHightlight = colorTeam(
+                                row.original,
+                                hightlighted_user_team_number
+                            );
+                            return (
+                                <tr key={row.id}>
+                                    {row.getVisibleCells().map((cell) => {
+                                        const taskId = cell.column.id.replace("task_", "");
+                                        const isTaskColumn = cell.column.id.startsWith("task_");
+
+                                        const problem = isTaskColumn
+                                            ? findProblem(row.original, taskId)
+                                            : undefined;
+                                        const curScore = problem?.score ?? 0;
+
+                                        const cellClassName = isTaskColumn
+                                            ? styles.taskColumn
+                                            : cell.column.id === "display_name"
+                                              ? styles.nameColumn
+                                              : undefined;
+
+                                        return (
+                                            <td
+                                                key={cell.id}
+                                                className={cellClassName}
+                                                style={{
+                                                    backgroundColor: [
+                                                        "team_number",
+                                                        "display_name",
+                                                        "user_id",
+                                                    ].includes(cell.column.id)
+                                                        ? rowHightlight.backgroundColor
+                                                        : taskCellBackground(
+                                                              curScore,
+                                                              maxPositiveScore
+                                                          ),
+                                                    borderTop: rowHightlight.border,
+                                                    borderBottom: rowHightlight.border,
+                                                }}
+                                            >
+                                                {flexRender(
+                                                    cell.column.columnDef.cell,
+                                                    cell.getContext()
+                                                )}
+                                            </td>
+                                        );
+                                    })}
+                                </tr>
+                            );
+                        })}
+                    </tbody>
+                </table>
+            </div>
             {isSuccess && data?.events && <ContestEventLog events={data.events} />}
-        </div>
+        </section>
     );
 }
