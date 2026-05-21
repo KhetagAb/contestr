@@ -1,2 +1,1 @@
-/** Единый размер иконок тура (статус) и перерыва на оси и в плашке «следующий тур». */
-export const SEGMENT_SLOT_ICON_PX = 14;
+export { SEGMENT_SLOT_ICON_PX } from "@/shared/timetable/segmentIcons";

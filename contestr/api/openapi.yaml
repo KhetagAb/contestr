@@ -231,6 +231,23 @@ paths:
         200:
           $ref: '#/components/responses/RegattaContestStandings'
 
+  /api/regatta/contests/{contest_id}/timetable:
+    get:
+      operationId: getRegattaContestTimetable
+      parameters:
+        - name: contest_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          description: Расписание туров контеста (read-only)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TimetableView'
+
   /api/cfcontest/{contest_id}:
     get:
       operationId: getContest

@@ -62,6 +62,11 @@ func (r *MongoTourRepository) FindByContestID(ctx context.Context, contestID int
 	return tours, nil
 }
 
+func (r *MongoTourRepository) DeleteByContestID(ctx context.Context, contestID int) error {
+	_, err := r.collection.DeleteMany(ctx, bson.M{"contest_id": contestID})
+	return err
+}
+
 func (r *MongoTourRepository) FindAll(ctx context.Context) ([]regatta.Tour, error) {
 	cursor, err := r.collection.Find(ctx, bson.M{})
 	if err != nil {

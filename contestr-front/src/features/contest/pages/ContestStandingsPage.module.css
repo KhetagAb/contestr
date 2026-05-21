@@ -3,8 +3,12 @@
     max-width: 100%;
     box-sizing: border-box;
     margin: 0 var(--space-s) var(--space-s) 0;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-s, 0.65rem);
 }
 
+.phaseCard,
 .standingsCard {
     border: 1px solid #e0dcd0;
     border-radius: 0.5rem;

@@ -12,6 +12,7 @@ import (
 type Handlers struct {
 	contestHandle        *codeforces.ContestHandle
 	regattaContestHandle *regatta.ContestHandle
+	regattaTimetableHandle *regatta.TimetableHandle
 	contestsListHandle   *contests.ListHandle
 	adminLoginHandle     *admin.LoginHandle
 	adminMeHandle        *admin.MeHandle
@@ -23,9 +24,14 @@ func (h *Handlers) GetRegattaContestStandings(ctx echo.Context, contestId int) e
 	return h.regattaContestHandle.GetContest(ctx, contestId)
 }
 
+func (h *Handlers) GetRegattaContestTimetable(ctx echo.Context, contestId int) error {
+	return h.regattaTimetableHandle.GetContestTimetable(ctx, contestId)
+}
+
 func NewHandlers(
 	contestHandle *codeforces.ContestHandle,
 	regattaContestHandle *regatta.ContestHandle,
+	regattaTimetableHandle *regatta.TimetableHandle,
 	contestsListHandle *contests.ListHandle,
 	adminLoginHandle *admin.LoginHandle,
 	adminMeHandle *admin.MeHandle,
@@ -33,13 +39,14 @@ func NewHandlers(
 	adminContestsHandle *admin.ContestsHandle,
 ) *Handlers {
 	return &Handlers{
-		contestHandle:        contestHandle,
-		regattaContestHandle: regattaContestHandle,
-		contestsListHandle:   contestsListHandle,
-		adminLoginHandle:     adminLoginHandle,
-		adminMeHandle:        adminMeHandle,
-		adminTimetableHandle: adminTimetableHandle,
-		adminContestsHandle:  adminContestsHandle,
+		contestHandle:          contestHandle,
+		regattaContestHandle:   regattaContestHandle,
+		regattaTimetableHandle: regattaTimetableHandle,
+		contestsListHandle:     contestsListHandle,
+		adminLoginHandle:       adminLoginHandle,
+		adminMeHandle:          adminMeHandle,
+		adminTimetableHandle:   adminTimetableHandle,
+		adminContestsHandle:    adminContestsHandle,
 	}
 }
 

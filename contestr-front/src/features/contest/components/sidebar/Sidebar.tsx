@@ -3,8 +3,6 @@ import { FiMenu } from "react-icons/fi";
 import { useContests } from "@/shared/hooks/useContests";
 import logo from "@/assets/icons/logo.svg";
 import adminUserIcon from "@/assets/images/admin-user-icon.png";
-import { ContestClock } from "./ContestClock";
-
 export type AdminSidebarSession = {
     username: string;
     onLogout: () => void;
@@ -68,17 +66,6 @@ export function Sidebar({ adminSession }: SidebarProps) {
                         ))}
                     </Submenu>
                 </div>
-            </div>
-
-            <div className="time">
-                <ContestClock />
-            </div>
-
-            <div className="time-text">
-                <p>
-                    <span>Время до </span>
-                    <span>конца тура</span>
-                </p>
             </div>
 
             {adminSession && (

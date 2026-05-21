@@ -1,0 +1,59 @@
+.tt-status-icon-wrap {
+    --tt-icon-slot-size: 14px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--tt-icon-slot-size);
+    height: var(--tt-icon-slot-size);
+    flex-shrink: 0;
+    line-height: 0;
+}
+
+.tt-status-icon-wrap svg {
+    width: var(--tt-icon-slot-size);
+    height: var(--tt-icon-slot-size);
+    flex-shrink: 0;
+}
+
+.tt-status-icon--spin {
+    animation: tt-status-spin 0.9s linear infinite;
+}
+
+@keyframes tt-status-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.tt-chevrons-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: var(--tt-icon-slot-size, 14px);
+    height: var(--tt-icon-slot-size, 14px);
+    line-height: 0;
+}
+
+.tt-chevrons-icon__inner {
+    display: inline-block;
+    font-family: "Anonymous Pro", monospace;
+    font-weight: 700;
+    font-size: var(--tt-icon-slot-size, 14px);
+    line-height: 1;
+    letter-spacing: -0.1em;
+    animation: tt-chevrons-nudge 0.75s ease-in-out infinite;
+}
+
+@keyframes tt-chevrons-nudge {
+    0%,
+    100% {
+        transform: translateX(0);
+        opacity: 1;
+    }
+
+    50% {
+        transform: translateX(0.12em);
+        opacity: 0.85;
+    }
+}

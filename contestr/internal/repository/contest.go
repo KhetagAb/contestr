@@ -15,6 +15,7 @@ type ContestRepository interface {
 	GetByContestID(ctx context.Context, contestID int) (*regatta.Contest, error)
 	GetParticipants(ctx context.Context, contestID int) (map[string]string, error)
 	GetSubmissions(ctx context.Context, contestID int) ([]regatta.ContestSubmission, error)
+	DeleteByContestID(ctx context.Context, contestID int) error
 }
 
 type MongoContestRepository struct {
@@ -72,4 +73,9 @@ func (r *MongoContestRepository) GetSubmissions(ctx context.Context, contestID i
 		return nil, err
 	}
 	return contest.Submissions, nil
+}
+
+func (r *MongoContestRepository) DeleteByContestID(ctx context.Context, contestID int) error {
+	_, err := r.collection.DeleteOne(ctx, bson.M{"contest_id": contestID})
+	return err
 }

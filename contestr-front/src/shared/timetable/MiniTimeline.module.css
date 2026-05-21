@@ -1,0 +1,75 @@
+.track {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    flex-shrink: 0;
+    min-width: 0;
+    max-width: 100%;
+    overflow-x: auto;
+}
+
+.segment {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    height: 1.35rem;
+    padding: 0 0.35rem;
+    border-radius: 0.28rem;
+    opacity: 0.55;
+    transition: opacity 0.2s ease;
+    box-sizing: border-box;
+}
+
+.segment--active {
+    opacity: 1;
+    box-shadow: inset 0 0 0 1px rgba(79, 78, 78, 0.2);
+}
+
+.segment--next,
+.segment--starting {
+    opacity: 0.85;
+    animation: mini-seg-pulse 1.6s ease-in-out infinite;
+}
+
+.segmentInner {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.2rem;
+    height: 100%;
+    line-height: 1;
+    color: #4f4e4e;
+}
+
+.segmentPause {
+    padding: 0 0.25rem;
+}
+
+.segmentLabel {
+    display: block;
+    font-family: "Montserrat Alternates", sans-serif;
+    font-size: 0.62rem;
+    font-weight: 600;
+    line-height: 14px;
+    color: #4f4e4e;
+    white-space: nowrap;
+}
+
+.pauseIcon {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+}
+
+@keyframes mini-seg-pulse {
+    0%,
+    100% {
+        filter: brightness(1);
+    }
+
+    50% {
+        filter: brightness(1.08);
+    }
+}

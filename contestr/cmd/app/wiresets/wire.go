@@ -77,6 +77,8 @@ var All = wire.NewSet(
 	adminhandlers.NewTimetableHandle,
 	adminhandlers.NewContestsHandle,
 	contests.NewListHandle,
+	wire.Bind(new(contest_admin.TourDeleter), new(*repository.MongoTourRepository)),
+	wire.Bind(new(contest_admin.TimetableDeleter), new(*repository.TourTimetableRepository)),
 	contest_admin.NewService,
 	handlers.NewHandlers,
 	auth.NewService,
@@ -122,4 +124,6 @@ var All = wire.NewSet(
 
 	wire.Bind(new(regattahandlers.Regatta), new(*regatta.Regatta)),
 	regattahandlers.NewContestHandle,
+	wire.Bind(new(regattahandlers.TimetableViewer), new(*regatta.Regatta)),
+	regattahandlers.NewTimetableHandle,
 )

@@ -21,6 +21,7 @@ type CodeforcesHandleRepository interface {
 	ListByContestID(ctx context.Context, contestID int) ([]CodeforcesHandleMapping, error)
 	UpsertMany(ctx context.Context, contestID int, mappings []CodeforcesHandleMapping) error
 	DeleteOne(ctx context.Context, contestID int, handle string) error
+	DeleteByContestID(ctx context.Context, contestID int) error
 }
 
 type MongoCodeforcesHandleRepository struct {
@@ -106,6 +107,11 @@ func (r *MongoCodeforcesHandleRepository) UpsertMany(ctx context.Context, contes
 		}
 	}
 	return nil
+}
+
+func (r *MongoCodeforcesHandleRepository) DeleteByContestID(ctx context.Context, contestID int) error {
+	_, err := r.collection.DeleteMany(ctx, bson.M{"contest_id": contestIDString(contestID)})
+	return err
 }
 
 func (r *MongoCodeforcesHandleRepository) DeleteOne(ctx context.Context, contestID int, handle string) error {

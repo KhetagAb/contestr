@@ -1,0 +1,92 @@
+.strip {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.65rem 1rem;
+    padding: 0.5rem 0.85rem;
+    background: #f5f3eb;
+    border-radius: 0.5rem;
+    min-height: 2.75rem;
+}
+
+.timeline {
+    display: flex;
+    align-items: center;
+    align-self: center;
+    flex-shrink: 0;
+}
+
+.main {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.45rem 0.65rem;
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.heroChip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.2rem 0.55rem;
+    border-radius: 0.35rem;
+    border: 1px solid rgba(79, 78, 78, 0.12);
+}
+
+.heroIcon {
+    display: inline-flex;
+    line-height: 0;
+    --tt-icon-slot-size: 14px;
+}
+
+.heroPauseIcon {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+    color: #5c5a52;
+}
+
+.heroLabel {
+    font-family: "Montserrat Alternates", sans-serif;
+    font-size: var(--fs-p, 0.95rem);
+    font-weight: 600;
+    color: #4f4e4e;
+    white-space: nowrap;
+}
+
+.statusText {
+    font-family: "Montserrat Alternates", sans-serif;
+    font-size: var(--fs-caption, 0.8rem);
+    font-weight: 500;
+    color: #6b6860;
+    text-transform: lowercase;
+}
+
+.timer {
+    font-family: "Anonymous Pro", monospace;
+    font-size: var(--fs-button, 1rem);
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: #4f4e4e;
+    letter-spacing: 0.02em;
+}
+
+.emptyIcon {
+    flex-shrink: 0;
+    color: #8a8578;
+}
+
+.emptyText,
+.loadingText {
+    font-family: "Montserrat Alternates", sans-serif;
+    font-size: var(--fs-caption, 0.85rem);
+    color: #6b6860;
+}
+
+@media (max-width: 520px) {
+    .strip {
+        flex-direction: column;
+        align-items: stretch;
+    }
+}

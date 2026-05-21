@@ -169,12 +169,4 @@ export function pendingInsertIndexAfter(segment: TimelineSegment): number {
     return 0;
 }
 
-export function segmentLabel(segment: TimelineSegment): string {
-    if (segment.kind === "pause") {
-        return "Перерыв";
-    }
-    if (segment.round != null && segment.round > 0) {
-        return `Тур ${segment.round}`;
-    }
-    return "Тур";
-}
+export { segmentLabel } from "@/shared/timetable/segmentTime";

@@ -9,6 +9,7 @@ import {
 import { SlArrowDown, SlArrowUp } from "react-icons/sl";
 import type { ProblemResult, RegattaContestRow } from "@/client";
 import { ContestEventLog } from "@/features/contest/components/event-log/ContestEventLog";
+import { ContestPhaseStrip } from "@/features/contest/components/phase/ContestPhaseStrip";
 import { TaskCell } from "@/features/contest/components/standings/TaskCell";
 import { useContestStandings } from "@/features/contest/hooks/useContestStandings";
 import { formatGroupCode } from "@/shared/utils/groupCode";
@@ -217,6 +218,9 @@ export default function ContestStandingsPage() {
 
     return (
         <section className={styles.standingsSection} aria-label={contestTitle}>
+            <div className={styles.phaseCard}>
+                <ContestPhaseStrip />
+            </div>
             <div className={styles.standingsCard}>
                 <h2 className={styles.standingsCardTitle}>{contestTitle}</h2>
                 <table className={styles.standingsTable}>

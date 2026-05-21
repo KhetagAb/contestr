@@ -12,13 +12,26 @@ import (
 	contestsync "contestr/internal/services/contest_sync"
 	"contestr/pkg/logger"
 	"contestr/pkg/regatta"
+
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
 const systemCodeforces = "codeforces"
 
+type TourDeleter interface {
+	DeleteByContestID(ctx context.Context, contestID int) error
+}
+
+type TimetableDeleter interface {
+	DeleteByContestID(ctx context.Context, contestID int) error
+}
+
 type Service struct {
 	registeredRepo repository.RegisteredContestRepository
 	handleRepo     repository.CodeforcesHandleRepository
+	contestRepo    repository.ContestRepository
+	tourRepo       TourDeleter
+	timetableRepo  TimetableDeleter
 	cfService      *codeforces.Service
 	syncService    *contestsync.ContestSyncService
 }
@@ -26,12 +39,18 @@ type Service struct {
 func NewService(
 	registeredRepo repository.RegisteredContestRepository,
 	handleRepo repository.CodeforcesHandleRepository,
+	contestRepo repository.ContestRepository,
+	tourRepo TourDeleter,
+	timetableRepo TimetableDeleter,
 	cfService *codeforces.Service,
 	syncService *contestsync.ContestSyncService,
 ) *Service {
 	return &Service{
 		registeredRepo: registeredRepo,
 		handleRepo:     handleRepo,
+		contestRepo:    contestRepo,
+		tourRepo:       tourRepo,
+		timetableRepo:  timetableRepo,
 		cfService:      cfService,
 		syncService:    syncService,
 	}
@@ -129,6 +148,30 @@ func (s *Service) RefreshContest(ctx context.Context, contestID int) (*repositor
 }
 
 func (s *Service) DeleteContest(ctx context.Context, contestID int) error {
+	if err := s.ensureContestExists(ctx, contestID); err != nil {
+		return err
+	}
+
+	if err := s.tourRepo.DeleteByContestID(ctx, contestID); err != nil {
+		return fmt.Errorf("delete tours: %w", err)
+	}
+
+	if err := s.timetableRepo.DeleteByContestID(ctx, contestID); err != nil {
+		if !errors.Is(err, mongo.ErrNoDocuments) {
+			return fmt.Errorf("delete timetable: %w", err)
+		}
+	}
+
+	if err := s.contestRepo.DeleteByContestID(ctx, contestID); err != nil {
+		if !errors.Is(err, mongo.ErrNoDocuments) {
+			return fmt.Errorf("delete contest data: %w", err)
+		}
+	}
+
+	if err := s.handleRepo.DeleteByContestID(ctx, contestID); err != nil {
+		return fmt.Errorf("delete handle mappings: %w", err)
+	}
+
 	return s.registeredRepo.Delete(ctx, contestID)
 }
 
