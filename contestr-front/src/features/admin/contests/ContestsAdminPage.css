@@ -407,6 +407,68 @@
     cursor: text;
 }
 
+.cf-setting-help {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    flex-shrink: 0;
+    cursor: default;
+}
+
+.cf-setting-help__trigger {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+    padding: 0;
+    border: none;
+    background: transparent;
+    color: #8a8578;
+    cursor: help;
+    line-height: 0;
+    vertical-align: middle;
+}
+
+.cf-setting-help__trigger:hover,
+.cf-setting-help__trigger:focus-visible {
+    color: #e58995;
+    outline: none;
+}
+
+.cf-setting-help__tooltip {
+    position: absolute;
+    left: 50%;
+    bottom: calc(100% + 0.45rem);
+    z-index: 30;
+    width: max-content;
+    max-width: 16rem;
+    padding: 0.55rem 0.65rem;
+    border-radius: 0.35rem;
+    background: #f0eee1;
+    color: #3a3a3a;
+    font-family: "Montserrat Alternates", sans-serif;
+    font-size: 0.72rem;
+    line-height: 1.45;
+    text-align: left;
+    white-space: normal;
+    box-shadow: 0 0.2rem 0.5rem rgba(0, 0, 0, 0.12);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translate(-50%, 0.25rem);
+    transition:
+        opacity 0.15s ease,
+        transform 0.15s ease,
+        visibility 0.15s ease;
+}
+
+.cf-setting-help:hover .cf-setting-help__tooltip,
+.cf-setting-help:focus-within .cf-setting-help__tooltip {
+    opacity: 1;
+    visibility: visible;
+    transform: translate(-50%, 0);
+}
+
 .cf-scoring-inline__input {
     width: 2rem;
     height: auto;

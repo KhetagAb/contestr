@@ -117,3 +117,119 @@ func TestStartTourUsesContestTourSettings(t *testing.T) {
 		}
 	}
 }
+
+func TestParticipantsOrderedByRatingOrder_sortsByScore(t *testing.T) {
+	tourRepo := &startTourRepo{
+		tours: []regattapkg.Tour{
+			{
+				Sequence:  1,
+				Round:     1,
+				Problems:  []int{1},
+				GroupSize: 2,
+				Groups: map[string][]string{
+					"p1": {"p1", "p2"}, "p2": {"p1", "p2"},
+					"p3": {"p3", "p4"}, "p4": {"p3", "p4"},
+				},
+				GroupNumbers: map[string]int{"p1": 1, "p2": 1, "p3": 2, "p4": 2},
+			},
+		},
+	}
+	contestRepo := &startContestRepo{
+		contest: &regattapkg.Contest{
+			ContestID:       42,
+			ScoringSettings: regattapkg.DefaultScoringSettings(),
+			Participants: []regattapkg.ContestParticipant{
+				{ID: "p1", DisplayName: "First"},
+				{ID: "p2", DisplayName: "Second"},
+				{ID: "p3", DisplayName: "Third"},
+				{ID: "p4", DisplayName: "Fourth"},
+			},
+			Submissions: []regattapkg.ContestSubmission{
+				{ParticipantID: "p1", ProblemID: 1, Time: 100, Status: SubmissionStatusPartial, Points: 100},
+				{ParticipantID: "p2", ProblemID: 1, Time: 200, Status: SubmissionStatusPartial, Points: 80},
+				{ParticipantID: "p3", ProblemID: 1, Time: 300, Status: SubmissionStatusPartial, Points: 60},
+				{ParticipantID: "p4", ProblemID: 1, Time: 400, Status: SubmissionStatusPartial, Points: 40},
+			},
+		},
+	}
+	service := NewRegatta(tourRepo, contestRepo, nil)
+	participantsMap, _ := contestRepo.GetParticipants(context.Background(), 42)
+	contest, _ := contestRepo.GetByContestID(context.Background(), 42)
+	got, err := service.participantsOrderedByRating(
+		context.Background(), 42, participantsMap, tourRepo.tours, contest,
+	)
+	if err != nil {
+		t.Fatalf("participantsOrderedByRating: %v", err)
+	}
+	want := []Participant{"p1", "p2", "p3", "p4"}
+	if !slices.Equal(got, want) {
+		t.Fatalf("order = %v, want %v", got, want)
+	}
+}
+
+func TestStartTourGroupsByRatingOrder(t *testing.T) {
+	// After tour 1: p1=100, p2=80, p3=60, p4=40. With group_size=2 and no shuffle → (p1,p2) and (p3,p4).
+	tourRepo := &startTourRepo{
+		tours: []regattapkg.Tour{
+			{
+				ContestID:         42,
+				Sequence:          1,
+				Round:             1,
+				DurationInSeconds: 0,
+				Problems:          []int{1},
+				GroupSize:         2,
+				Groups: map[string][]string{
+					"p1": {"p1", "p2"},
+					"p2": {"p1", "p2"},
+					"p3": {"p3", "p4"},
+					"p4": {"p3", "p4"},
+				},
+				GroupNumbers: map[string]int{
+					"p1": 1, "p2": 1, "p3": 2, "p4": 2,
+				},
+			},
+		},
+	}
+	contestRepo := &startContestRepo{
+		contest: &regattapkg.Contest{
+			ContestID:       42,
+			ContestName:     "Rating groups",
+			System:          "codeforces",
+			StartTime:       time.Now().Add(-2 * time.Hour),
+			ScoringSettings: regattapkg.DefaultScoringSettings(),
+			TourSettings: regattapkg.TourSettings{
+				GroupSize:           2,
+				ProblemsPerTour:     1,
+				GroupShufflePercent: 0,
+			},
+			Participants: []regattapkg.ContestParticipant{
+				{ID: "p1", DisplayName: "First"},
+				{ID: "p2", DisplayName: "Second"},
+				{ID: "p3", DisplayName: "Third"},
+				{ID: "p4", DisplayName: "Fourth"},
+			},
+			Submissions: []regattapkg.ContestSubmission{
+				{ParticipantID: "p1", ProblemID: 1, Time: 100, Status: SubmissionStatusPartial, Points: 100},
+				{ParticipantID: "p2", ProblemID: 1, Time: 200, Status: SubmissionStatusPartial, Points: 80},
+				{ParticipantID: "p3", ProblemID: 1, Time: 300, Status: SubmissionStatusPartial, Points: 60},
+				{ParticipantID: "p4", ProblemID: 1, Time: 400, Status: SubmissionStatusPartial, Points: 40},
+			},
+		},
+	}
+
+	service := NewRegatta(tourRepo, contestRepo, nil)
+	if _, err := service.StartTour(context.Background(), 42, 1000, StartTourOptions{}); err != nil {
+		t.Fatalf("start tour: %v", err)
+	}
+	expectGroup := func(participant string, wantGroup int) {
+		t.Helper()
+		got := tourRepo.created.GroupNumbers[participant]
+		if got != wantGroup {
+			t.Fatalf("%s group = %d, want %d", participant, got, wantGroup)
+		}
+	}
+	expectGroup("p1", 1)
+	expectGroup("p2", 1)
+	expectGroup("p3", 2)
+	expectGroup("p4", 2)
+}

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type FocusEvent, type FormEvent } from "react";
-import { Check, Plus, RefreshCw, Save, Trash2, Upload, X } from "lucide-react";
+import { Check, CircleHelp, Plus, RefreshCw, Save, Trash2, Upload, X } from "lucide-react";
 import type { TimetableView } from "@/client/types.gen";
 import { adminAuthHeaders } from "@/features/admin/auth/adminAuth";
 import { ProblemStatementsPanel } from "./ProblemStatementsPanel";
@@ -460,6 +460,29 @@ export default function ContestsAdminPage() {
                                                 }
                                             />
                                             <span>% перемешивание групп</span>
+                                            <span className="cf-setting-help">
+                                                <button
+                                                    type="button"
+                                                    className="cf-setting-help__trigger"
+                                                    aria-label="Как работает перемешивание групп"
+                                                >
+                                                    <CircleHelp size={14} aria-hidden />
+                                                </button>
+                                                <span
+                                                    className="cf-setting-help__tooltip"
+                                                    role="tooltip"
+                                                >
+                                                    <strong>0%</strong> — группы строго по рейтингу
+                                                    подряд.
+                                                    <br />
+                                                    <strong>100%</strong> — случайный порядок перед
+                                                    нарезкой на группы.
+                                                    <br />
+                                                    Между ними чем выше %, тем сильнее порядок
+                                                    смешивается с случайным (по умолчанию{" "}
+                                                    <strong>20%</strong>).
+                                                </span>
+                                            </span>
                                         </label>
                                     </div>
                                 </div>

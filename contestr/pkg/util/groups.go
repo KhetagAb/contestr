@@ -1,18 +1,20 @@
 package util
 
 import (
+	"cmp"
 	"math/rand"
+	"slices"
 )
 
 const (
-	SwapBorderProbability = 0.4
+	SwapBorderProbability = 0.20
 )
 
 func FormGroups(ratedParticipants []string, groupSize int) [][]string {
 	return FormGroupsWithSwapProbability(ratedParticipants, groupSize, SwapBorderProbability)
 }
 
-func FormGroupsWithSwapProbability(ratedParticipants []string, groupSize int, swapBorderProbability float64) [][]string {
+func FormGroupsWithSwapProbability(ratedParticipants []string, groupSize int, shuffleProbability float64) [][]string {
 	n := len(ratedParticipants)
 	if n == 0 {
 		return [][]string{}
@@ -20,15 +22,9 @@ func FormGroupsWithSwapProbability(ratedParticipants []string, groupSize int, sw
 	if groupSize <= 1 {
 		groupSize = 2
 	}
-	swapBorderProbability = max(0, min(1, swapBorderProbability))
+	shuffleProbability = max(0, min(1, shuffleProbability))
 
-	participants := append([]string{}, ratedParticipants...)
-
-	for i := 0; i < n-1; i++ {
-		if rand.Float64() <= swapBorderProbability {
-			participants[i], participants[i+1] = participants[i+1], participants[i]
-		}
-	}
+	participants := shuffleParticipantsWithRNG(ratedParticipants, shuffleProbability, nil)
 
 	result := make([][]string, 0, n/groupSize+1)
 	for i := 0; i < n; i += groupSize {
@@ -52,4 +48,49 @@ func FormGroupsWithSwapProbability(ratedParticipants []string, groupSize int, sw
 	}
 
 	return result
+}
+
+func shuffleParticipantsWithRNG(ratedParticipants []string, p float64, rng *rand.Rand) []string {
+	n := len(ratedParticipants)
+	if p <= 0 {
+		return append([]string{}, ratedParticipants...)
+	}
+
+	randomFloat := rand.Float64
+	shuffle := rand.Shuffle
+	if rng != nil {
+		randomFloat = rng.Float64
+		shuffle = rng.Shuffle
+	}
+
+	participants := append([]string{}, ratedParticipants...)
+	if p >= 1 {
+		shuffle(len(participants), func(i, j int) {
+			participants[i], participants[j] = participants[j], participants[i]
+		})
+		return participants
+	}
+
+	type keyed struct {
+		participant string
+		key         float64
+	}
+	rankScale := 1.0
+	if n > 1 {
+		rankScale = float64(n-1) / (1 - p)
+	}
+	keys := make([]keyed, n)
+	for i, participant := range ratedParticipants {
+		keys[i] = keyed{
+			participant: participant,
+			key:         float64(i) + p*randomFloat()*rankScale,
+		}
+	}
+	slices.SortFunc(keys, func(a, b keyed) int {
+		return cmp.Compare(a.key, b.key)
+	})
+	for i := range keys {
+		participants[i] = keys[i].participant
+	}
+	return participants
 }

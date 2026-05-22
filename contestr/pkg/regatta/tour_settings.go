@@ -3,7 +3,7 @@ package regatta
 const (
 	DefaultGroupSize           = 3
 	DefaultProblemsPerTour     = 2
-	DefaultGroupShufflePercent = 40
+	DefaultGroupShufflePercent = 20
 )
 
 type TourSettings struct {

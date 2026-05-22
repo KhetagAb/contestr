@@ -6,6 +6,8 @@ import (
 	"contestr/pkg/util"
 	"context"
 	"fmt"
+	"slices"
+	"strings"
 )
 
 type StartTourOptions struct {
@@ -45,9 +47,15 @@ func (s *Regatta) StartTour(ctx context.Context, contestId int, durationSeconds 
 		}
 		tourSettings := regatta.NormalizeTourSettings(contest.TourSettings)
 
-		ratedParticipants := make([]Participant, 0, len(participantsMap))
-		for id := range participantsMap {
-			ratedParticipants = append(ratedParticipants, id)
+		ratedParticipants, err := s.participantsOrderedByRating(
+			ctx,
+			contestId,
+			participantsMap,
+			tours,
+			contest,
+		)
+		if err != nil {
+			return "", err
 		}
 
 		formed := util.FormGroupsWithSwapProbability(
@@ -87,6 +95,66 @@ func (s *Regatta) StartTour(ctx context.Context, contestId int, durationSeconds 
 	}
 
 	return create.Hex(), nil
+}
+
+// participantsOrderedByRating returns participant IDs sorted by total score before the new tour
+// (descending). FormGroups slices this list into buckets — order must reflect standings.
+func (s *Regatta) participantsOrderedByRating(
+	ctx context.Context,
+	contestID int,
+	participantsMap map[string]string,
+	completedTours []regatta.Tour,
+	contest *regatta.Contest,
+) ([]Participant, error) {
+	ids := make([]Participant, 0, len(participantsMap))
+	for id := range participantsMap {
+		ids = append(ids, id)
+	}
+
+	totals := make(map[Participant]int, len(ids))
+	for _, id := range ids {
+		totals[id] = 0
+	}
+
+	// Первый тур: у всех 0 очков, сортировка по имени. Дальше — по сумме очков за прошлые туры.
+	if regatta.CompetitiveRoundCount(completedTours) > 0 {
+		submissions, err := s.contestRepo.GetSubmissions(ctx, contestID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get submissions for grouping: %w", err)
+		}
+		runs := convertSubmissionsToRuns(submissions)
+		scoringSettings := regatta.NormalizeScoringSettings(contest.ScoringSettings)
+		offsets := regatta.SegmentOffsets(completedTours)
+
+		for _, tour := range completedTours {
+			if tour.IsPause {
+				continue
+			}
+			segmentStart := offsets[tour.Sequence].Start
+			result := CalculateResultWithSettings(tour, segmentStart, runs, scoringSettings).Export()
+			for participant, problemResults := range result {
+				for _, pr := range problemResults {
+					if pr.score > 0 {
+						totals[participant] += pr.score
+					}
+				}
+			}
+		}
+	}
+
+	slices.SortFunc(ids, func(a, b Participant) int {
+		if totals[a] != totals[b] {
+			return totals[b] - totals[a]
+		}
+		nameA := participantsMap[a]
+		nameB := participantsMap[b]
+		if c := strings.Compare(nameA, nameB); c != 0 {
+			return c
+		}
+		return strings.Compare(a, b)
+	})
+
+	return ids, nil
 }
 
 func contestParticipantsMap(participants []regatta.ContestParticipant) map[string]string {

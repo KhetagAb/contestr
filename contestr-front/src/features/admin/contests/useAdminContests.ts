@@ -20,7 +20,7 @@ export const DEFAULT_SCORING_SETTINGS: ScoringSettings = {
 export const DEFAULT_TOUR_SETTINGS: TourSettings = {
     group_size: 3,
     problems_per_tour: 2,
-    group_shuffle_percent: 40,
+    group_shuffle_percent: 20,
 };
 
 function normalizeScoringSettings(settings?: Partial<ScoringSettings> | null): ScoringSettings {

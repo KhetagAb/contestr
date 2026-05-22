@@ -1,6 +1,7 @@
 package util
 
 import (
+	"math/rand"
 	"reflect"
 	"testing"
 )
@@ -186,18 +187,39 @@ func TestFormGroupsWithSwapProbability_NegativeProbabilityClampedToZero(t *testi
 	}
 }
 
-func TestFormGroupsWithSwapProbability_ProbabilityGreaterThanOneClampedToOne(t *testing.T) {
+func TestShuffleParticipantsWithRNG_fullShuffleSeeded(t *testing.T) {
+	input := []string{"a", "b", "c", "d"}
+	rng := rand.New(rand.NewSource(42))
+
+	got := shuffleParticipantsWithRNG(input, 1, rng)
+
+	want := []string{"c", "d", "a", "b"}
+
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("unexpected order:\nwant %#v\ngot  %#v", want, got)
+	}
+}
+
+func TestShuffleParticipantsWithRNG_partialShuffleSeeded(t *testing.T) {
+	input := []string{"a", "b", "c", "d", "e", "f"}
+	rng := rand.New(rand.NewSource(42))
+
+	got := shuffleParticipantsWithRNG(input, 0.5, rng)
+
+	want := []string{"b", "a", "d", "e", "c", "f"}
+
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("unexpected order:\nwant %#v\ngot  %#v", want, got)
+	}
+}
+
+func TestFormGroupsWithSwapProbability_ProbabilityGreaterThanOneClampedToFullShuffle(t *testing.T) {
 	input := []string{"a", "b", "c", "d"}
 
 	got := FormGroupsWithSwapProbability(input, 2, 10)
 
-	want := [][]string{
-		{"b", "c"},
-		{"d", "a"},
-	}
-
-	if !reflect.DeepEqual(got, want) {
-		t.Fatalf("unexpected groups:\nwant %#v\ngot  %#v", want, got)
+	if !sameMultiset(input, flatten(got)) {
+		t.Fatalf("participants mismatch:\ninput %#v\ngot   %#v", input, got)
 	}
 }
 
