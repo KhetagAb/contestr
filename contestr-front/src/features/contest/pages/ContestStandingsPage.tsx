@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { useSearchParam } from "react-use";
 import {
     createColumnHelper,
     flexRender,
@@ -11,10 +12,13 @@ import type { ProblemResult, RegattaContestRow } from "@/client";
 import { ContestEventLog } from "@/features/contest/components/event-log/ContestEventLog";
 import { ContestPhaseStrip } from "@/features/contest/components/phase/ContestPhaseStrip";
 import { TaskCell } from "@/features/contest/components/standings/TaskCell";
-import { useContestStandings } from "@/features/contest/hooks/useContestStandings";
+import {
+    hasRegattaStartedTours,
+    useContestStandings,
+} from "@/features/contest/hooks/useContestStandings";
+import { useContestParticipants } from "@/features/contest/hooks/useContestParticipants";
 import { useFollowedParticipant } from "@/features/contest/follow/FollowedParticipantContext";
 import { formatGroupCode } from "@/shared/utils/groupCode";
-import { CONTEST_HOME_QUERY, useAppPath } from "@/app/AppPath";
 import ContestHomePage from "@/features/contest/pages/ContestHomePage";
 import styles from "./ContestStandingsPage.module.css";
 
@@ -103,6 +107,9 @@ function globalMaxPositiveScore(rows: RegattaContestRow[] | undefined) {
 }
 
 function rowBackgroundColor(row: RegattaContestRow): string {
+    if (!row.team_number || row.team_number <= 0) {
+        return "#fbf8f3ee";
+    }
     return teamColors[(row.team_number - 1) % teamColors.length];
 }
 
@@ -115,31 +122,53 @@ function taskSortValue(row: RegattaContestRow, taskName: string): number {
 }
 
 export default function ContestStandingsPage() {
-    const { search } = useAppPath();
     const { followedParticipantId } = useFollowedParticipant();
-    const { data, isSuccess } = useContestStandings();
+    const { data, isSuccess, isLoading, isError } = useContestStandings();
+    const { participants } = useContestParticipants();
+    const contestId = parseInt(useSearchParam("contestId") || "", 10);
+    const hasContest = Number.isFinite(contestId) && contestId > 0;
 
-    const showHome =
-        new URLSearchParams(search).has(CONTEST_HOME_QUERY) ||
-        !isSuccess ||
-        !data?.rows?.length;
+    const hasStartedTours = isSuccess && data ? hasRegattaStartedTours(data) : false;
+
+    const tableRows = useMemo((): RegattaContestRow[] => {
+        if (!isSuccess || !data) {
+            return [];
+        }
+        if (hasStartedTours) {
+            return data.rows;
+        }
+        if (data.rows.length > 0) {
+            return [...data.rows].sort((a, b) =>
+                a.display_name.localeCompare(b.display_name, "ru"),
+            );
+        }
+        return participants.map((p) => ({
+            user_id: p.participant_id,
+            display_name: p.display_name,
+            team_number: 0,
+            total_score: 0,
+            solved_problems: 0,
+            problem_results: [],
+        }));
+    }, [data, hasStartedTours, isSuccess, participants]);
 
     const tasks = useMemo(() => {
-        return (
-            isSuccess &&
-            data.rows &&
-            data.rows.length > 0 &&
-            data.rows[0].problem_results.map((r) => r.problem_code)
-        );
-    }, [data, isSuccess]);
+        if (!hasStartedTours || !tableRows.length) {
+            return false;
+        }
+        const problemResults = tableRows[0].problem_results;
+        if (!problemResults?.length) {
+            return false;
+        }
+        return problemResults.map((r) => r.problem_code);
+    }, [hasStartedTours, tableRows]);
 
     const followedTeamNumber = useMemo(
         () =>
-            (isSuccess &&
-                followedParticipantId &&
-                data.rows?.find((r) => r.user_id === followedParticipantId)?.team_number) ||
+            (followedParticipantId &&
+                tableRows.find((r) => r.user_id === followedParticipantId)?.team_number) ||
             undefined,
-        [data, isSuccess, followedParticipantId],
+        [tableRows, followedParticipantId],
     );
 
     const baseColumns = useMemo(
@@ -194,7 +223,7 @@ export default function ContestStandingsPage() {
 
     const table = useReactTable({
         columns: [...baseColumns, ...taskColumns],
-        data: data?.rows || [],
+        data: tableRows,
         getCoreRowModel: getCoreRowModel(),
         getSortedRowModel: getSortedRowModel(),
     });
@@ -203,12 +232,32 @@ export default function ContestStandingsPage() {
     const taskList = tasks || [];
 
     const maxPositiveScore = useMemo(
-        () => globalMaxPositiveScore(data?.rows),
-        [data?.rows]
+        () => globalMaxPositiveScore(tableRows),
+        [tableRows]
     );
 
-    if (showHome) {
+    if (!hasContest) {
         return <ContestHomePage />;
+    }
+
+    if (isLoading && !data) {
+        return (
+            <section className={styles.standingsSection} aria-label="Таблица результатов">
+                <p className={styles.statusText} role="status">
+                    Загрузка таблицы…
+                </p>
+            </section>
+        );
+    }
+
+    if (isError) {
+        return (
+            <section className={styles.standingsSection} aria-label="Таблица результатов">
+                <p className={styles.statusText} role="alert">
+                    Не удалось загрузить таблицу результатов
+                </p>
+            </section>
+        );
     }
 
     const renderSortableTh = (
@@ -340,7 +389,9 @@ export default function ContestStandingsPage() {
                     </tbody>
                 </table>
             </div>
-            {isSuccess && data?.events && <ContestEventLog events={data.events} />}
+            {hasStartedTours && (data?.events?.length ?? 0) > 0 ? (
+                <ContestEventLog events={data!.events} />
+            ) : null}
         </section>
     );
 }

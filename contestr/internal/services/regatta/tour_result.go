@@ -245,6 +245,41 @@ func solveEvent(
 	}
 }
 
+func isFullSolveSubmission(sub ScoredSubmission, state ProblemState) bool {
+	if !state.HasFullSolve {
+		return false
+	}
+	return sub.Time == state.FullSolveTime &&
+		sub.Points >= fullSolvePointsThreshold &&
+		sub.Status == SubmissionStatusOK
+}
+
+func partialScoreEvent(
+	meta eventMeta,
+	t *TourResult,
+	participant Participant,
+	problem Problem,
+	problemCode string,
+	submissionTime SubmissionTime,
+	points int,
+) regatta.RegattaEvent {
+	displayName := meta.names[participant]
+	if displayName == "" {
+		displayName = participant
+	}
+
+	return regatta.RegattaEvent{
+		Type:          regatta.EventTypeProblemSolved,
+		TimeSec:       submissionTime,
+		ParticipantID: participant,
+		DisplayName:   displayName,
+		ProblemCode:   problemCode,
+		TeamNumber:    t.GroupNumbers[participant],
+		Points:        points,
+		SolvedInTime:  isSolvedInTime(t.SegmentStart, t.DurationInSeconds, submissionTime),
+	}
+}
+
 func rejectedEvent(
 	meta eventMeta,
 	t *TourResult,
@@ -286,15 +321,19 @@ func partialTourEndScoredEvent(
 	}
 
 	return regatta.RegattaEvent{
-		Type:          regatta.EventTypeProblemSolved,
+		Type:          regatta.EventTypeProblemOvertake,
 		TimeSec:       scoreTime,
 		ParticipantID: participant,
 		DisplayName:   displayName,
 		ProblemCode:   problemCode,
 		TeamNumber:    t.GroupNumbers[participant],
 		Points:        scoreForProblem(t, participant, problem),
-		FirstInGroup:  true,
+		SolvedInTime:  isSolvedInTime(t.SegmentStart, t.DurationInSeconds, scoreTime),
 	}
+}
+
+func tourEndPartialAwardKey(participant Participant, problemCode string) string {
+	return participant + ":" + problemCode
 }
 
 func (t *TourResult) ParticipantScore(participant Participant) ParticipantScoreOutcome {
@@ -443,6 +482,9 @@ func calcSubmissions(submissions []Run, settings regatta.ScoringSettings) map[Pa
 }
 
 func isRejectedSubmission(sub ScoredSubmission) bool {
+	if regatta.IsIgnorableSubmissionStatus(sub.Status) {
+		return false
+	}
 	if sub.Points > 0 {
 		return false
 	}
@@ -528,6 +570,12 @@ func BuildContestEventsAt(
 		}
 		segmentStart := offsets[tour.Sequence].Start
 		tr := CalculateResultWithSettingsAt(tour, segmentStart, runs, settings, contestElapsedSeconds)
+		tourEndEvents := buildPartialOvertakeEvents(meta, tr)
+		tourEndAwards := make(map[string]int, len(tourEndEvents))
+		for _, e := range tourEndEvents {
+			tourEndAwards[tourEndPartialAwardKey(e.ParticipantID, e.ProblemCode)] = e.TimeSec
+		}
+
 		for participant := range tour.Groups {
 			for _, problem := range tour.Problems {
 				problemCode := tr.ProblemsMapping[problem]
@@ -538,11 +586,19 @@ func BuildContestEventsAt(
 				state, ok := problemState(tr, participant, problem)
 				if ok {
 					for _, sub := range state.Submissions {
-						if !isRejectedSubmission(sub) {
+						if isRejectedSubmission(sub) {
+							allEvents = append(allEvents,
+								rejectedEvent(meta, tr, participant, problem, problemCode, sub.Time, sub.Status))
 							continue
 						}
-						allEvents = append(allEvents,
-							rejectedEvent(meta, tr, participant, problem, problemCode, sub.Time, sub.Status))
+						if sub.Points > 0 && !isFullSolveSubmission(sub, state) {
+							key := tourEndPartialAwardKey(participant, problemCode)
+							if awardTime, skip := tourEndAwards[key]; skip && sub.Time == awardTime {
+								continue
+							}
+							allEvents = append(allEvents,
+								partialScoreEvent(meta, tr, participant, problem, problemCode, sub.Time, sub.Points))
+						}
 					}
 					if state.HasFullSolve {
 						allEvents = append(allEvents,
@@ -552,7 +608,7 @@ func BuildContestEventsAt(
 			}
 		}
 
-		allEvents = append(allEvents, buildPartialOvertakeEvents(meta, tr)...)
+		allEvents = append(allEvents, tourEndEvents...)
 	}
 
 	slices.SortFunc(allEvents, func(a, b regatta.RegattaEvent) int {

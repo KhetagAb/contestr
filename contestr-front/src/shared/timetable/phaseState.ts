@@ -1,5 +1,10 @@
 import type { TimelineSegment, TimetableView } from "@/client/types.gen";
-import { segmentLabel, segmentRemainingSeconds, segmentUntilStartSeconds } from "./segmentTime";
+import {
+    segmentLabel,
+    segmentRemainingSeconds,
+    segmentUntilStartSeconds,
+    secondsUntilContestStart,
+} from "./segmentTime";
 
 export type PhaseDisplay = {
     empty: boolean;
@@ -27,6 +32,10 @@ function nextUpSegment(segments: TimelineSegment[]): TimelineSegment | null {
         segments.find((s) => s.status === "future") ??
         null
     );
+}
+
+function isFirstCompetitiveTour(segment: TimelineSegment): boolean {
+    return segment.kind === "tour" && segment.round === 1;
 }
 
 export function derivePhaseDisplay(
@@ -89,15 +98,18 @@ export function derivePhaseDisplay(
     const last = lastPastSegment(segments);
     const hero = next ?? last;
 
+    const untilContest = secondsUntilContestStart(view.contest_start_time);
+
     if (segments.length === 0 && (view.pending_slots?.length ?? 0) > 0) {
         const round = view.next_tour_number;
+        const waitingForContest = untilContest != null;
         return {
             empty: false,
             finished: false,
             heroSegment: null,
             heroLabel: round != null ? `Тур ${round}` : "Скоро",
-            statusText: "ожидание старта",
-            remainingSeconds: null,
+            statusText: waitingForContest ? "" : "ожидание старта",
+            remainingSeconds: untilContest,
             isPause: false,
         };
     }
@@ -106,20 +118,45 @@ export function derivePhaseDisplay(
     let remaining: number | null = null;
 
     if (next) {
-        if (next.status === "starting" || next.start_time <= elapsed) {
+        const untilSegment = segmentUntilStartSeconds(next, elapsed);
+        const firstTour = isFirstCompetitiveTour(next);
+
+        if (firstTour && untilContest != null) {
+            remaining = untilContest;
+            statusText = "";
+        } else if (untilSegment > 0) {
+            remaining = untilSegment;
+            statusText = firstTour ? "" : "ожидание";
+        } else if (next.status === "starting" || next.start_time <= elapsed) {
             statusText =
                 next.round != null && next.kind === "tour"
                     ? `скоро ${segmentLabel(next)}`
                     : "скоро";
+            remaining = null;
         } else {
             statusText = "ожидание";
-        }
-        remaining = segmentUntilStartSeconds(next, elapsed);
-        if (remaining === 0 && next.status !== "starting") {
             remaining = null;
         }
     } else if (view.next_tour_number != null) {
-        statusText = `скоро Тур ${view.next_tour_number}`;
+        const upcoming = segments.find((s) =>
+            ["next", "starting", "future"].includes(s.status),
+        );
+        const untilSegment = upcoming
+            ? segmentUntilStartSeconds(upcoming, elapsed)
+            : 0;
+
+        if (view.next_tour_number === 1 && untilContest != null) {
+            remaining = untilContest;
+            statusText = "";
+        } else if (untilSegment > 0) {
+            remaining = untilSegment;
+            statusText =
+                view.next_tour_number === 1
+                    ? ""
+                    : `скоро Тур ${view.next_tour_number}`;
+        } else {
+            statusText = `скоро Тур ${view.next_tour_number}`;
+        }
     }
 
     return {

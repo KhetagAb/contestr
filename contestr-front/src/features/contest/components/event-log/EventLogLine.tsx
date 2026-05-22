@@ -19,6 +19,15 @@ export function EventLogLine({ event, enterDelayMs = 0 }: Props) {
     const isOvertakeEvent = event.type === "problem_overtake";
     const isRejectedEvent = event.type === "problem_rejected";
     const isOutsideTour = event.solved_in_time === false;
+    const points = event.points ?? 0;
+    const isAccentPoints =
+        !isRejectedEvent &&
+        !isOvertakeEvent &&
+        points > 0 &&
+        (event.first_in_group === true || points >= 100);
+    const showPoints = points > 0;
+    const isPartialAttempt =
+        !isRejectedEvent && !isOvertakeEvent && !isAccentPoints;
 
     const lineStyle = {
         "--event-enter-delay": `${enterDelayMs}ms`,
@@ -26,7 +35,7 @@ export function EventLogLine({ event, enterDelayMs = 0 }: Props) {
 
     return (
         <div
-            className={`${styles.eventLogLine} ${styles.eventLogLineEnter}${isRejectedEvent ? ` ${styles.eventLogLineRejected}` : ""}`}
+            className={`${styles.eventLogLine} ${styles.eventLogLineEnter}${isRejectedEvent || isPartialAttempt ? ` ${styles.eventLogLineMuted}` : ""}`}
             style={lineStyle}
         >
             <span className={styles.eventLogTimeCell}>
@@ -67,9 +76,14 @@ export function EventLogLine({ event, enterDelayMs = 0 }: Props) {
                         получил бонус за обгон в задаче{" "}
                         <span className={styles.eventChip}>{event.problem_code}</span>
                     </>
-                ) : (
+                ) : isAccentPoints ? (
                     <>
                         решил задачу{" "}
+                        <span className={styles.eventChip}>{event.problem_code}</span>
+                    </>
+                ) : (
+                    <>
+                        совершает попытку по{" "}
                         <span className={styles.eventChip}>{event.problem_code}</span>
                     </>
                 )}
@@ -80,9 +94,17 @@ export function EventLogLine({ event, enterDelayMs = 0 }: Props) {
                 )}
             </span>
             <span className={styles.eventLogPoints}>
-                {!isRejectedEvent && (
-                    <span className={styles.eventChip}>+{event.points}</span>
-                )}
+                {showPoints ? (
+                    <span
+                        className={
+                            isAccentPoints
+                                ? styles.eventChip
+                                : `${styles.eventChip} ${styles.eventPointsMuted}`
+                        }
+                    >
+                        {isAccentPoints ? `+${points}` : points}
+                    </span>
+                ) : null}
             </span>
         </div>
     );

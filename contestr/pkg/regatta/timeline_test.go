@@ -57,6 +57,31 @@ func TestBuildPendingStarts(t *testing.T) {
 	}
 }
 
+func TestBuildTimelineSegments_firstPendingNextBeforeStart(t *testing.T) {
+	tours := []Tour{
+		{Sequence: 1, Round: 1, DurationInSeconds: 100, IsPause: false},
+	}
+	pending := []ScheduleSlot{
+		{Duration: 200, Kind: ScheduleSlotKindTour},
+	}
+	// Anchor 100; first pending at 100 while elapsed 50.
+	segments := BuildTimelineSegments(tours, pending, 50)
+
+	var pendingSeg *TimelineSegment
+	for i := range segments {
+		if segments[i].PendingIndex != nil && *segments[i].PendingIndex == 0 {
+			pendingSeg = &segments[i]
+			break
+		}
+	}
+	if pendingSeg == nil {
+		t.Fatal("missing pending segment")
+	}
+	if pendingSeg.Status != SegmentStatusNext {
+		t.Fatalf("got status %q want next", pendingSeg.Status)
+	}
+}
+
 func TestBuildTimelineSegments_singleStartingWhenManyPendingOverdue(t *testing.T) {
 	tours := []Tour{
 		{Sequence: 1, Round: 1, DurationInSeconds: 100, IsPause: false},

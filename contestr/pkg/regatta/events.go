@@ -6,6 +6,13 @@ const (
 	EventTypeProblemRejected = "problem_rejected"
 )
 
+const SubmissionStatusTesting = "TESTING"
+
+// IsIgnorableSubmissionStatus reports interim verdicts that must not be stored or exposed.
+func IsIgnorableSubmissionStatus(status string) bool {
+	return status == SubmissionStatusTesting
+}
+
 type RegattaEvent struct {
 	Type          string `json:"type"`
 	TimeSec       int    `json:"time_sec"`

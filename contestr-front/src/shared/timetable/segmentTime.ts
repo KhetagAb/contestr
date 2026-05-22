@@ -51,3 +51,19 @@ export function segmentRemainingSeconds(segment: TimelineSegment, elapsed: numbe
 export function segmentUntilStartSeconds(segment: TimelineSegment, elapsed: number): number {
     return Math.max(0, segment.start_time - elapsed);
 }
+
+/** Секунды до contest_start_time; null если старт уже прошёл или время не задано. */
+export function secondsUntilContestStart(
+    contestStartIso?: string,
+    nowMs = Date.now(),
+): number | null {
+    if (!contestStartIso) {
+        return null;
+    }
+    const startMs = new Date(contestStartIso).getTime();
+    if (Number.isNaN(startMs)) {
+        return null;
+    }
+    const sec = Math.ceil((startMs - nowMs) / 1000);
+    return sec > 0 ? sec : null;
+}

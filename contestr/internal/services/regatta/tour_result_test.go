@@ -276,15 +276,29 @@ func TestOvertake_tourEndHighestPartialGetsOvertake(t *testing.T) {
 		{UserID: "alice", ProbID: 1, Time: 3700, Status: SubmissionStatusPartial, Points: 80},
 		{UserID: "bob", ProbID: 1, Time: 200, Status: SubmissionStatusPartial, Points: 60},
 	}, nil, settings)
-	if len(events) != 1 {
-		t.Fatalf("expected one bob scoring event with overtake badge, got %+v", events)
+
+	var bobOvertake *regatta.RegattaEvent
+	var bobAt200 int
+	for i := range events {
+		e := &events[i]
+		if e.ParticipantID != "bob" || e.ProblemCode != "1A" {
+			continue
+		}
+		if e.TimeSec == 200 {
+			bobAt200++
+		}
+		if e.Type == regatta.EventTypeProblemOvertake {
+			bobOvertake = &events[i]
+		}
 	}
-	if events[0].Type != regatta.EventTypeProblemSolved ||
-		events[0].ParticipantID != "bob" ||
-		!events[0].FirstInGroup ||
-		events[0].TimeSec != 200 ||
-		events[0].Points != 60+OvertakePoints {
-		t.Fatalf("expected bob scoring event with overtake badge, got %+v", events)
+	if bobAt200 != 1 {
+		t.Fatalf("expected single tour-end overtake at 200, got %d events", bobAt200)
+	}
+	if bobOvertake == nil {
+		t.Fatalf("expected bob tour-end overtake event, got %+v", events)
+	}
+	if bobOvertake.TimeSec != 200 || bobOvertake.Points != 60+OvertakePoints {
+		t.Fatalf("expected bob overtake at 200 with bonus points, got %+v", bobOvertake)
 	}
 }
 
@@ -302,8 +316,13 @@ func TestOvertake_activeTourHighestPartialGetsNoTourEndOvertake(t *testing.T) {
 		t.Fatalf("alice score = %d, want raw points only while tour is active", got)
 	}
 	events := BuildContestEventsAt([]regatta.Tour{tour}, runs, nil, 1100, settings)
-	if len(events) != 0 {
-		t.Fatalf("expected no tour-end overtake event while tour is active, got %+v", events)
+	for _, e := range events {
+		if e.Type == regatta.EventTypeProblemOvertake {
+			t.Fatalf("expected no tour-end overtake event while tour is active, got %+v", events)
+		}
+	}
+	if len(events) != 2 {
+		t.Fatalf("expected two partial score events while tour is active, got %+v", events)
 	}
 }
 
@@ -419,6 +438,57 @@ func TestBuildContestEvents_rejectedTimes(t *testing.T) {
 	}
 }
 
+func TestBuildContestEvents_skipsTestingVerdict(t *testing.T) {
+	tour := testTour()
+	events := BuildContestEvents([]regatta.Tour{tour}, []Run{
+		{UserID: "alice", ProbID: 1, Time: 100, Status: regatta.SubmissionStatusTesting},
+		{UserID: "alice", ProbID: 1, Time: 200, Status: "WRONG_ANSWER"},
+		{UserID: "alice", ProbID: 1, Time: 500, Status: SubmissionStatusOK},
+	}, nil)
+
+	var rejected int
+	for _, e := range events {
+		if e.Type == regatta.EventTypeProblemRejected {
+			rejected++
+			if e.Verdict == regatta.SubmissionStatusTesting || e.Verdict == "TESTING" {
+				t.Fatalf("unexpected TESTING verdict in event: %+v", e)
+			}
+		}
+	}
+	if rejected != 1 {
+		t.Fatalf("rejected events = %d, want 1 (TESTING skipped)", rejected)
+	}
+}
+
+func TestBuildContestEvents_partialSubmissionsEmitRawPoints(t *testing.T) {
+	tour := testTour()
+	events := BuildContestEvents([]regatta.Tour{tour}, []Run{
+		{UserID: "alice", ProbID: 1, Time: 100, Status: SubmissionStatusPartial, Points: 40},
+		{UserID: "alice", ProbID: 1, Time: 3700, Status: SubmissionStatusPartial, Points: 80},
+		{UserID: "alice", ProbID: 1, Time: 5000, Status: SubmissionStatusOK, Points: 100},
+	}, nil)
+
+	var partialPoints []int
+	var fullSolve int
+	for _, e := range events {
+		if e.Type != regatta.EventTypeProblemSolved || e.ParticipantID != "alice" || e.ProblemCode != "1A" {
+			continue
+		}
+		if e.FirstInGroup || e.Points >= 100 {
+			fullSolve++
+			continue
+		}
+		partialPoints = append(partialPoints, e.Points)
+	}
+
+	if len(partialPoints) != 2 || partialPoints[0] != 40 || partialPoints[1] != 80 {
+		t.Fatalf("partial events = %v, want [40 80]", partialPoints)
+	}
+	if fullSolve != 1 {
+		t.Fatalf("full solve events = %d, want 1", fullSolve)
+	}
+}
+
 func TestBuildContestEvents_rejectedVerdictTL(t *testing.T) {
 	tour := testTour()
 	events := BuildContestEvents([]regatta.Tour{tour}, []Run{
@@ -474,11 +544,18 @@ func TestBuildContestEvents_noDuplicateWhenFullSolveAfterPartialTourEnd(t *testi
 			alice1A = append(alice1A, e)
 		}
 	}
-	if len(alice1A) != 1 {
-		t.Fatalf("alice 1A solved events = %d, want 1: %+v", len(alice1A), alice1A)
+	if len(alice1A) != 2 {
+		t.Fatalf("alice 1A solved events = %d, want partial + full solve: %+v", len(alice1A), alice1A)
 	}
-	if alice1A[0].TimeSec != 2374 {
-		t.Fatalf("event time = %d, want full solve at 2374", alice1A[0].TimeSec)
+	var fullSolve *regatta.RegattaEvent
+	for i := range alice1A {
+		if alice1A[i].TimeSec == 2374 {
+			fullSolve = &alice1A[i]
+			break
+		}
+	}
+	if fullSolve == nil {
+		t.Fatalf("want full solve at 2374, got %+v", alice1A)
 	}
 }
 

@@ -8,6 +8,18 @@
     gap: var(--space-s, 0.65rem);
 }
 
+.statusText {
+    margin: var(--space-m, 1.25rem) 0 0;
+    font-family: "Montserrat Alternates", sans-serif;
+    font-size: var(--fs-body, 1rem);
+    color: #4f4e4e;
+}
+
+.statusText a {
+    color: inherit;
+    font-weight: 600;
+}
+
 .standingsCard {
     border: 1px solid #e0dcd0;
     border-radius: 0.5rem;

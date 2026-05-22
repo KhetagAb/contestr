@@ -180,6 +180,9 @@ func appendStatusSubmissions(
 		if !allowedHandles[handle] {
 			continue
 		}
+		if regatta.IsIgnorableSubmissionStatus(sub.Verdict) {
+			continue
+		}
 
 		problemID, ok := problemIDs[sub.Problem.Index]
 		if !ok {

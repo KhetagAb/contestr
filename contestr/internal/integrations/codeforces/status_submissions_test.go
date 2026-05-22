@@ -37,6 +37,35 @@ func TestStatusSubmissionsIncludeFailedWithTime(t *testing.T) {
 	}
 }
 
+func TestAppendStatusSubmissions_skipsTestingVerdict(t *testing.T) {
+	t.Parallel()
+
+	problemIDs := map[string]int{"A": 1}
+	allowed := map[string]bool{"alice": true}
+	status := []StatusSubmission{
+		{
+			Author:              StatusParty{Members: []StatusMember{{Handle: "alice"}}},
+			Problem:             StatusProblem{Index: "A"},
+			RelativeTimeSeconds: 90,
+			Verdict:             "TESTING",
+		},
+		{
+			Author:              StatusParty{Members: []StatusMember{{Handle: "alice"}}},
+			Problem:             StatusProblem{Index: "A"},
+			RelativeTimeSeconds: 120,
+			Verdict:             "WRONG_ANSWER",
+		},
+	}
+
+	submissions := appendStatusSubmissions(nil, status, problemIDs, allowed)
+	if len(submissions) != 1 {
+		t.Fatalf("submissions len = %d, want 1 (TESTING skipped): %+v", len(submissions), submissions)
+	}
+	if submissions[0].Status != "WRONG_ANSWER" || submissions[0].Time != 120 {
+		t.Fatalf("submission = %+v, want WA at 120", submissions[0])
+	}
+}
+
 func TestAppendStatusSubmissions_partialPointsPreserved(t *testing.T) {
 	t.Parallel()
 

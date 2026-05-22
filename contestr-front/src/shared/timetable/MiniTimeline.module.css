@@ -27,12 +27,12 @@
 .segment--active {
     opacity: 1;
     box-shadow: inset 0 0 0 1px rgba(79, 78, 78, 0.2);
+    animation: mini-seg-pulse 1.6s ease-in-out infinite;
 }
 
 .segment--next,
 .segment--starting {
     opacity: 0.85;
-    animation: mini-seg-pulse 1.6s ease-in-out infinite;
 }
 
 .segmentInner {

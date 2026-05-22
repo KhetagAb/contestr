@@ -29,7 +29,7 @@ ejudge:
   request_timeout: 10s
 
 contest_sync:
-  interval: 1m
+  interval: 15s
 
 timetable_sync:
   interval: 1s

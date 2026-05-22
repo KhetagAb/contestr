@@ -20,6 +20,10 @@ export function ParticipantFollowMenu({ adminSession }: Props) {
     } = useFollowedParticipant();
 
     const selectParticipant = (participantId: string) => {
+        if (followedParticipantId === participantId) {
+            closeParticipantPicker();
+            return;
+        }
         setFollowedParticipantId(participantId);
         closeParticipantPicker();
     };

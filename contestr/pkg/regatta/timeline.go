@@ -139,10 +139,14 @@ func BuildTimelineSegments(tours []Tour, pending []ScheduleSlot, elapsed int) []
 	pendingStarts := BuildPendingStarts(anchor, pending)
 
 	firstOverduePending := -1
+	nextPendingIndex := -1
 	for i, start := range pendingStarts {
 		if elapsed >= start {
-			firstOverduePending = i
-			break
+			if firstOverduePending < 0 {
+				firstOverduePending = i
+			}
+		} else if nextPendingIndex < 0 {
+			nextPendingIndex = i
 		}
 	}
 
@@ -178,7 +182,11 @@ func BuildTimelineSegments(tours []Tour, pending []ScheduleSlot, elapsed int) []
 		kind := NormalizeSlotKind(slot.Kind)
 		start := pendingStarts[i]
 		status := SegmentStatusFuture
-		if !hasActive {
+		if elapsed < start {
+			if i == nextPendingIndex {
+				status = SegmentStatusNext
+			}
+		} else if !hasActive {
 			if firstOverduePending >= 0 {
 				switch i {
 				case firstOverduePending:
@@ -190,11 +198,7 @@ func BuildTimelineSegments(tours []Tour, pending []ScheduleSlot, elapsed int) []
 				status = SegmentStatusNext
 			}
 		} else if i == 0 {
-			if elapsed >= start {
-				status = SegmentStatusStarting
-			} else {
-				status = SegmentStatusNext
-			}
+			status = SegmentStatusStarting
 		}
 
 		idx := i

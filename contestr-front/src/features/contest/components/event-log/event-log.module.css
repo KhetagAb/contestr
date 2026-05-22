@@ -174,10 +174,12 @@
     }
 }
 
+.eventLogLineMuted,
 .eventLogLineRejected {
     color: #8a8782;
 }
 
+.eventLogLineMuted .eventChip,
 .eventLogLineRejected .eventChip {
     color: #8a8782;
     border-color: #d8d4cb;
@@ -216,12 +218,14 @@
     color: #5c4578;
 }
 
+.eventLogLineMuted .eventOutsideTourChip,
 .eventLogLineRejected .eventOutsideTourChip {
     border-color: #c9bdd8;
     background: #f3eff7;
     color: #7a6a92;
 }
 
+.eventLogLineMuted .eventOutsideTourIcon,
 .eventLogLineRejected .eventOutsideTourIcon {
     color: #7a6a92;
 }
@@ -301,6 +305,12 @@
 .eventLogPoints .eventChip {
     font-variant-numeric: tabular-nums;
     color: #4f4e4e;
+}
+
+.eventPointsMuted {
+    color: #8a8782;
+    border-color: #d8d4cb;
+    background: #f5f3ef;
 }
 
 .eventChip {
