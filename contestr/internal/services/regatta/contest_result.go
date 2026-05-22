@@ -135,9 +135,8 @@ func (s *Regatta) GetContestResult(ctx context.Context, contestID int) (regatta.
 			displayName = participant
 		}
 
-		teamTour := lastCompetitiveTour(tours)
 		teamNumber := 0
-		if teamTour != nil {
+		if teamTour := competitiveTourForTeamDisplay(tours, currentElapsedSeconds); teamTour != nil {
 			teamNumber = teamTour.GroupNumbers[participant]
 		}
 
@@ -200,13 +199,32 @@ func getProblemResults(result ParticipantResult) []regatta.ProblemResult {
 	return results
 }
 
-func lastCompetitiveTour(tours []regatta.Tour) *regatta.Tour {
-	for i := len(tours) - 1; i >= 0; i-- {
-		if !tours[i].IsPause {
-			return &tours[i]
+// competitiveTourForTeamDisplay — тур, по которому в таблице показывается группа:
+// идущий сейчас или последний уже начатый (на паузе между турами).
+func competitiveTourForTeamDisplay(tours []regatta.Tour, elapsed int) *regatta.Tour {
+	if len(tours) == 0 {
+		return nil
+	}
+	sorted := regatta.SortToursBySequence(tours)
+	offsets := regatta.SegmentOffsets(tours)
+	if seq, ok := regatta.ActiveSequence(tours, elapsed); ok {
+		for i := range sorted {
+			if sorted[i].Sequence == seq && !sorted[i].IsPause {
+				return &sorted[i]
+			}
 		}
 	}
-	return nil
+	var lastStarted *regatta.Tour
+	for i := range sorted {
+		t := &sorted[i]
+		if t.IsPause {
+			continue
+		}
+		if elapsed >= offsets[t.Sequence].End {
+			lastStarted = t
+		}
+	}
+	return lastStarted
 }
 
 func getSolvedProblemsCount(result ParticipantResult) int {

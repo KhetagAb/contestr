@@ -61,6 +61,7 @@ func (s *HTTPServer) RegisterHandlers(handlers *handlers.Handlers, authService *
 	})
 
 	server.RegisterHandlers(s.echo, handlers)
+	registerPublicRegattaRoutes(s.echo, handlers)
 
 	routes := s.echo.Routes()
 	for _, route := range routes {

@@ -138,10 +138,11 @@ func BuildTimelineSegments(tours []Tour, pending []ScheduleSlot, elapsed int) []
 	anchor := TimelineAnchorEnd(tours)
 	pendingStarts := BuildPendingStarts(anchor, pending)
 
-	firstPendingDue := -1
+	firstOverduePending := -1
 	for i, start := range pendingStarts {
 		if elapsed >= start {
-			firstPendingDue = i
+			firstOverduePending = i
+			break
 		}
 	}
 
@@ -178,14 +179,13 @@ func BuildTimelineSegments(tours []Tour, pending []ScheduleSlot, elapsed int) []
 		start := pendingStarts[i]
 		status := SegmentStatusFuture
 		if !hasActive {
-			if i == 0 && elapsed >= start {
-				status = SegmentStatusStarting
-			} else if i == 0 {
-				status = SegmentStatusNext
-			} else if firstPendingDue >= 0 && i == firstPendingDue+1 {
-				status = SegmentStatusNext
-			} else if firstPendingDue >= 0 && i == firstPendingDue {
-				status = SegmentStatusStarting
+			if firstOverduePending >= 0 {
+				switch i {
+				case firstOverduePending:
+					status = SegmentStatusStarting
+				case firstOverduePending + 1:
+					status = SegmentStatusNext
+				}
 			} else if i == 0 {
 				status = SegmentStatusNext
 			}

@@ -1,0 +1,76 @@
+.focusPage {
+    position: relative;
+    width: 100%;
+    min-height: calc(100dvh - var(--space-l, 2rem));
+    overflow-x: auto;
+    box-sizing: border-box;
+}
+
+.backBtn {
+    position: fixed;
+    top: var(--space-m, 1.25rem);
+    left: calc(var(--main-offset-left) + var(--space-s, 0.65rem));
+    z-index: 2;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.35rem 0.65rem;
+    border: 1px solid #e0dcd0;
+    border-radius: 0.4rem;
+    background: #f5f3eb;
+    font-family: "Montserrat Alternates", sans-serif;
+    font-size: var(--fs-caption, 0.85rem);
+    font-weight: 600;
+    color: #4f4e4e;
+    cursor: pointer;
+}
+
+.backBtn:hover {
+    background: #ebe8e1;
+}
+
+.focusCenter {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-l, 2rem);
+    min-height: calc(100dvh - var(--space-l, 2rem));
+    width: max-content;
+    max-width: 100%;
+    min-width: var(--phase-focus-min-width, 56rem);
+    margin: 0 auto;
+    padding: var(--space-m, 1.25rem) var(--space-s, 0.65rem);
+    box-sizing: border-box;
+}
+
+.focusHeader {
+    width: 100%;
+    text-align: center;
+}
+
+.contestTitle {
+    margin: 0;
+    font-family: "Montserrat Alternates", sans-serif;
+    font-size: var(--fs-h1, 1.5rem);
+    font-weight: 600;
+    color: #4f4e4e;
+    line-height: 1.2;
+}
+
+.statusText {
+    margin: 0;
+    font-family: "Montserrat Alternates", sans-serif;
+    font-size: var(--fs-p);
+    color: #6b6860;
+    text-align: center;
+}
+
+.focusMain {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: var(--space-m, 1.25rem);
+    width: 100%;
+    min-width: var(--phase-focus-tours-min-width, 56rem);
+}

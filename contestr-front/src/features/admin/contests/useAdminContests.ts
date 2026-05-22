@@ -13,9 +13,6 @@ import { mergeHandleDraft, parseParticipantList } from "./parseParticipantImport
 type LoadState = "idle" | "loading" | "error";
 
 export const DEFAULT_SCORING_SETTINGS: ScoringSettings = {
-    mode: "binary",
-    binary_overtake_mode: "retrospective",
-    full_solve_bonus: 100,
     solve_in_time_bonus: 100,
     overtake_bonus: 100,
 };
@@ -28,14 +25,6 @@ export const DEFAULT_TOUR_SETTINGS: TourSettings = {
 
 function normalizeScoringSettings(settings?: Partial<ScoringSettings> | null): ScoringSettings {
     return {
-        ...DEFAULT_SCORING_SETTINGS,
-        ...(settings ?? {}),
-        mode: settings?.mode === "partial" ? "partial" : "binary",
-        binary_overtake_mode:
-            settings?.binary_overtake_mode === "during_tour_only"
-                ? "during_tour_only"
-                : "retrospective",
-        full_solve_bonus: Number(settings?.full_solve_bonus ?? DEFAULT_SCORING_SETTINGS.full_solve_bonus),
         solve_in_time_bonus: Number(
             settings?.solve_in_time_bonus ?? DEFAULT_SCORING_SETTINGS.solve_in_time_bonus,
         ),

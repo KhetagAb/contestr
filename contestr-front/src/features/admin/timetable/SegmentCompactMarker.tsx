@@ -7,10 +7,10 @@ import type { TourVisualState } from "./tourVisualState";
 
 /** Показывать ли маркер типа слота в узкой колонке (без hover). */
 export function shouldShowCompactSegmentMarker(
-    needsExpand: boolean,
+    isNarrowSlot: boolean,
     editing: boolean,
 ): boolean {
-    return needsExpand && !editing;
+    return isNarrowSlot && !editing;
 }
 
 export function compactSegmentMarkerTitle(
@@ -20,8 +20,8 @@ export function compactSegmentMarkerTitle(
     return `${label} · ${formatDuration(segment.duration)}`;
 }
 
-export function compactSlotBlockClass(needsExpand: boolean): string {
-    return needsExpand ? "tt-axis__block--compact-slot" : "";
+export function compactSlotBlockClass(isNarrowSlot: boolean): string {
+    return isNarrowSlot ? "tt-axis__block--compact-slot" : "";
 }
 
 type Props = {

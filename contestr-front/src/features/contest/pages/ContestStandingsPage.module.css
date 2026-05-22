@@ -8,7 +8,6 @@
     gap: var(--space-s, 0.65rem);
 }
 
-.phaseCard,
 .standingsCard {
     border: 1px solid #e0dcd0;
     border-radius: 0.5rem;
@@ -125,6 +124,18 @@
     border-radius: 0.35rem;
     background: #fff;
     line-height: 1.25;
+}
+
+.groupChip.groupChipFollowed {
+    border-color: #6466fd;
+    background: #6466fd;
+    color: #fbf8f3;
+    font-weight: 600;
+}
+
+.rowFollowedSelf td {
+    border-top: 2px solid #6466fd;
+    border-bottom: 2px solid #6466fd;
 }
 
 .taskSolved {

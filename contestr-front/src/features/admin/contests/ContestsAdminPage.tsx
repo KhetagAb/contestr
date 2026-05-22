@@ -266,58 +266,7 @@ export default function ContestsAdminPage() {
                             )}
 
                             <section className="cf-scoring-settings" aria-label="Настройки начисления баллов">
-                                <div className="cf-scoring-settings__row">
-                                    <label>
-                                        <span>Режим</span>
-                                        <select
-                                            value={ac.draftScoringSettings.mode}
-                                            onChange={(e) =>
-                                                ac.updateDraftScoringSetting(
-                                                    "mode",
-                                                    e.target.value === "partial" ? "partial" : "binary",
-                                                )
-                                            }
-                                            disabled={ac.busy}
-                                        >
-                                            <option value="binary">ICPC</option>
-                                            <option value="partial">IOI</option>
-                                        </select>
-                                    </label>
-                                    <label>
-                                        <span>Обгон в режиме ICPC</span>
-                                        <select
-                                            value={ac.draftScoringSettings.binary_overtake_mode}
-                                            onChange={(e) =>
-                                                ac.updateDraftScoringSetting(
-                                                    "binary_overtake_mode",
-                                                    e.target.value === "during_tour_only"
-                                                        ? "during_tour_only"
-                                                        : "retrospective",
-                                                )
-                                            }
-                                            disabled={ac.busy || ac.draftScoringSettings.mode === "partial"}
-                                        >
-                                            <option value="retrospective">Ретроспективно</option>
-                                            <option value="during_tour_only">Только во время тура</option>
-                                        </select>
-                                    </label>
-                                </div>
-                                <div className="cf-scoring-settings__row">
-                                    <label>
-                                        <span>Полное решение</span>
-                                        <input
-                                            type="number"
-                                            min={0}
-                                            value={ac.draftScoringSettings.full_solve_bonus}
-                                            onChange={(e) =>
-                                                ac.updateDraftScoringSetting(
-                                                    "full_solve_bonus",
-                                                    Math.max(0, Number(e.target.value) || 0),
-                                                )
-                                            }
-                                            disabled={ac.busy}
-                                        />
-                                    </label>
+                                <div className="cf-scoring-settings__row cf-scoring-settings__row--bonuses">
                                     <label>
                                         <span>Во время тура</span>
                                         <input
@@ -348,18 +297,8 @@ export default function ContestsAdminPage() {
                                             disabled={ac.busy}
                                         />
                                     </label>
-                                    <button
-                                        type="button"
-                                        className="cf-handles-save-btn"
-                                        title="Сохранить настройки"
-                                        aria-label="Сохранить настройки"
-                                        onClick={() => void ac.saveContestSettings()}
-                                        disabled={ac.busy || !ac.settingsDirty}
-                                    >
-                                        <Save size={16} aria-hidden />
-                                    </button>
                                 </div>
-                                <div className="cf-scoring-settings__row">
+                                <div className="cf-scoring-settings__row cf-scoring-settings__row--with-save">
                                     <label>
                                         <span>Участников в группе</span>
                                         <input
@@ -391,7 +330,7 @@ export default function ContestsAdminPage() {
                                         />
                                     </label>
                                     <label>
-                                        <span>Перемешивание групп, %</span>
+                                        <span>{"Перемешивание групп,\u00A0%"}</span>
                                         <input
                                             type="number"
                                             min={0}
@@ -406,6 +345,16 @@ export default function ContestsAdminPage() {
                                             disabled={ac.busy}
                                         />
                                     </label>
+                                    <button
+                                        type="button"
+                                        className="cf-handles-save-btn cf-scoring-settings__save-btn"
+                                        title="Сохранить настройки"
+                                        aria-label="Сохранить настройки"
+                                        onClick={() => void ac.saveContestSettings()}
+                                        disabled={ac.busy || !ac.settingsDirty}
+                                    >
+                                        <Save size={16} aria-hidden />
+                                    </button>
                                 </div>
                             </section>
 

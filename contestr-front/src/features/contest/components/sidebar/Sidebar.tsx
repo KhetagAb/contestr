@@ -1,8 +1,10 @@
 import { useState, type ReactNode } from "react";
 import { FiMenu } from "react-icons/fi";
+import { useFollowedParticipant } from "@/features/contest/follow/FollowedParticipantContext";
 import { useContests } from "@/shared/hooks/useContests";
 import logo from "@/assets/icons/logo.svg";
 import adminUserIcon from "@/assets/images/admin-user-icon.png";
+import { ParticipantFollowMenu } from "./ParticipantFollowMenu";
 export type AdminSidebarSession = {
     username: string;
     onLogout: () => void;
@@ -26,7 +28,15 @@ type SidebarProps = {
 
 export function Sidebar({ adminSession }: SidebarProps) {
     const [hoveredMenu, setHoveredMenu] = useState<string | null>(null);
+    const { isParticipantPickerOpen, closeParticipantPicker } = useFollowedParticipant();
     const { contests, isLoading } = useContests();
+
+    const isUserMenuOpen = hoveredMenu === "user" || isParticipantPickerOpen;
+
+    const closeUserMenu = () => {
+        setHoveredMenu(null);
+        closeParticipantPicker();
+    };
 
     return (
         <aside className="sidebar-hover">
@@ -68,34 +78,21 @@ export function Sidebar({ adminSession }: SidebarProps) {
                 </div>
             </div>
 
-            {adminSession && (
+            <div
+                className={`menu-item-container sidebar-admin-user${isUserMenuOpen ? " sidebar-admin-user--open" : ""}`}
+                onMouseEnter={() => setHoveredMenu("user")}
+                onMouseLeave={closeUserMenu}
+            >
                 <div
-                    className="menu-item-container sidebar-admin-user"
-                    onMouseEnter={() => setHoveredMenu("admin-user")}
-                    onMouseLeave={() => setHoveredMenu(null)}
+                    className="icon-box sidebar-admin-user-trigger"
+                    aria-label="Выбор участника"
                 >
-                    <div className="icon-box sidebar-admin-user-trigger" aria-label="Аккаунт администратора">
-                        <img src={adminUserIcon} alt="" className="sidebar-admin-user-icon" />
-                    </div>
-                    <Submenu isOpen={hoveredMenu === "admin-user"}>
-                        <div className="admin-user-popover">
-                            <p className="admin-user-popover-greeting">
-                                Вы вошли как <span className="h1_pink">{adminSession.username}</span>
-                            </p>
-                            <a href="/admin" className="admin-user-popover-link">
-                                Админ-панель
-                            </a>
-                            <button
-                                type="button"
-                                className="admin-user-popover-btn"
-                                onClick={adminSession.onLogout}
-                            >
-                                Выйти
-                            </button>
-                        </div>
-                    </Submenu>
+                    <img src={adminUserIcon} alt="" className="sidebar-admin-user-icon" />
                 </div>
-            )}
+                <Submenu isOpen={isUserMenuOpen}>
+                    <ParticipantFollowMenu adminSession={adminSession} />
+                </Submenu>
+            </div>
         </aside>
     );
 }

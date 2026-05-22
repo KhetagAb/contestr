@@ -12,34 +12,35 @@ import { ContestEventLog } from "@/features/contest/components/event-log/Contest
 import { ContestPhaseStrip } from "@/features/contest/components/phase/ContestPhaseStrip";
 import { TaskCell } from "@/features/contest/components/standings/TaskCell";
 import { useContestStandings } from "@/features/contest/hooks/useContestStandings";
+import { useFollowedParticipant } from "@/features/contest/follow/FollowedParticipantContext";
 import { formatGroupCode } from "@/shared/utils/groupCode";
 import styles from "./ContestStandingsPage.module.css";
 
 const columnHelper = createColumnHelper<RegattaContestRow>();
 
-const hightlighted_user_id = "0";
+function isOnFollowedTeam(
+    row: RegattaContestRow,
+    followedParticipantId: string | null,
+    followedTeamNumber: number | undefined,
+): boolean {
+    return !!(
+        followedParticipantId &&
+        followedTeamNumber != null &&
+        followedTeamNumber > 0 &&
+        row.team_number === followedTeamNumber
+    );
+}
 
-const columns = [
-    columnHelper.accessor("team_number", {
-        cell: (info) => {
-            const n = info.getValue();
-            return (
-                <span className={styles.groupChip} title={`Группа ${n}`}>
-                    {formatGroupCode(n)}
-                </span>
-            );
-        },
-        header: () => "Группа",
-    }),
-    columnHelper.accessor("display_name", {
-        cell: (info) => info.getValue(),
-        header: () => "Имя",
-    }),
-    columnHelper.accessor("total_score", {
-        cell: (info) => info.getValue() + "",
-        header: () => "Счет",
-    }),
-];
+function groupChipClassName(
+    row: RegattaContestRow,
+    followedParticipantId: string | null,
+    followedTeamNumber: number | undefined,
+): string {
+    if (isOnFollowedTeam(row, followedParticipantId, followedTeamNumber)) {
+        return `${styles.groupChip} ${styles.groupChipFollowed}`;
+    }
+    return styles.groupChip;
+}
 
 /** Фоны групп — тёплые оттенки в духе #fbf8f3 / event-log, но различимые */
 const teamColors = [
@@ -99,27 +100,8 @@ function globalMaxPositiveScore(rows: RegattaContestRow[] | undefined) {
     return max;
 }
 
-function colorTeam(
-    row: RegattaContestRow,
-    hightlighted_user_team_number: number | undefined
-) {
-    if (row.user_id === hightlighted_user_id) {
-        return {
-            backgroundColor: "#6466fdff",
-            border: "2px solid #7a76e1ff",
-        };
-    }
-    if (
-        hightlighted_user_team_number &&
-        row.team_number === hightlighted_user_team_number
-    ) {
-        return {
-            backgroundColor: "#6466fdff",
-        };
-    }
-    return {
-        backgroundColor: teamColors[(row.team_number - 1) % teamColors.length],
-    };
+function rowBackgroundColor(row: RegattaContestRow): string {
+    return teamColors[(row.team_number - 1) % teamColors.length];
 }
 
 function findProblem(row: RegattaContestRow, taskId: string): ProblemResult | undefined {
@@ -131,6 +113,7 @@ function taskSortValue(row: RegattaContestRow, taskName: string): number {
 }
 
 export default function ContestStandingsPage() {
+    const { followedParticipantId } = useFollowedParticipant();
     const { data, isSuccess } = useContestStandings();
 
     const tasks = useMemo(() => {
@@ -142,13 +125,46 @@ export default function ContestStandingsPage() {
         );
     }, [data, isSuccess]);
 
-    const hightlighted_user_team_number = useMemo(
+    const followedTeamNumber = useMemo(
         () =>
             (isSuccess &&
-                data.rows &&
-                data.rows.find((r) => r.user_id === hightlighted_user_id)?.team_number) ||
+                followedParticipantId &&
+                data.rows?.find((r) => r.user_id === followedParticipantId)?.team_number) ||
             undefined,
-        [data, isSuccess]
+        [data, isSuccess, followedParticipantId],
+    );
+
+    const baseColumns = useMemo(
+        () => [
+            columnHelper.accessor("team_number", {
+                cell: (info) => {
+                    const n = info.getValue();
+                    const row = info.row.original;
+                    return (
+                        <span
+                            className={groupChipClassName(
+                                row,
+                                followedParticipantId,
+                                followedTeamNumber,
+                            )}
+                            title={`Группа ${n}`}
+                        >
+                            {formatGroupCode(n)}
+                        </span>
+                    );
+                },
+                header: () => "Группа",
+            }),
+            columnHelper.accessor("display_name", {
+                cell: (info) => info.getValue(),
+                header: () => "Имя",
+            }),
+            columnHelper.accessor("total_score", {
+                cell: (info) => info.getValue() + "",
+                header: () => "Счет",
+            }),
+        ],
+        [followedParticipantId, followedTeamNumber],
     );
 
     const taskColumns = useMemo(
@@ -169,7 +185,7 @@ export default function ContestStandingsPage() {
     );
 
     const table = useReactTable({
-        columns: [...columns, ...taskColumns],
+        columns: [...baseColumns, ...taskColumns],
         data: data?.rows || [],
         getCoreRowModel: getCoreRowModel(),
         getSortedRowModel: getSortedRowModel(),
@@ -218,9 +234,7 @@ export default function ContestStandingsPage() {
 
     return (
         <section className={styles.standingsSection} aria-label={contestTitle}>
-            <div className={styles.phaseCard}>
-                <ContestPhaseStrip />
-            </div>
+            <ContestPhaseStrip />
             <div className={styles.standingsCard}>
                 <h2 className={styles.standingsCardTitle}>{contestTitle}</h2>
                 <table className={styles.standingsTable}>
@@ -257,15 +271,25 @@ export default function ContestStandingsPage() {
                     </thead>
                     <tbody>
                         {table.getRowModel().rows.map((row) => {
-                            const rowHightlight = colorTeam(
-                                row.original,
-                                hightlighted_user_team_number
-                            );
+                            const teamBg = rowBackgroundColor(row.original);
+                            const isFollowedSelf =
+                                !!followedParticipantId &&
+                                row.original.user_id === followedParticipantId;
                             return (
-                                <tr key={row.id}>
+                                <tr
+                                    key={row.id}
+                                    className={
+                                        isFollowedSelf ? styles.rowFollowedSelf : undefined
+                                    }
+                                >
                                     {row.getVisibleCells().map((cell) => {
                                         const taskId = cell.column.id.replace("task_", "");
                                         const isTaskColumn = cell.column.id.startsWith("task_");
+                                        const isIdentityColumn = [
+                                            "team_number",
+                                            "display_name",
+                                            "total_score",
+                                        ].includes(cell.column.id);
 
                                         const problem = isTaskColumn
                                             ? findProblem(row.original, taskId)
@@ -283,18 +307,12 @@ export default function ContestStandingsPage() {
                                                 key={cell.id}
                                                 className={cellClassName}
                                                 style={{
-                                                    backgroundColor: [
-                                                        "team_number",
-                                                        "display_name",
-                                                        "user_id",
-                                                    ].includes(cell.column.id)
-                                                        ? rowHightlight.backgroundColor
+                                                    backgroundColor: isIdentityColumn
+                                                        ? teamBg
                                                         : taskCellBackground(
                                                               curScore,
-                                                              maxPositiveScore
+                                                              maxPositiveScore,
                                                           ),
-                                                    borderTop: rowHightlight.border,
-                                                    borderBottom: rowHightlight.border,
                                                 }}
                                             >
                                                 {flexRender(

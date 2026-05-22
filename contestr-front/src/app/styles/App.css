@@ -471,7 +471,8 @@ ul {
 }
 
 .sidebar-admin-user:hover .sidebar-admin-user-icon,
-.sidebar-admin-user:focus-within .sidebar-admin-user-icon {
+.sidebar-admin-user:focus-within .sidebar-admin-user-icon,
+.sidebar-admin-user--open .sidebar-admin-user-icon {
     opacity: 1;
     filter: brightness(0) saturate(100%) invert(62%) sepia(18%) saturate(900%) hue-rotate(314deg);
 }

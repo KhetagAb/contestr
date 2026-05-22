@@ -17,9 +17,6 @@ import {
     segmentLabel,
 } from "./time";
 
-/** Min block width (px) to fit title + actions without compact hover-expand */
-const SEGMENT_EXPAND_MIN_PX = 80;
-
 type Props = {
     segment: TimelineSegment;
     busy?: boolean;
@@ -33,6 +30,7 @@ type Props = {
     progressColorFrom?: string;
     progressColorTo?: string;
     gridColumn: number;
+    isNarrowSlot?: boolean;
 };
 
 export function AxisSegment({
@@ -48,42 +46,17 @@ export function AxisSegment({
     progressColorFrom,
     progressColorTo,
     gridColumn,
+    isNarrowSlot = false,
 }: Props) {
     const [editing, setEditing] = useState(false);
     const [draft, setDraft] = useState(formatDurationInputValue(segment.duration));
     const blockRef = useRef<HTMLDivElement>(null);
-    const pointerInsideRef = useRef(false);
-    const [blockWidthPx, setBlockWidthPx] = useState(0);
 
     useEffect(() => {
         if (!editing) {
             setDraft(formatDurationInputValue(segment.duration));
         }
     }, [segment.duration, editing]);
-
-    useEffect(() => {
-        const el = blockRef.current;
-        if (!el) {
-            return;
-        }
-        const sync = () => {
-            if (pointerInsideRef.current) {
-                return;
-            }
-            setBlockWidthPx(el.getBoundingClientRect().width);
-        };
-        sync();
-        const ro = new ResizeObserver(sync);
-        ro.observe(el);
-        return () => ro.disconnect();
-    }, [segment.duration]);
-
-    const measureBlockWidth = () => {
-        const el = blockRef.current;
-        if (el) {
-            setBlockWidthPx(el.getBoundingClientRect().width);
-        }
-    };
 
     const visualState = resolveSegmentVisualState(segment);
     const label = segmentLabel(segment);
@@ -98,10 +71,9 @@ export function AxisSegment({
     const canDelete = canEditPending;
     const hasActions =
         Boolean(onAdd) || canToggleKind || (canDelete && onRemove);
-    const needsExpand = Boolean(
-        hasActions && blockWidthPx > 0 && blockWidthPx < SEGMENT_EXPAND_MIN_PX,
-    );
-    const showCompactMarker = shouldShowCompactSegmentMarker(needsExpand, editing);
+    /** Узкий слот: иконка в колонке, раскрытие по hover (и прошедшие, и запланированные). */
+    const needsExpand = isNarrowSlot && !editing;
+    const showCompactMarker = shouldShowCompactSegmentMarker(isNarrowSlot, editing);
 
     const inProgress = progressFill !== undefined && progressColorFrom && progressColorTo;
     const progressStyle: CSSProperties | undefined = inProgress
@@ -163,7 +135,7 @@ export function AxisSegment({
         needsExpand ? "" : surfaceClass,
         editing ? "tt-axis__block--editing" : "",
         needsExpand ? "tt-axis__block--expandable" : "",
-        compactSlotBlockClass(needsExpand),
+        compactSlotBlockClass(isNarrowSlot),
         hasActions ? "tt-axis__block--has-actions" : "",
     ]
         .filter(Boolean)
@@ -179,22 +151,6 @@ export function AxisSegment({
             className={blockClassName}
             style={{ gridColumn, gridRow: 2, ...progressStyle }}
             aria-label={blockAriaLabel}
-            onMouseEnter={() => {
-                pointerInsideRef.current = true;
-            }}
-            onMouseLeave={() => {
-                pointerInsideRef.current = false;
-                measureBlockWidth();
-            }}
-            onFocusCapture={() => {
-                pointerInsideRef.current = true;
-            }}
-            onBlurCapture={(e) => {
-                if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
-                    pointerInsideRef.current = false;
-                    measureBlockWidth();
-                }
-            }}
         >
             <div className={innerClassName}>
                 {showCompactMarker && (

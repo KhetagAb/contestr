@@ -170,12 +170,8 @@ func fromAPIScoringSettings(settings *server.ScoringSettings) regatta.ScoringSet
 
 func fromAPIRequiredScoringSettings(settings server.ScoringSettings) regatta.ScoringSettings {
 	return regatta.NormalizeScoringSettings(regatta.ScoringSettings{
-		Version:            regatta.CurrentScoringSettingsVersion,
-		Mode:               string(settings.Mode),
-		BinaryOvertakeMode: string(settings.BinaryOvertakeMode),
-		FullSolveBonus:     settings.FullSolveBonus,
-		SolveInTimeBonus:   settings.SolveInTimeBonus,
-		OvertakeBonus:      settings.OvertakeBonus,
+		SolveInTimeBonus: settings.SolveInTimeBonus,
+		OvertakeBonus:    settings.OvertakeBonus,
 	})
 }
 
@@ -196,11 +192,8 @@ func fromAPIRequiredTourSettings(settings server.TourSettings) regatta.TourSetti
 
 func toAPIScoringSettings(settings regatta.ScoringSettings) server.ScoringSettings {
 	return server.ScoringSettings{
-		Mode:               server.ScoringSettingsMode(settings.Mode),
-		BinaryOvertakeMode: server.ScoringSettingsBinaryOvertakeMode(settings.BinaryOvertakeMode),
-		FullSolveBonus:     settings.FullSolveBonus,
-		SolveInTimeBonus:   settings.SolveInTimeBonus,
-		OvertakeBonus:      settings.OvertakeBonus,
+		SolveInTimeBonus: settings.SolveInTimeBonus,
+		OvertakeBonus:    settings.OvertakeBonus,
 	}
 }
 

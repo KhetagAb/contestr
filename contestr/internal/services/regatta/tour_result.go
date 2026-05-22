@@ -11,8 +11,9 @@ import (
 
 const (
 	OvertakePoints    = regatta.DefaultOvertakeBonus
-	SolvePoints       = regatta.DefaultFullSolveBonus
 	SolveInTimePoints = regatta.DefaultSolveInTimeBonus
+
+	fullSolvePointsThreshold = 100
 )
 
 const (
@@ -120,34 +121,6 @@ func bestSubmissionAtTime(state ProblemState, deadline int) (int, SubmissionTime
 	return bestPoints, bestTime, hasBest
 }
 
-func binaryOvertakeWinner(t *TourResult, participant Participant, problem Problem) bool {
-	state, ok := problemState(t, participant, problem)
-	if !ok || !state.HasFullSolve {
-		return false
-	}
-	if t.ScoringSettings.BinaryOvertakeMode == regatta.BinaryOvertakeModeDuringTour &&
-		!isSolvedInTime(t.SegmentStart, t.DurationInSeconds, state.FullSolveTime) {
-		return false
-	}
-
-	group := t.Groups[participant]
-	if len(group) <= 1 {
-		return false
-	}
-
-	count := 0
-	for _, opponent := range group {
-		if participant == opponent {
-			continue
-		}
-		opponentState, opponentSolved := problemState(t, opponent, problem)
-		if !opponentSolved || !opponentState.HasFullSolve || state.FullSolveTime < opponentState.FullSolveTime {
-			count++
-		}
-	}
-	return count == len(group)-1
-}
-
 func partialFullSolveWinner(t *TourResult, group Group, problem Problem) (Participant, bool, bool) {
 	bestTime := 0
 	var winners []Participant
@@ -221,9 +194,6 @@ func partialOvertakeWinner(t *TourResult, group Group, problem Problem) (Partici
 }
 
 func overtakeWinner(t *TourResult, participant Participant, problem Problem) bool {
-	if t.ScoringSettings.Mode != regatta.ScoringModePartial {
-		return binaryOvertakeWinner(t, participant, problem)
-	}
 	group := t.Groups[participant]
 	winner, ok, _ := partialOvertakeWinner(t, group, problem)
 	return ok && winner == participant
@@ -236,11 +206,9 @@ func scoreForProblem(t *TourResult, participant Participant, problem Problem) in
 	}
 
 	score := state.BestPoints
-	if state.HasFullSolve {
-		score += t.ScoringSettings.FullSolveBonus
-		if isSolvedInTime(t.SegmentStart, t.DurationInSeconds, state.FullSolveTime) {
-			score += t.ScoringSettings.SolveInTimeBonus
-		}
+	if state.HasFullSolve &&
+		isSolvedInTime(t.SegmentStart, t.DurationInSeconds, state.FullSolveTime) {
+		score += t.ScoringSettings.SolveInTimeBonus
 	}
 	if overtakeWinner(t, participant, problem) {
 		score += t.ScoringSettings.OvertakeBonus
@@ -464,7 +432,7 @@ func calcSubmissions(submissions []Run, settings regatta.ScoringSettings) map[Pa
 			state.BestPoints = points
 			state.BestTime = submission.Time
 		}
-		if points >= 100 && (!state.HasFullSolve || submission.Time < state.FullSolveTime) {
+		if points >= fullSolvePointsThreshold && (!state.HasFullSolve || submission.Time < state.FullSolveTime) {
 			state.HasFullSolve = true
 			state.FullSolveTime = submission.Time
 		}
@@ -496,22 +464,16 @@ func rejectedAttemptCount(state ProblemState) int {
 	return count
 }
 
-func normalizedRunPoints(run Run, settings regatta.ScoringSettings) (int, bool) {
-	if settings.Mode != regatta.ScoringModePartial {
-		if run.Status != SubmissionStatusOK {
-			return 0, true
-		}
+func normalizedRunPoints(run Run, _ regatta.ScoringSettings) (int, bool) {
+	if run.Status == SubmissionStatusOK {
 		return 100, true
 	}
 
 	points := run.Points
-	if points == 0 && run.Status == SubmissionStatusOK {
-		points = 100
-	}
 	if points < 0 {
 		points = 0
 	}
-	if points > 0 || run.Status == SubmissionStatusOK || run.Status == SubmissionStatusPartial {
+	if points > 0 || run.Status == SubmissionStatusPartial {
 		return points, true
 	}
 	return 0, isRejectedSubmission(ScoredSubmission{Status: run.Status})
@@ -590,9 +552,7 @@ func BuildContestEventsAt(
 			}
 		}
 
-		if settings.Mode == regatta.ScoringModePartial {
-			allEvents = append(allEvents, buildPartialOvertakeEvents(meta, tr)...)
-		}
+		allEvents = append(allEvents, buildPartialOvertakeEvents(meta, tr)...)
 	}
 
 	slices.SortFunc(allEvents, func(a, b regatta.RegattaEvent) int {
@@ -632,6 +592,9 @@ func buildPartialOvertakeEvents(meta eventMeta, t *TourResult) []regatta.Regatta
 			}
 			state, ok := problemState(t, winner, problem)
 			if !ok {
+				continue
+			}
+			if state.HasFullSolve {
 				continue
 			}
 			_, scoreTime, ok := bestSubmissionAtTime(state, tourEnd(t))

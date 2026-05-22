@@ -2,8 +2,6 @@ package codeforces
 
 import (
 	"testing"
-
-	"contestr/pkg/regatta"
 )
 
 func TestStatusSubmissionsIncludeFailedWithTime(t *testing.T) {
@@ -39,18 +37,24 @@ func TestStatusSubmissionsIncludeFailedWithTime(t *testing.T) {
 	}
 }
 
-func TestNormalizeBinarySubmissions(t *testing.T) {
+func TestAppendStatusSubmissions_partialPointsPreserved(t *testing.T) {
 	t.Parallel()
 
-	submissions := []regatta.ContestSubmission{
-		{Status: "OK", Points: 100},
-		{Status: "WRONG_ANSWER", Points: 0},
+	partial := 42.0
+	problemIDs := map[string]int{"A": 1}
+	allowed := map[string]bool{"alice": true}
+	status := []StatusSubmission{
+		{
+			Author:              StatusParty{Members: []StatusMember{{Handle: "alice"}}},
+			Problem:             StatusProblem{Index: "A"},
+			RelativeTimeSeconds: 200,
+			Verdict:             "PARTIAL",
+			Points:              &partial,
+		},
 	}
-	normalizeBinarySubmissions(submissions)
-	if submissions[0].Points != 100 {
-		t.Fatalf("OK points = %d, want 100", submissions[0].Points)
-	}
-	if submissions[1].Points != 0 {
-		t.Fatalf("WA points = %d, want 0", submissions[1].Points)
+
+	submissions := appendStatusSubmissions(nil, status, problemIDs, allowed)
+	if len(submissions) != 1 || submissions[0].Points != 42 || submissions[0].Status != "PARTIAL" {
+		t.Fatalf("submissions = %+v, want PARTIAL with 42 points", submissions)
 	}
 }

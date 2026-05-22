@@ -2,10 +2,11 @@
     display: flex;
     align-items: center;
     gap: 3px;
-    flex-shrink: 0;
+    width: 100%;
     min-width: 0;
-    max-width: 100%;
     overflow-x: auto;
+    scroll-snap-type: x proximity;
+    scrollbar-width: thin;
 }
 
 .segment {
@@ -14,6 +15,7 @@
     align-items: center;
     justify-content: center;
     flex: 0 0 auto;
+    scroll-snap-align: center;
     height: 1.35rem;
     padding: 0 0.35rem;
     border-radius: 0.28rem;
@@ -61,6 +63,45 @@
     width: 14px;
     height: 14px;
     flex-shrink: 0;
+}
+
+.trackLarge {
+    gap: 6px;
+}
+
+.trackLarge .segment {
+    height: 2.35rem;
+    padding: 0 0.65rem;
+    border-radius: 0.4rem;
+}
+
+.trackLarge .segmentLabel {
+    font-size: 0.95rem;
+    line-height: 1.2;
+}
+
+.trackLarge .pauseIcon {
+    width: 22px;
+    height: 22px;
+}
+
+.trackFit {
+    overflow-x: visible;
+    scroll-snap-type: none;
+    width: max-content;
+    min-width: 100%;
+    margin-inline: auto;
+}
+
+.trackFit .segment {
+    flex: 1 1 auto;
+    min-width: max-content;
+    max-width: none;
+    scroll-snap-align: none;
+}
+
+.trackFit .segmentInner {
+    justify-content: center;
 }
 
 @keyframes mini-seg-pulse {

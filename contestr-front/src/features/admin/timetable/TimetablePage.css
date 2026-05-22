@@ -406,7 +406,7 @@
 .tt-axis__block {
     --tt-segment-expand-min: 6.5rem;
     position: relative;
-    min-width: 2px;
+    min-width: 0;
     height: var(--tt-axis-block-height);
     min-height: var(--tt-axis-block-height);
     border: 0.5px solid rgba(0, 0, 0, 0.45);
@@ -435,7 +435,7 @@
     box-sizing: border-box;
 }
 
-.tt-axis__block--expandable.tt-axis__block--compact-slot .tt-axis__block-inner {
+.tt-axis__block--compact-slot .tt-axis__block-inner {
     position: relative;
 }
 
@@ -443,6 +443,7 @@
     display: none;
 }
 
+/* Узкий слот: в колонке только иконка; подробности — в раскрытии по hover */
 .tt-axis__block--expandable.tt-axis__block--compact-slot:not(:hover):not(:focus-within)
     .tt-axis__segment-marker {
     display: flex;
@@ -546,9 +547,7 @@
 }
 
 .tt-axis__block--expandable:hover .tt-axis__block-main,
-.tt-axis__block--expandable:hover .tt-axis__block-actions,
-.tt-axis__block--expandable:focus-within .tt-axis__block-main,
-.tt-axis__block--expandable:focus-within .tt-axis__block-actions {
+.tt-axis__block--expandable:focus-within .tt-axis__block-main {
     visibility: visible;
     width: auto;
     min-width: 0;
@@ -556,7 +555,13 @@
     pointer-events: auto;
 }
 
-.tt-axis__block--expandable:focus-within .tt-axis__block-actions {
+.tt-axis__block--expandable.tt-axis__block--has-actions:hover .tt-axis__block-actions,
+.tt-axis__block--expandable.tt-axis__block--has-actions:focus-within .tt-axis__block-actions {
+    visibility: visible;
+    width: auto;
+    min-width: 0;
+    opacity: 1;
+    pointer-events: auto;
     min-height: calc(3 * var(--tt-icon-btn-size) + 2 * var(--tt-icon-btn-gap));
 }
 

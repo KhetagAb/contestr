@@ -1,7 +1,8 @@
-import { useMemo, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import type { TimelineSegment, TimetableView } from "@/client/types.gen";
 import { AxisSegment } from "./AxisSegment";
 import { computeActiveSegmentProgress } from "./tourProgress";
+import { isNarrowTimelineSegment } from "./segmentLayout";
 import { canInsertPendingSlotAfter, formatTourClock, pendingInsertIndexAfter } from "./time";
 import { useContestElapsed } from "./useContestElapsed";
 
@@ -95,8 +96,8 @@ function buildAxisGridTemplateColumns(segments: TimelineSegment[]): string {
     return segments
         .map((s, i) =>
             i < segments.length - 1
-                ? `${s.duration}fr var(--tt-tour-gap)`
-                : `${s.duration}fr`,
+                ? `minmax(0, ${s.duration}fr) var(--tt-tour-gap)`
+                : `minmax(0, ${s.duration}fr)`,
         )
         .join(" ");
 }
@@ -131,6 +132,20 @@ export function ScheduleAxis({
     onAddSlotAfter,
 }: Props) {
     const elapsed = useContestElapsed(view?.contest_start_time, view?.elapsed_seconds ?? 0);
+    const scaleRef = useRef<HTMLDivElement>(null);
+    const [scaleWidthPx, setScaleWidthPx] = useState(0);
+
+    useEffect(() => {
+        const el = scaleRef.current;
+        if (!el) {
+            return;
+        }
+        const sync = () => setScaleWidthPx(el.getBoundingClientRect().width);
+        sync();
+        const ro = new ResizeObserver(sync);
+        ro.observe(el);
+        return () => ro.disconnect();
+    }, [segments]);
 
     const layout = useMemo(() => {
         if (segments.length === 0) {
@@ -168,7 +183,7 @@ export function ScheduleAxis({
             aria-label="Временная шкала туров"
         >
             <p className="tt-axis__caption">Временная шкала туров</p>
-            <div className="tt-axis__scale" style={scaleStyle}>
+            <div ref={scaleRef} className="tt-axis__scale" style={scaleStyle}>
                 {layout.tickLabels.map(({ seconds, showLabel, above }, i) => {
                     if (!above || !showLabel) {
                         return null;
@@ -233,6 +248,11 @@ export function ScheduleAxis({
                             progressColorFrom={isActive ? active.colorFrom : undefined}
                             progressColorTo={isActive ? active.colorTo : undefined}
                             gridColumn={segmentGridColumn(index)}
+                            isNarrowSlot={isNarrowTimelineSegment(
+                                segment,
+                                segments,
+                                scaleWidthPx,
+                            )}
                         />
                     );
                 })}

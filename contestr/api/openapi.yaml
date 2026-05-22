@@ -231,6 +231,25 @@ paths:
         200:
           $ref: '#/components/responses/RegattaContestStandings'
 
+  /api/regatta/contests/{contest_id}/participants:
+    get:
+      operationId: getRegattaContestParticipants
+      parameters:
+        - name: contest_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          description: Зарегистрированные участники контеста (маппинги handle → имя)
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ContestParticipantItem'
+
   /api/regatta/contests/{contest_id}/timetable:
     get:
       operationId: getRegattaContestTimetable
@@ -726,22 +745,9 @@ components:
     ScoringSettings:
       type: object
       required:
-        - mode
-        - binary_overtake_mode
-        - full_solve_bonus
         - solve_in_time_bonus
         - overtake_bonus
       properties:
-        mode:
-          type: string
-          enum: [binary, partial]
-        binary_overtake_mode:
-          type: string
-          enum: [retrospective, during_tour_only]
-        full_solve_bonus:
-          type: integer
-          minimum: 0
-          default: 100
         solve_in_time_bonus:
           type: integer
           minimum: 0
@@ -780,6 +786,18 @@ components:
           type: string
         name:
           type: string
+    ContestParticipantItem:
+      type: object
+      required:
+        - participant_id
+        - display_name
+      properties:
+        participant_id:
+          type: string
+          description: Идентификатор участника (нормализованный handle, совпадает с user_id в standings)
+        display_name:
+          type: string
+          description: Отображаемое имя из маппинга
     PutCodeforcesHandlesRequest:
       type: object
       required:

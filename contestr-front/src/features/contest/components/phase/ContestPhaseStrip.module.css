@@ -1,55 +1,81 @@
-.strip {
+.phaseRow {
     display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 0.65rem 1rem;
-    padding: 0.5rem 0.85rem;
-    background: #f5f3eb;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    gap: var(--space-s, 0.65rem);
+    width: fit-content;
+    max-width: 100%;
+}
+
+.toursListCard {
+    border: 1px solid #e0dcd0;
     border-radius: 0.5rem;
+    background: #f5f3eb;
+    box-sizing: border-box;
+}
+
+.currentTourCard {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 9.5rem;
+    padding: 0.55rem 1.1rem;
     min-height: 2.75rem;
+    border: none;
+    background: transparent;
+    box-sizing: border-box;
 }
 
-.timeline {
+.currentTourBody {
     display: flex;
+    flex-direction: row;
     align-items: center;
-    align-self: center;
+    justify-content: center;
+    gap: 0.65rem 0.85rem;
+}
+
+.currentTourMeta {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 0.05rem;
     flex-shrink: 0;
+    line-height: 1.2;
 }
 
-.main {
+.currentTourEmpty {
     display: flex;
-    flex-wrap: wrap;
+    flex-direction: column;
     align-items: center;
-    gap: 0.45rem 0.65rem;
-    min-width: 0;
-    flex: 1 1 auto;
+    gap: 0.35rem;
 }
 
 .heroChip {
     display: inline-flex;
     align-items: center;
-    gap: 0.35rem;
-    padding: 0.2rem 0.55rem;
+    gap: 0.4rem;
+    padding: 0.28rem 0.65rem;
     border-radius: 0.35rem;
-    border: 1px solid rgba(79, 78, 78, 0.12);
+    border: none;
 }
 
 .heroIcon {
     display: inline-flex;
     line-height: 0;
-    --tt-icon-slot-size: 14px;
+    --tt-icon-slot-size: 18px;
 }
 
 .heroPauseIcon {
-    width: 14px;
-    height: 14px;
+    width: 18px;
+    height: 18px;
     flex-shrink: 0;
     color: #5c5a52;
 }
 
 .heroLabel {
     font-family: "Montserrat Alternates", sans-serif;
-    font-size: var(--fs-p, 0.95rem);
+    font-size: 1.05rem;
     font-weight: 600;
     color: #4f4e4e;
     white-space: nowrap;
@@ -57,19 +83,42 @@
 
 .statusText {
     font-family: "Montserrat Alternates", sans-serif;
-    font-size: var(--fs-caption, 0.8rem);
+    font-size: 0.72rem;
     font-weight: 500;
     color: #6b6860;
     text-transform: lowercase;
+    line-height: 1.15;
 }
 
 .timer {
     font-family: "Anonymous Pro", monospace;
-    font-size: var(--fs-button, 1rem);
+    font-size: 1.05rem;
     font-weight: 600;
     font-variant-numeric: tabular-nums;
     color: #4f4e4e;
     letter-spacing: 0.02em;
+    line-height: 1.15;
+}
+
+.toursListCard {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: center;
+    gap: 0.35rem;
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 0.45rem 0.85rem 0.5rem;
+    min-height: 2.75rem;
+}
+
+.toursListTitle {
+    margin: 0;
+    font-family: "Montserrat Alternates", sans-serif;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #6b6860;
+    line-height: 1.15;
 }
 
 .emptyIcon {
@@ -82,11 +131,116 @@
     font-family: "Montserrat Alternates", sans-serif;
     font-size: var(--fs-caption, 0.85rem);
     color: #6b6860;
+    text-align: center;
 }
 
-@media (max-width: 520px) {
-    .strip {
+.phaseCardClickable {
+    cursor: pointer;
+    transition:
+        border-color 0.15s ease,
+        box-shadow 0.15s ease;
+}
+
+.phaseCardClickable:hover {
+    border-color: #c9c4b8;
+    box-shadow: 0 2px 8px rgba(79, 78, 78, 0.08);
+}
+
+.currentTourCard.phaseCardClickable:hover {
+    border-color: transparent;
+}
+
+.phaseCardClickable:focus-visible {
+    outline: 2px solid #e58995;
+    outline-offset: 2px;
+}
+
+.phaseRowFocus {
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    gap: var(--space-m, 1.25rem);
+}
+
+.phaseRowFocus .currentTourCard {
+    width: 100%;
+    min-width: 0;
+    min-height: 6.5rem;
+    padding: 1.25rem 1.75rem;
+    justify-content: center;
+}
+
+.phaseRowFocus .currentTourBody {
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.phaseRowFocus .currentTourMeta {
+    align-items: center;
+}
+
+.phaseRowFocus .heroLabel {
+    font-size: clamp(1.35rem, 2.5vw, 1.85rem);
+}
+
+.phaseRowFocus .statusText {
+    font-size: 1rem;
+}
+
+.phaseRowFocus .timer {
+    font-size: clamp(2.75rem, 8vw, 4.25rem);
+    line-height: 1;
+    letter-spacing: 0.04em;
+}
+
+.phaseRowFocus .heroPauseIcon[data-size="focus"] {
+    width: 32px;
+    height: 32px;
+}
+
+.phaseRowFocus .heroIcon {
+    --tt-icon-slot-size: 32px;
+}
+
+.phaseRowFocus .emptyText,
+.phaseRowFocus .loadingText {
+    font-size: 1.05rem;
+}
+
+.phaseRowFocus .toursListCard {
+    width: max-content;
+    max-width: 100%;
+    min-width: var(--phase-focus-tours-min-width, 56rem);
+    min-height: 4.5rem;
+    padding: 0.85rem 1.25rem 1rem;
+    gap: 0.65rem;
+    align-items: center;
+    overflow-x: visible;
+}
+
+.phaseRowFocus .toursListTitle {
+    font-size: 0.95rem;
+    text-align: center;
+}
+
+.phaseRowFocus .toursListTimelineWrap {
+    width: max-content;
+    max-width: 100%;
+    min-width: 100%;
+    overflow-x: visible;
+    display: flex;
+    justify-content: center;
+}
+
+@media (max-width: 640px) {
+    .phaseRow:not(.phaseRowFocus) {
         flex-direction: column;
-        align-items: stretch;
+        width: 100%;
+    }
+
+    .phaseRow:not(.phaseRowFocus) .currentTourCard,
+    .phaseRow:not(.phaseRowFocus) .toursListCard {
+        width: 100%;
     }
 }

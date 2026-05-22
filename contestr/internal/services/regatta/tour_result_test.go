@@ -39,7 +39,7 @@ func TestParticipantScore_eventsAndScore(t *testing.T) {
 	})
 
 	out := tr.ParticipantScore("alice")
-	wantScore := 100 + SolvePoints + SolveInTimePoints + OvertakePoints
+	wantScore := 100 + SolveInTimePoints + OvertakePoints
 	if out.Results["1A"].score != wantScore {
 		t.Fatalf("alice score = %d, want %d", out.Results["1A"].score, wantScore)
 	}
@@ -69,7 +69,7 @@ func TestParticipantScore_singleParticipantFullSolveGetsProblemAndSolveBonuses(t
 		{UserID: "alice", ProbID: 1, Time: 100, Status: SubmissionStatusOK},
 	})
 
-	want := 100 + SolvePoints + SolveInTimePoints
+	want := 100 + SolveInTimePoints
 	out := tr.ParticipantScore("alice")
 	if got := out.Results["1A"].score; got != want {
 		t.Fatalf("single participant score = %d, want %d", got, want)
@@ -101,7 +101,7 @@ func TestBuildContestEvents_chronological(t *testing.T) {
 	if events[0].DisplayName != "Alice A" {
 		t.Fatalf("display name = %q", events[0].DisplayName)
 	}
-	if events[0].Points != 100+SolvePoints+SolveInTimePoints+OvertakePoints {
+	if events[0].Points != 100+SolveInTimePoints+OvertakePoints {
 		t.Fatalf("alice points = %d", events[0].Points)
 	}
 
@@ -125,7 +125,7 @@ func TestScoreForSolve_noMultiOvertakeBonus(t *testing.T) {
 		{UserID: "carol", ProbID: 1, Time: 300, Status: SubmissionStatusOK},
 	})
 
-	want := 100 + SolvePoints + SolveInTimePoints + OvertakePoints
+	want := 100 + SolveInTimePoints + OvertakePoints
 	got := scoreForProblem(tr, "alice", 1)
 	if got != want {
 		t.Fatalf("score = %d, want %d (no +%d per opponent)", got, want, OvertakePoints)
@@ -146,7 +146,7 @@ func TestBuildContestEvents_byProblemTourNotSubmissionTime(t *testing.T) {
 	}
 
 	runs := []Run{
-		{UserID: "alice", ProbID: 3, Time: 200, Status: SubmissionStatusOK},
+		{UserID: "alice", ProbID: 3, Time: 5000, Status: SubmissionStatusOK},
 	}
 	events := BuildContestEvents(tours, runs, map[string]string{"alice": "Alice"})
 	if len(events) != 1 {
@@ -172,9 +172,9 @@ func TestBuildContestEvents_countMatchesTable(t *testing.T) {
 
 	runs := []Run{
 		{UserID: "alice", ProbID: 1, Time: 100, Status: SubmissionStatusOK},
-		{UserID: "alice", ProbID: 3, Time: 4200, Status: SubmissionStatusOK},
+		{UserID: "alice", ProbID: 3, Time: 5000, Status: SubmissionStatusOK},
 		{UserID: "bob", ProbID: 2, Time: 500, Status: SubmissionStatusOK},
-		{UserID: "bob", ProbID: 4, Time: 5000, Status: SubmissionStatusOK},
+		{UserID: "bob", ProbID: 4, Time: 5500, Status: SubmissionStatusOK},
 	}
 
 	events := BuildContestEvents(tours, runs, nil)
@@ -222,34 +222,32 @@ func TestBuildContestEvents_sortedByTime(t *testing.T) {
 	}
 }
 
-func TestPartialMode_uniqueFirstFullSolveGetsOvertake(t *testing.T) {
+func TestOvertake_uniqueFirstFullSolveGetsOvertake(t *testing.T) {
 	tour := testTour()
 	settings := regatta.DefaultScoringSettings()
-	settings.Mode = regatta.ScoringModePartial
 	tr := CalculateResultWithSettings(tour, 0, []Run{
 		{UserID: "alice", ProbID: 1, Time: 100, Status: SubmissionStatusOK, Points: 100},
 		{UserID: "bob", ProbID: 1, Time: 200, Status: SubmissionStatusOK, Points: 100},
 	}, settings)
 
-	want := 100 + SolvePoints + SolveInTimePoints + OvertakePoints
+	want := 100 + SolveInTimePoints + OvertakePoints
 	if got := tr.ParticipantScore("alice").Results["1A"].score; got != want {
 		t.Fatalf("alice score = %d, want %d", got, want)
 	}
-	if got := tr.ParticipantScore("bob").Results["1A"].score; got != 100+SolvePoints+SolveInTimePoints {
+	if got := tr.ParticipantScore("bob").Results["1A"].score; got != 100+SolveInTimePoints {
 		t.Fatalf("bob score = %d, want no overtake", got)
 	}
 }
 
-func TestPartialMode_tiedFirstFullSolveGetsNoOvertake(t *testing.T) {
+func TestOvertake_tiedFirstFullSolveGetsNoOvertake(t *testing.T) {
 	tour := testTour()
 	settings := regatta.DefaultScoringSettings()
-	settings.Mode = regatta.ScoringModePartial
 	tr := CalculateResultWithSettings(tour, 0, []Run{
 		{UserID: "alice", ProbID: 1, Time: 100, Status: SubmissionStatusOK, Points: 100},
 		{UserID: "bob", ProbID: 1, Time: 100, Status: SubmissionStatusOK, Points: 100},
 	}, settings)
 
-	want := 100 + SolvePoints + SolveInTimePoints
+	want := 100 + SolveInTimePoints
 	for _, participant := range []string{"alice", "bob"} {
 		if got := tr.ParticipantScore(participant).Results["1A"].score; got != want {
 			t.Fatalf("%s score = %d, want %d", participant, got, want)
@@ -257,10 +255,9 @@ func TestPartialMode_tiedFirstFullSolveGetsNoOvertake(t *testing.T) {
 	}
 }
 
-func TestPartialMode_tourEndHighestPartialGetsOvertake(t *testing.T) {
+func TestOvertake_tourEndHighestPartialGetsOvertake(t *testing.T) {
 	tour := testTour()
 	settings := regatta.DefaultScoringSettings()
-	settings.Mode = regatta.ScoringModePartial
 	tr := CalculateResultWithSettings(tour, 0, []Run{
 		{UserID: "alice", ProbID: 1, Time: 100, Status: SubmissionStatusPartial, Points: 40},
 		{UserID: "alice", ProbID: 1, Time: 3700, Status: SubmissionStatusPartial, Points: 80},
@@ -291,10 +288,9 @@ func TestPartialMode_tourEndHighestPartialGetsOvertake(t *testing.T) {
 	}
 }
 
-func TestPartialMode_activeTourHighestPartialGetsNoTourEndOvertake(t *testing.T) {
+func TestOvertake_activeTourHighestPartialGetsNoTourEndOvertake(t *testing.T) {
 	tour := testTour()
 	settings := regatta.DefaultScoringSettings()
-	settings.Mode = regatta.ScoringModePartial
 	runs := []Run{
 		{UserID: "alice", ProbID: 1, Time: 900, Status: SubmissionStatusPartial, Points: 20},
 		{UserID: "bob", ProbID: 1, Time: 700, Status: SubmissionStatusPartial, Points: 10},
@@ -311,10 +307,9 @@ func TestPartialMode_activeTourHighestPartialGetsNoTourEndOvertake(t *testing.T)
 	}
 }
 
-func TestPartialMode_tiedHighestPartialGetsNoOvertake(t *testing.T) {
+func TestOvertake_tiedHighestPartialGetsNoOvertake(t *testing.T) {
 	tour := testTour()
 	settings := regatta.DefaultScoringSettings()
-	settings.Mode = regatta.ScoringModePartial
 	tr := CalculateResultWithSettings(tour, 0, []Run{
 		{UserID: "alice", ProbID: 1, Time: 100, Status: SubmissionStatusPartial, Points: 60},
 		{UserID: "bob", ProbID: 1, Time: 200, Status: SubmissionStatusPartial, Points: 60},
@@ -327,10 +322,9 @@ func TestPartialMode_tiedHighestPartialGetsNoOvertake(t *testing.T) {
 	}
 }
 
-func TestPartialMode_zeroNeverGetsOvertake(t *testing.T) {
+func TestOvertake_zeroNeverGetsOvertake(t *testing.T) {
 	tour := testTour()
 	settings := regatta.DefaultScoringSettings()
-	settings.Mode = regatta.ScoringModePartial
 	tr := CalculateResultWithSettings(tour, 0, []Run{
 		{UserID: "alice", ProbID: 1, Time: 100, Status: SubmissionStatusPartial, Points: 0},
 	}, settings)
@@ -403,10 +397,9 @@ func TestBuildContestEvents_includesRejectedSubmissions(t *testing.T) {
 	}
 }
 
-func TestBuildContestEvents_partialModeRejectedTimes(t *testing.T) {
+func TestBuildContestEvents_rejectedTimes(t *testing.T) {
 	tour := testTour()
 	settings := regatta.DefaultScoringSettings()
-	settings.Mode = regatta.ScoringModePartial
 	events := BuildContestEvents([]regatta.Tour{tour}, []Run{
 		{UserID: "alice", ProbID: 1, Time: 100, Status: "WRONG_ANSWER"},
 		{UserID: "alice", ProbID: 1, Time: 200, Status: "WRONG_ANSWER"},
@@ -437,15 +430,66 @@ func TestBuildContestEvents_rejectedVerdictTL(t *testing.T) {
 	}
 }
 
-func TestBinaryMode_duringTourOnlyOvertakeOption(t *testing.T) {
+func TestUnifiedScoring_okWithZeroPointsFullBonusesInTour(t *testing.T) {
 	tour := testTour()
 	settings := regatta.DefaultScoringSettings()
-	settings.BinaryOvertakeMode = regatta.BinaryOvertakeModeDuringTour
+	tr := CalculateResultWithSettings(tour, 0, []Run{
+		{UserID: "alice", ProbID: 1, Time: 100, Status: SubmissionStatusOK, Points: 0},
+		{UserID: "bob", ProbID: 1, Time: 200, Status: SubmissionStatusOK, Points: 0},
+	}, settings)
+
+	want := 100 + SolveInTimePoints + OvertakePoints
+	if got := tr.ParticipantScore("alice").Results["1A"].score; got != want {
+		t.Fatalf("alice score = %d, want %d", got, want)
+	}
+}
+
+func TestUnifiedScoring_partialWithoutFullSolveNoFullBonus(t *testing.T) {
+	tour := testTour()
+	tour.Groups = map[string][]string{"alice": {"alice"}}
+	tour.GroupNumbers = map[string]int{"alice": 1}
+	settings := regatta.DefaultScoringSettings()
+	tr := CalculateResultWithSettings(tour, 0, []Run{
+		{UserID: "alice", ProbID: 1, Time: 100, Status: SubmissionStatusPartial, Points: 40},
+	}, settings)
+
+	if got := tr.ParticipantScore("alice").Results["1A"].score; got != 40 {
+		t.Fatalf("alice score = %d, want 40 without full-solve bonus", got)
+	}
+}
+
+func TestBuildContestEvents_noDuplicateWhenFullSolveAfterPartialTourEnd(t *testing.T) {
+	tour := testTour()
+	settings := regatta.DefaultScoringSettings()
+	runs := []Run{
+		{UserID: "alice", ProbID: 1, Time: 882, Status: SubmissionStatusPartial, Points: 80},
+		{UserID: "bob", ProbID: 1, Time: 200, Status: SubmissionStatusPartial, Points: 60},
+		{UserID: "alice", ProbID: 1, Time: 2374, Status: SubmissionStatusOK},
+	}
+
+	events := BuildContestEvents([]regatta.Tour{tour}, runs, nil, settings)
+	var alice1A []regatta.RegattaEvent
+	for _, e := range events {
+		if e.ParticipantID == "alice" && e.ProblemCode == "1A" && e.Type == regatta.EventTypeProblemSolved {
+			alice1A = append(alice1A, e)
+		}
+	}
+	if len(alice1A) != 1 {
+		t.Fatalf("alice 1A solved events = %d, want 1: %+v", len(alice1A), alice1A)
+	}
+	if alice1A[0].TimeSec != 2374 {
+		t.Fatalf("event time = %d, want full solve at 2374", alice1A[0].TimeSec)
+	}
+}
+
+func TestUnifiedScoring_okAfterTourEndNoInTimeOrOvertake(t *testing.T) {
+	tour := testTour()
+	settings := regatta.DefaultScoringSettings()
 	tr := CalculateResultWithSettings(tour, 0, []Run{
 		{UserID: "alice", ProbID: 1, Time: 3700, Status: SubmissionStatusOK},
 	}, settings)
 
-	want := 100 + SolvePoints
+	want := 100
 	if got := tr.ParticipantScore("alice").Results["1A"].score; got != want {
 		t.Fatalf("alice score = %d, want %d", got, want)
 	}

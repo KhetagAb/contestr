@@ -1,3 +1,4 @@
+import { useEffect, useMemo, useRef } from "react";
 import { Coffee } from "lucide-react";
 import type { TimelineSegment } from "@/client/types.gen";
 import { SEGMENT_SLOT_ICON_PX } from "./segmentIcons";
@@ -14,17 +15,80 @@ import styles from "./MiniTimeline.module.css";
 type Props = {
     segments: TimelineSegment[];
     elapsed: number;
+    size?: "default" | "large";
+    /** Равномерно заполнить ширину; горизонтальный скролл только если не помещается */
+    fitWidth?: boolean;
 };
 
-export function MiniTimeline({ segments, elapsed }: Props) {
+function focusSegmentIndex(segments: TimelineSegment[]): number {
+    const active = segments.findIndex((s) => s.status === "active");
+    if (active >= 0) {
+        return active;
+    }
+    const upcoming = segments.findIndex((s) =>
+        ["next", "starting"].includes(s.status),
+    );
+    if (upcoming >= 0) {
+        return upcoming;
+    }
+    for (let i = segments.length - 1; i >= 0; i--) {
+        if (segments[i].status === "past") {
+            return i;
+        }
+    }
+    return 0;
+}
+
+const LARGE_SEGMENT_ICON_PX = 22;
+
+export function MiniTimeline({
+    segments,
+    elapsed,
+    size = "default",
+    fitWidth = false,
+}: Props) {
+    const trackRef = useRef<HTMLDivElement>(null);
+    const focusIndex = useMemo(() => focusSegmentIndex(segments), [segments]);
+
+    useEffect(() => {
+        const track = trackRef.current;
+        if (!track || focusIndex < 0) {
+            return;
+        }
+        if (fitWidth && track.scrollWidth <= track.clientWidth + 1) {
+            track.scrollLeft = 0;
+            return;
+        }
+        const el = track.children[focusIndex] as HTMLElement | undefined;
+        if (!el) {
+            return;
+        }
+        const left = el.offsetLeft - (track.clientWidth - el.offsetWidth) / 2;
+        track.scrollLeft = Math.max(0, left);
+    }, [focusIndex, segments, fitWidth]);
+
     if (segments.length === 0) {
         return null;
     }
 
     const progress = computeActiveSegmentProgress(segments, elapsed);
 
+    const iconPx = size === "large" ? LARGE_SEGMENT_ICON_PX : SEGMENT_SLOT_ICON_PX;
+    const trackClass = [
+        styles.track,
+        size === "large" ? styles.trackLarge : "",
+        fitWidth ? styles.trackFit : "",
+    ]
+        .filter(Boolean)
+        .join(" ");
+
     return (
-        <div className={styles.track} role="list" aria-label="Ход расписания контеста">
+        <div
+            ref={trackRef}
+            className={trackClass}
+            role="list"
+            aria-label="Ход расписания контеста"
+        >
             {segments.map((segment, index) => {
                 const visual = resolveSegmentVisualState(segment);
                 const isPause = segment.kind === "pause";
@@ -60,7 +124,7 @@ export function MiniTimeline({ segments, elapsed }: Props) {
                         <span className={styles.segmentInner}>
                             {isPause ? (
                                 <Coffee
-                                    size={SEGMENT_SLOT_ICON_PX}
+                                    size={iconPx}
                                     strokeWidth={2}
                                     className={styles.pauseIcon}
                                     aria-hidden
@@ -70,7 +134,7 @@ export function MiniTimeline({ segments, elapsed }: Props) {
                                     <TourStatusIcon
                                         status={segment.status}
                                         visualState={visual}
-                                        size={SEGMENT_SLOT_ICON_PX}
+                                        size={iconPx}
                                     />
                                     <span className={styles.segmentLabel}>{tourLabel}</span>
                                 </>

@@ -33,11 +33,8 @@ func (h *ListHandle) GetContests(ctx echo.Context) error {
 			Name:      c.Name,
 			System:    c.System,
 			ScoringSettings: server.ScoringSettings{
-				Mode:               server.ScoringSettingsMode(settings.Mode),
-				BinaryOvertakeMode: server.ScoringSettingsBinaryOvertakeMode(settings.BinaryOvertakeMode),
-				FullSolveBonus:     settings.FullSolveBonus,
-				SolveInTimeBonus:   settings.SolveInTimeBonus,
-				OvertakeBonus:      settings.OvertakeBonus,
+				SolveInTimeBonus: settings.SolveInTimeBonus,
+				OvertakeBonus:    settings.OvertakeBonus,
 			},
 			TourSettings: server.TourSettings{
 				GroupSize:           tourSettings.GroupSize,

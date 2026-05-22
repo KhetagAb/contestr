@@ -56,3 +56,62 @@ func TestBuildPendingStarts(t *testing.T) {
 		t.Fatalf("got %v", starts)
 	}
 }
+
+func TestBuildTimelineSegments_singleStartingWhenManyPendingOverdue(t *testing.T) {
+	tours := []Tour{
+		{Sequence: 1, Round: 1, DurationInSeconds: 100, IsPause: false},
+		{Sequence: 2, Round: 2, DurationInSeconds: 100, IsPause: false},
+		{Sequence: 3, Round: 3, DurationInSeconds: 100, IsPause: false},
+		{Sequence: 4, Round: 4, DurationInSeconds: 100, IsPause: false},
+		{Sequence: 5, Round: 5, DurationInSeconds: 100, IsPause: false},
+	}
+	pending := []ScheduleSlot{
+		{Duration: 100, Kind: ScheduleSlotKindTour},
+		{Duration: 100, Kind: ScheduleSlotKindTour},
+		{Duration: 100, Kind: ScheduleSlotKindTour},
+	}
+	// Anchor 500; pending starts 500, 600, 700 — all overdue at elapsed 1000.
+	segments := BuildTimelineSegments(tours, pending, 1000)
+
+	starting := 0
+	for _, seg := range segments {
+		if seg.Status == SegmentStatusStarting {
+			starting++
+		}
+	}
+	if starting != 1 {
+		t.Fatalf("want exactly one starting segment, got %d statuses: %+v", starting, segmentStatuses(segments))
+	}
+
+	var sixth, seventh, eighth string
+	for _, seg := range segments {
+		if seg.PendingIndex == nil {
+			continue
+		}
+		switch *seg.PendingIndex {
+		case 0:
+			sixth = seg.Status
+		case 1:
+			seventh = seg.Status
+		case 2:
+			eighth = seg.Status
+		}
+	}
+	if sixth != SegmentStatusStarting {
+		t.Fatalf("first overdue pending: got %q want starting", sixth)
+	}
+	if seventh != SegmentStatusNext {
+		t.Fatalf("second pending: got %q want next", seventh)
+	}
+	if eighth != SegmentStatusFuture {
+		t.Fatalf("third pending: got %q want future", eighth)
+	}
+}
+
+func segmentStatuses(segments []TimelineSegment) []string {
+	out := make([]string, len(segments))
+	for i, s := range segments {
+		out[i] = s.Status
+	}
+	return out
+}

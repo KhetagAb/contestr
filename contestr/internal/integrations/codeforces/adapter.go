@@ -62,31 +62,16 @@ func (a *CodeforcesAdapter) FetchContest(ctx context.Context, contestID int, opt
 	logger.Infof(ctx, "[CF] Created %d participants", len(participants))
 
 	settings := regatta.NormalizeScoringSettings(opts.ScoringSettings)
-	submissions := make([]regatta.ContestSubmission, 0)
 
-	if settings.Mode == regatta.ScoringModePartial {
-		submissions, err = a.fetchPartialSubmissions(
-			ctx,
-			contestID,
-			standings.Rows,
-			standings.Problems,
-			allowedHandles,
-		)
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		submissions, err = a.fetchPartialSubmissions(
-			ctx,
-			contestID,
-			standings.Rows,
-			standings.Problems,
-			allowedHandles,
-		)
-		if err != nil {
-			return nil, err
-		}
-		normalizeBinarySubmissions(submissions)
+	submissions, err := a.fetchPartialSubmissions(
+		ctx,
+		contestID,
+		standings.Rows,
+		standings.Problems,
+		allowedHandles,
+	)
+	if err != nil {
+		return nil, err
 	}
 
 	logger.Infof(ctx, "[CF] Parsed %d submissions", len(submissions))
@@ -157,14 +142,6 @@ func rawRowHandle(contestID int, row goforces.RanklistRow) string {
 		return fmt.Sprintf("team_%d_%d", contestID, row.Rank)
 	}
 	return fmt.Sprintf("team_%d", contestID)
-}
-
-func normalizeBinarySubmissions(submissions []regatta.ContestSubmission) {
-	for i := range submissions {
-		if submissions[i].Status == "OK" {
-			submissions[i].Points = 100
-		}
-	}
 }
 
 func (a *CodeforcesAdapter) fetchPartialSubmissions(

@@ -1,11 +1,14 @@
 import "@/app/styles/App.css";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { client } from "@/client/client.gen";
+import { AppPathProvider, CONTEST_PHASE_FOCUS_PATH, useAppPath } from "@/app/AppPath";
 import AdminLogin from "@/features/admin/pages/AdminLogin";
+import ContestPhaseFocusPage from "@/features/contest/pages/ContestPhaseFocusPage";
 import ContestStandingsPage from "@/features/contest/pages/ContestStandingsPage";
 import { Sidebar } from "@/features/contest/components/sidebar/Sidebar";
 import { AdminSessionProvider, useAdminSession } from "@/app/providers/AdminSessionContext";
 import { queryClient } from "@/app/providers/queryClient";
+import { FollowedParticipantProvider } from "@/features/contest/follow/FollowedParticipantContext";
 
 const baseUrl = localStorage.getItem("baseUrl") ?? "/";
 
@@ -15,13 +18,22 @@ client.setConfig({
 
 function AppShell() {
     const { sidebarSession } = useAdminSession();
-    const isAdminPage = window.location.pathname.startsWith("/admin");
+    const { path } = useAppPath();
+    const isAdminPage = path.startsWith("/admin");
+    const isPhaseFocusPage = path === CONTEST_PHASE_FOCUS_PATH;
+
+    let mainContent = <ContestStandingsPage />;
+    if (isAdminPage) {
+        mainContent = <AdminLogin />;
+    } else if (isPhaseFocusPage) {
+        mainContent = <ContestPhaseFocusPage />;
+    }
 
     return (
-        <>
+        <FollowedParticipantProvider>
             <Sidebar adminSession={sidebarSession} />
-            {isAdminPage ? <AdminLogin /> : <ContestStandingsPage />}
-        </>
+            {mainContent}
+        </FollowedParticipantProvider>
     );
 }
 
@@ -29,7 +41,9 @@ export default function App() {
     return (
         <QueryClientProvider client={queryClient}>
             <AdminSessionProvider>
-                <AppShell />
+                <AppPathProvider>
+                    <AppShell />
+                </AppPathProvider>
             </AdminSessionProvider>
         </QueryClientProvider>
     );

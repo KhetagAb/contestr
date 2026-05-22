@@ -126,4 +126,6 @@ var All = wire.NewSet(
 	regattahandlers.NewContestHandle,
 	wire.Bind(new(regattahandlers.TimetableViewer), new(*regatta.Regatta)),
 	regattahandlers.NewTimetableHandle,
+	wire.Bind(new(regattahandlers.HandleLister), new(*repository.MongoCodeforcesHandleRepository)),
+	regattahandlers.NewParticipantsHandle,
 )
