@@ -16,7 +16,9 @@ import (
 	"contestr/internal/services/contest_admin"
 	"contestr/internal/services/contest_registry"
 	"contestr/internal/services/contest_sync"
+	"contestr/internal/services/problem_statement"
 	"contestr/internal/services/regatta"
+	"contestr/internal/storage/objectstorage"
 	"contestr/internal/services/timetable_sync"
 	"contestr/internal/transport"
 	"contestr/pkg/config"
@@ -76,9 +78,17 @@ var All = wire.NewSet(
 	wire.Bind(new(adminhandlers.TimetableService), new(*regatta.Regatta)),
 	adminhandlers.NewTimetableHandle,
 	adminhandlers.NewContestsHandle,
+	adminhandlers.NewProblemStatementsHandle,
 	contests.NewListHandle,
 	wire.Bind(new(contest_admin.TourDeleter), new(*repository.MongoTourRepository)),
 	wire.Bind(new(contest_admin.TimetableDeleter), new(*repository.TourTimetableRepository)),
+	wire.Bind(new(contest_admin.ProblemStatementDeleter), new(*problem_statement.Service)),
+	wire.Bind(new(problem_statement.BlobStore), new(*objectstorage.Client)),
+	objectstorage.NewClientOptional,
+	repository.NewMongoProblemStatementRepository,
+	wire.Bind(new(repository.ProblemStatementRepository), new(*repository.MongoProblemStatementRepository)),
+	wire.Bind(new(problem_statement.TourLister), new(*repository.MongoTourRepository)),
+	problem_statement.NewService,
 	contest_admin.NewService,
 	handlers.NewHandlers,
 	auth.NewService,
@@ -128,4 +138,5 @@ var All = wire.NewSet(
 	regattahandlers.NewTimetableHandle,
 	wire.Bind(new(regattahandlers.HandleLister), new(*repository.MongoCodeforcesHandleRepository)),
 	regattahandlers.NewParticipantsHandle,
+	regattahandlers.NewProblemStatementsHandle,
 )

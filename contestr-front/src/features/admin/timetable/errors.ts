@@ -100,11 +100,20 @@ export function translateAdminMessage(message?: string) {
     if (key.includes("codeforces contest") || key.includes("error getting contest standings")) {
         return "Не удалось получить данные контеста из Codeforces. Проверьте ID контеста, доступ менеджера и API-ключи.";
     }
+    if (
+        key.includes("object storage") ||
+        key.includes("put object") ||
+        key.includes("save metadata") ||
+        key.includes("загрузка pdf") ||
+        key.includes("сохранение метаданных")
+    ) {
+        return value;
+    }
     if (key.startsWith("failed to ")) {
         return "Не удалось выполнить действие.";
     }
 
-    return "Не удалось выполнить действие.";
+    return value.length > 80 ? value : "Не удалось выполнить действие.";
 }
 
 export async function readApiError(response: Response) {

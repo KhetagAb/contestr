@@ -1,3 +1,5 @@
+import { roundFromProblemCode } from "@/shared/utils/problemCode";
+
 function pad2(n: number): string {
     return String(n).padStart(2, "0");
 }
@@ -13,6 +15,5 @@ export function formatContestTime(timeSec: number): string {
 
 /** Номер тура из кода задачи (например «2A» → 2). */
 export function tourIndexFromProblemCode(problemCode: string): number {
-    const match = /^(\d+)/.exec(problemCode);
-    return match ? Number.parseInt(match[1], 10) : 0;
+    return roundFromProblemCode(problemCode) ?? 0;
 }

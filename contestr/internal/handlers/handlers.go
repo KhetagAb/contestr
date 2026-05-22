@@ -18,7 +18,9 @@ type Handlers struct {
 	adminLoginHandle     *admin.LoginHandle
 	adminMeHandle        *admin.MeHandle
 	adminTimetableHandle *admin.TimetableHandle
-	adminContestsHandle  *admin.ContestsHandle
+	adminContestsHandle          *admin.ContestsHandle
+	adminProblemStatementsHandle *admin.ProblemStatementsHandle
+	regattaProblemStatementsHandle *regatta.ProblemStatementsHandle
 }
 
 func (h *Handlers) GetRegattaContestStandings(ctx echo.Context, contestId int) error {
@@ -43,6 +45,8 @@ func NewHandlers(
 	adminMeHandle *admin.MeHandle,
 	adminTimetableHandle *admin.TimetableHandle,
 	adminContestsHandle *admin.ContestsHandle,
+	adminProblemStatementsHandle *admin.ProblemStatementsHandle,
+	regattaProblemStatementsHandle *regatta.ProblemStatementsHandle,
 ) *Handlers {
 	return &Handlers{
 		contestHandle:          contestHandle,
@@ -53,8 +57,26 @@ func NewHandlers(
 		adminLoginHandle:       adminLoginHandle,
 		adminMeHandle:          adminMeHandle,
 		adminTimetableHandle:   adminTimetableHandle,
-		adminContestsHandle:    adminContestsHandle,
+		adminContestsHandle:            adminContestsHandle,
+		adminProblemStatementsHandle:   adminProblemStatementsHandle,
+		regattaProblemStatementsHandle: regattaProblemStatementsHandle,
 	}
+}
+
+func (h *Handlers) GetAdminContestProblemStatements(ctx echo.Context, contestId int) error {
+	return h.adminProblemStatementsHandle.GetAdminProblemStatements(ctx, contestId)
+}
+
+func (h *Handlers) PutAdminContestProblemStatement(ctx echo.Context, contestId int, problemCode string) error {
+	return h.adminProblemStatementsHandle.PutAdminProblemStatement(ctx, contestId, problemCode)
+}
+
+func (h *Handlers) DeleteAdminContestProblemStatement(ctx echo.Context, contestId int, problemCode string) error {
+	return h.adminProblemStatementsHandle.DeleteAdminProblemStatement(ctx, contestId, problemCode)
+}
+
+func (h *Handlers) GetRegattaContestProblemStatements(ctx echo.Context, contestId int) error {
+	return h.regattaProblemStatementsHandle.GetRegattaProblemStatements(ctx, contestId)
 }
 
 func (h *Handlers) GetContest(ctx echo.Context, contestId int) error {

@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, type ReactNode } from "react";
 import { useSearchParam } from "react-use";
 import {
     createColumnHelper,
@@ -11,7 +11,9 @@ import { SlArrowDown, SlArrowUp } from "react-icons/sl";
 import type { ProblemResult, RegattaContestRow } from "@/client";
 import { ContestEventLog } from "@/features/contest/components/event-log/ContestEventLog";
 import { ContestPhaseStrip } from "@/features/contest/components/phase/ContestPhaseStrip";
+import { ProblemCodeHeader } from "@/features/contest/components/standings/ProblemCodeHeader";
 import { TaskCell } from "@/features/contest/components/standings/TaskCell";
+import { useProblemStatements } from "@/features/contest/hooks/useProblemStatements";
 import {
     hasRegattaStartedTours,
     useContestStandings,
@@ -117,13 +119,10 @@ function findProblem(row: RegattaContestRow, taskId: string): ProblemResult | un
     return row.problem_results?.find((p) => p.problem_code === taskId);
 }
 
-function taskSortValue(row: RegattaContestRow, taskName: string): number {
-    return findProblem(row, taskName)?.score ?? 0;
-}
-
 export default function ContestStandingsPage() {
     const { followedParticipantId } = useFollowedParticipant();
     const { data, isSuccess, isLoading, isError } = useContestStandings();
+    const { data: statements } = useProblemStatements();
     const { participants } = useContestParticipants();
     const contestId = parseInt(useSearchParam("contestId") || "", 10);
     const hasContest = Number.isFinite(contestId) && contestId > 0;
@@ -208,9 +207,10 @@ export default function ContestStandingsPage() {
         () =>
             tasks
                 ? tasks.map((taskName) =>
-                      columnHelper.accessor((row) => taskSortValue(row, taskName), {
+                      columnHelper.display({
                           id: `task_${taskName}`,
                           header: taskName,
+                          enableSorting: false,
                           cell: (props) => {
                               const problem = findProblem(props.row.original, taskName);
                               return <TaskCell problem={problem} />;
@@ -262,7 +262,7 @@ export default function ContestStandingsPage() {
 
     const renderSortableTh = (
         columnId: string,
-        label: string,
+        label: ReactNode,
         rowSpan?: number,
         colSpan?: number,
         extraClassName?: string
@@ -311,15 +311,17 @@ export default function ContestStandingsPage() {
                                     </th>
                                 </tr>
                                 <tr className={styles.standingsTableHeader}>
-                                    {taskList.map((taskName) =>
-                                        renderSortableTh(
-                                            `task_${taskName}`,
-                                            taskName,
-                                            undefined,
-                                            undefined,
-                                            styles.taskColumn
-                                        )
-                                    )}
+                                    {taskList.map((taskName) => (
+                                        <th
+                                            key={taskName}
+                                            className={styles.taskColumn}
+                                        >
+                                            <ProblemCodeHeader
+                                                code={taskName}
+                                                url={statements?.[taskName]}
+                                            />
+                                        </th>
+                                    ))}
                                 </tr>
                             </>
                         ) : (

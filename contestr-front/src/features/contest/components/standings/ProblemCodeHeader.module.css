@@ -1,0 +1,9 @@
+.problemLink {
+    color: inherit;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+}
+
+.problemLink:hover {
+    opacity: 0.85;
+}

@@ -194,6 +194,56 @@ paths:
         404:
           $ref: '#/components/responses/ErrorResponse'
 
+  /api/admin/contests/{contest_id}/problem-statements:
+    get:
+      operationId: getAdminContestProblemStatements
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: contest_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          description: Загруженные условия задач
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminProblemStatementsResponse'
+        401:
+          $ref: '#/components/responses/ErrorResponse'
+        503:
+          $ref: '#/components/responses/ErrorResponse'
+
+  /api/admin/contests/{contest_id}/problem-statements/{problem_code}:
+    delete:
+      operationId: deleteAdminContestProblemStatement
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: contest_id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: problem_code
+          in: path
+          required: true
+          schema:
+            type: string
+            pattern: '^[0-9]+[A-Z]$'
+      responses:
+        204:
+          description: PDF удалён
+        401:
+          $ref: '#/components/responses/ErrorResponse'
+        400:
+          $ref: '#/components/responses/ErrorResponse'
+        503:
+          $ref: '#/components/responses/ErrorResponse'
+
   /api/admin/contests/{contest_id}/handles/{handle}:
     delete:
       operationId: deleteAdminContestHandle
@@ -249,6 +299,23 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/ContestParticipantItem'
+
+  /api/regatta/contests/{contest_id}/problem-statements:
+    get:
+      operationId: getRegattaContestProblemStatements
+      parameters:
+        - name: contest_id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        200:
+          description: Публичные URL условий для начатых туров
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicProblemStatementsResponse'
 
   /api/regatta/contests/{contest_id}/timetable:
     get:
@@ -807,6 +874,43 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/CodeforcesHandleItem'
+    AdminProblemStatementItem:
+      type: object
+      required:
+        - problem_code
+        - status
+      properties:
+        problem_code:
+          type: string
+        status:
+          type: string
+          enum: [uploaded, missing]
+        public_url:
+          type: string
+        uploaded_at:
+          type: string
+        size_bytes:
+          type: integer
+          format: int64
+    AdminProblemStatementsResponse:
+      type: object
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/AdminProblemStatementItem'
+    PublicProblemStatementsResponse:
+      type: object
+      required:
+        - statements
+      properties:
+        statements:
+          type: object
+          additionalProperties:
+            type: string
+          description: Только коды задач с URL (начатые туры)
     TimetableView:
       type: object
       required:

@@ -8,6 +8,7 @@ import (
 	authmiddleware "contestr/internal/middleware"
 	"contestr/pkg/logger"
 	"context"
+	"fmt"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
@@ -51,7 +52,37 @@ func newEcho() *echo.Echo {
 
 	e.Use(echomiddleware.Recover())
 	e.Use(echomiddleware.Logger())
+	e.HTTPErrorHandler = jsonHTTPErrorHandler
 	return e
+}
+
+func jsonHTTPErrorHandler(err error, c echo.Context) {
+	if c.Response().Committed {
+		return
+	}
+
+	code := http.StatusInternalServerError
+	message := err.Error()
+
+	if he, ok := err.(*echo.HTTPError); ok {
+		code = he.Code
+		switch msg := he.Message.(type) {
+		case string:
+			message = msg
+		case error:
+			message = msg.Error()
+		default:
+			message = fmt.Sprint(msg)
+		}
+		if message == "" || message == http.StatusText(code) {
+			message = http.StatusText(code)
+		}
+		if he.Internal != nil && (code >= 500 || message == http.StatusText(code)) {
+			message = he.Internal.Error()
+		}
+	}
+
+	_ = c.JSON(code, map[string]string{"message": message})
 }
 
 func (s *HTTPServer) RegisterHandlers(handlers *handlers.Handlers, authService *auth.Service) {
@@ -62,6 +93,7 @@ func (s *HTTPServer) RegisterHandlers(handlers *handlers.Handlers, authService *
 
 	server.RegisterHandlers(s.echo, handlers)
 	registerPublicRegattaRoutes(s.echo, handlers)
+	registerProblemStatementRoutes(s.echo, handlers)
 
 	routes := s.echo.Routes()
 	for _, route := range routes {

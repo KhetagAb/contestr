@@ -20,6 +20,7 @@ type (
 		ContestSync   ContestSyncConfig   `mapstructure:"contest_sync"`
 		TimetableSync TimetableSyncConfig `mapstructure:"timetable_sync"`
 		Admin         AdminConfig         `mapstructure:"admin"`
+		ObjectStorage ObjectStorageConfig `mapstructure:"object_storage"`
 	}
 
 	AppConfig struct {
@@ -73,7 +74,24 @@ type (
 		Password  string        `mapstructure:"password"`
 		JWTTTL    time.Duration `mapstructure:"jwt_ttl"`
 	}
+
+	ObjectStorageConfig struct {
+		Endpoint        string `mapstructure:"endpoint"`
+		Region          string `mapstructure:"region"`
+		Bucket          string `mapstructure:"bucket"`
+		AccessKeyID     string `mapstructure:"access_key_id"`
+		SecretAccessKey string `mapstructure:"secret_access_key"`
+		PublicBaseURL   string `mapstructure:"public_base_url"`
+	}
 )
+
+func (c ObjectStorageConfig) Enabled() bool {
+	return strings.TrimSpace(c.Bucket) != "" &&
+		strings.TrimSpace(c.AccessKeyID) != "" &&
+		strings.TrimSpace(c.SecretAccessKey) != "" &&
+		strings.TrimSpace(c.Endpoint) != "" &&
+		strings.TrimSpace(c.PublicBaseURL) != ""
+}
 
 func (c AdminConfig) Enabled() bool {
 	return strings.TrimSpace(c.JWTSecret) != "" &&

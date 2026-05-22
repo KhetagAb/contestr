@@ -26,12 +26,17 @@ type TimetableDeleter interface {
 	DeleteByContestID(ctx context.Context, contestID int) error
 }
 
+type ProblemStatementDeleter interface {
+	DeleteByContest(ctx context.Context, contestID int) error
+}
+
 type Service struct {
 	registeredRepo repository.RegisteredContestRepository
 	handleRepo     repository.CodeforcesHandleRepository
 	contestRepo    repository.ContestRepository
 	tourRepo       TourDeleter
 	timetableRepo  TimetableDeleter
+	statementsRepo ProblemStatementDeleter
 	cfService      *codeforces.Service
 	syncService    *contestsync.ContestSyncService
 }
@@ -42,6 +47,7 @@ func NewService(
 	contestRepo repository.ContestRepository,
 	tourRepo TourDeleter,
 	timetableRepo TimetableDeleter,
+	statementsRepo ProblemStatementDeleter,
 	cfService *codeforces.Service,
 	syncService *contestsync.ContestSyncService,
 ) *Service {
@@ -51,6 +57,7 @@ func NewService(
 		contestRepo:    contestRepo,
 		tourRepo:       tourRepo,
 		timetableRepo:  timetableRepo,
+		statementsRepo: statementsRepo,
 		cfService:      cfService,
 		syncService:    syncService,
 	}
@@ -170,6 +177,12 @@ func (s *Service) DeleteContest(ctx context.Context, contestID int) error {
 
 	if err := s.handleRepo.DeleteByContestID(ctx, contestID); err != nil {
 		return fmt.Errorf("delete handle mappings: %w", err)
+	}
+
+	if s.statementsRepo != nil {
+		if err := s.statementsRepo.DeleteByContest(ctx, contestID); err != nil {
+			return fmt.Errorf("delete problem statements: %w", err)
+		}
 	}
 
 	return s.registeredRepo.Delete(ctx, contestID)

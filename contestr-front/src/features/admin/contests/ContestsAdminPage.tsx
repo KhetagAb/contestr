@@ -1,6 +1,10 @@
 import { useEffect, useRef, useState, type FocusEvent, type FormEvent } from "react";
 import { Check, Plus, RefreshCw, Save, Trash2, Upload, X } from "lucide-react";
+import type { TimetableView } from "@/client/types.gen";
+import { adminAuthHeaders } from "@/features/admin/auth/adminAuth";
+import { ProblemStatementsPanel } from "./ProblemStatementsPanel";
 import { useAdminContests } from "./useAdminContests";
+import { useAdminProblemStatements } from "./useAdminProblemStatements";
 import "./ContestsAdminPage.css";
 
 function clampSettingNumber(raw: string, min: number, max?: number): number {
@@ -137,6 +141,13 @@ export default function ContestsAdminPage() {
     };
 
     const selected = ac.contests.find((c) => c.contest_id === ac.selectedContestId);
+    const [tourSlotCount, setTourSlotCount] = useState(0);
+
+    const ps = useAdminProblemStatements(
+        ac.selectedContestId,
+        ac.draftTourSettings,
+        tourSlotCount,
+    );
 
     const closeImportList = () => {
         setShowImportList(false);
@@ -147,6 +158,40 @@ export default function ContestsAdminPage() {
         closeImportList();
         setNewHandle("");
         setNewName("");
+    }, [ac.selectedContestId]);
+
+    useEffect(() => {
+        if (!ac.selectedContestId) {
+            setTourSlotCount(0);
+            return;
+        }
+        let cancelled = false;
+        void (async () => {
+            try {
+                const response = await fetch(
+                    `/api/admin/timetables/${ac.selectedContestId}`,
+                    { headers: adminAuthHeaders() },
+                );
+                if (!response.ok) {
+                    return;
+                }
+                const view = (await response.json()) as TimetableView;
+                const pendingTours = view.pending_slots.filter((s) => s.kind === "tour").length;
+                const timelineTours = view.timeline_segments.filter(
+                    (s) => s.kind === "tour",
+                ).length;
+                if (!cancelled) {
+                    setTourSlotCount(Math.max(pendingTours, timelineTours, 1));
+                }
+            } catch {
+                if (!cancelled) {
+                    setTourSlotCount(1);
+                }
+            }
+        })();
+        return () => {
+            cancelled = true;
+        };
     }, [ac.selectedContestId]);
 
     const handleAddParticipant = async () => {
@@ -421,6 +466,8 @@ export default function ContestsAdminPage() {
                             </div>
                         </section>
                     ) : null}
+
+                    <ProblemStatementsPanel ps={ps} selected={!!selected} />
 
                     <div className="cf-admin-panel cf-admin-panel--handles">
                         <h3 className="cf-admin-panel-title">Зарегистрированные участники</h3>
