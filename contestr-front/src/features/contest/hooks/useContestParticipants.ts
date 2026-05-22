@@ -4,6 +4,7 @@ import { useSearchParam } from "react-use";
 import type { ContestParticipantItem } from "@/client/types.gen";
 import { getRegattaContestParticipantsOptions } from "@/client/@tanstack/react-query.gen";
 import { useContestStandings } from "@/features/contest/hooks/useContestStandings";
+import { isReserveDisplayName } from "@/shared/utils/reserveParticipant";
 
 export function useContestParticipants() {
     const contestId = parseInt(useSearchParam("contestId") || "", 10);
@@ -20,7 +21,9 @@ export function useContestParticipants() {
     const { data: standings } = useContestStandings();
 
     const participants = useMemo((): ContestParticipantItem[] => {
-        const fromApi = participantsQuery.data ?? [];
+        const fromApi = (participantsQuery.data ?? []).filter(
+            (p) => !isReserveDisplayName(p.display_name),
+        );
         if (fromApi.length > 0) {
             return [...fromApi].sort((a, b) =>
                 a.display_name.localeCompare(b.display_name, "ru"),
@@ -31,7 +34,11 @@ export function useContestParticipants() {
         const seen = new Set<string>();
         const fromRows: ContestParticipantItem[] = [];
         for (const row of rows) {
-            if (!row.user_id || seen.has(row.user_id)) {
+            if (
+                !row.user_id ||
+                seen.has(row.user_id) ||
+                isReserveDisplayName(row.display_name)
+            ) {
                 continue;
             }
             seen.add(row.user_id);
