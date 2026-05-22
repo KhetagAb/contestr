@@ -276,6 +276,11 @@ ul {
     transform: translateX(0.3em);
 }
 
+.sidebar-home-link {
+    text-decoration: none;
+    color: inherit;
+}
+
 .logo-icon {
     object-fit: contain;
     margin-bottom: 3em;

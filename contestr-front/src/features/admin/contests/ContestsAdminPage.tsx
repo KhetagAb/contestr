@@ -3,6 +3,80 @@ import { Check, Plus, RefreshCw, Save, Trash2, Upload, X } from "lucide-react";
 import { useAdminContests } from "./useAdminContests";
 import "./ContestsAdminPage.css";
 
+function clampSettingNumber(raw: string, min: number, max?: number): number {
+    const digits = raw.replace(/\D/g, "");
+    if (digits === "") {
+        return min;
+    }
+    let next = parseInt(digits, 10);
+    if (Number.isNaN(next)) {
+        return min;
+    }
+    next = Math.max(min, next);
+    if (max != null) {
+        next = Math.min(max, next);
+    }
+    return next;
+}
+
+function InlineSettingNumber({
+    value,
+    min,
+    max,
+    disabled,
+    ariaLabel,
+    onChange,
+}: {
+    value: number;
+    min: number;
+    max?: number;
+    disabled: boolean;
+    ariaLabel: string;
+    onChange: (value: number) => void;
+}) {
+    const [text, setText] = useState(() => String(value));
+    const [focused, setFocused] = useState(false);
+
+    useEffect(() => {
+        if (!focused) {
+            setText(String(value));
+        }
+    }, [value, focused]);
+
+    const commit = (raw: string) => {
+        const next = clampSettingNumber(raw, min, max);
+        setText(String(next));
+        onChange(next);
+    };
+
+    return (
+        <input
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            className="cf-scoring-inline__input"
+            value={text}
+            aria-label={ariaLabel}
+            disabled={disabled}
+            onFocus={() => {
+                setFocused(true);
+                setText(value === 0 ? "" : String(value));
+            }}
+            onBlur={() => {
+                setFocused(false);
+                commit(text);
+            }}
+            onChange={(e) => {
+                const raw = e.target.value.replace(/\D/g, "");
+                setText(raw);
+                if (raw !== "") {
+                    onChange(clampSettingNumber(raw, min, max));
+                }
+            }}
+        />
+    );
+}
+
 function PanelStatus({
     message,
     kind,
@@ -245,120 +319,129 @@ export default function ContestsAdminPage() {
                     />
                 </div>
 
-                <div className="cf-admin-panel cf-admin-panel--handles">
-                    <h3 className="cf-admin-panel-title">
-                        {selected
-                            ? `Зарегистрированные участники: ${selected.name}`
-                            : "Зарегистрированные участники"}
-                    </h3>
-
-                    {!selected && (
-                        <p className="cf-admin-hint">
-                            Выберите контест слева, чтобы настроить зарегистрированных на контест
-                            участников
-                        </p>
-                    )}
-
-                    {selected && (
-                        <>
-                            {ac.handlesLoadState === "loading" && (
-                                <p className="cf-admin-hint">Загрузка участников…</p>
-                            )}
-
-                            <section className="cf-scoring-settings" aria-label="Настройки начисления баллов">
-                                <div className="cf-scoring-settings__row cf-scoring-settings__row--bonuses">
-                                    <label>
-                                        <span>Во время тура</span>
-                                        <input
-                                            type="number"
-                                            min={0}
+                <div className="cf-admin-column">
+                    {selected ? (
+                        <section
+                            className="cf-admin-panel cf-admin-panel--settings cf-scoring-settings"
+                            aria-label="Настройки тура и баллов"
+                        >
+                            <div className="cf-scoring-settings__head">
+                                <h3 className="cf-admin-panel-title">Настройки тура и баллов</h3>
+                                <button
+                                    type="button"
+                                    className={`cf-secondary-btn cf-secondary-btn--compact cf-scoring-settings__save${
+                                        ac.settingsDirty ? " cf-scoring-settings__save--dirty" : ""
+                                    }`}
+                                    onClick={() => void ac.saveContestSettings()}
+                                    disabled={ac.busy || !ac.settingsDirty}
+                                >
+                                    <Save size={16} aria-hidden />
+                                    Сохранить
+                                </button>
+                            </div>
+                            <div className="cf-scoring-inline__body">
+                                <div className="cf-scoring-inline__row">
+                                    <label className="cf-scoring-inline__item">
+                                        <InlineSettingNumber
                                             value={ac.draftScoringSettings.solve_in_time_bonus}
-                                            onChange={(e) =>
+                                            min={0}
+                                            disabled={ac.busy}
+                                            ariaLabel="Бонус за решение во время тура"
+                                            onChange={(v) =>
                                                 ac.updateDraftScoringSetting(
                                                     "solve_in_time_bonus",
-                                                    Math.max(0, Number(e.target.value) || 0),
+                                                    v,
                                                 )
                                             }
-                                            disabled={ac.busy}
                                         />
+                                        <span> за решение во время тура</span>
                                     </label>
-                                    <label>
-                                        <span>Обгон</span>
-                                        <input
-                                            type="number"
-                                            min={0}
+                                    <label className="cf-scoring-inline__item">
+                                        <InlineSettingNumber
                                             value={ac.draftScoringSettings.overtake_bonus}
-                                            onChange={(e) =>
-                                                ac.updateDraftScoringSetting(
-                                                    "overtake_bonus",
-                                                    Math.max(0, Number(e.target.value) || 0),
-                                                )
-                                            }
-                                            disabled={ac.busy}
-                                        />
-                                    </label>
-                                </div>
-                                <div className="cf-scoring-settings__row cf-scoring-settings__row--with-save">
-                                    <label>
-                                        <span>Участников в группе</span>
-                                        <input
-                                            type="number"
-                                            min={1}
-                                            value={ac.draftTourSettings.group_size}
-                                            onChange={(e) =>
-                                                ac.updateDraftTourSetting(
-                                                    "group_size",
-                                                    Math.max(1, Number(e.target.value) || 1),
-                                                )
-                                            }
-                                            disabled={ac.busy}
-                                        />
-                                    </label>
-                                    <label>
-                                        <span>Задач в туре</span>
-                                        <input
-                                            type="number"
-                                            min={1}
-                                            value={ac.draftTourSettings.problems_per_tour}
-                                            onChange={(e) =>
-                                                ac.updateDraftTourSetting(
-                                                    "problems_per_tour",
-                                                    Math.max(1, Number(e.target.value) || 1),
-                                                )
-                                            }
-                                            disabled={ac.busy}
-                                        />
-                                    </label>
-                                    <label>
-                                        <span>{"Перемешивание групп,\u00A0%"}</span>
-                                        <input
-                                            type="number"
                                             min={0}
-                                            max={100}
-                                            value={ac.draftTourSettings.group_shuffle_percent}
-                                            onChange={(e) =>
-                                                ac.updateDraftTourSetting(
-                                                    "group_shuffle_percent",
-                                                    Math.min(100, Math.max(0, Number(e.target.value) || 0)),
-                                                )
-                                            }
                                             disabled={ac.busy}
+                                            ariaLabel="Бонус за первенство в группе"
+                                            onChange={(v) =>
+                                                ac.updateDraftScoringSetting("overtake_bonus", v)
+                                            }
                                         />
+                                        <span> за первенство в группе</span>
                                     </label>
-                                    <button
-                                        type="button"
-                                        className="cf-handles-save-btn cf-scoring-settings__save-btn"
-                                        title="Сохранить настройки"
-                                        aria-label="Сохранить настройки"
-                                        onClick={() => void ac.saveContestSettings()}
-                                        disabled={ac.busy || !ac.settingsDirty}
-                                    >
-                                        <Save size={16} aria-hidden />
-                                    </button>
                                 </div>
-                            </section>
+                                <div className="cf-scoring-inline__row">
+                                    <label className="cf-scoring-inline__item">
+                                        <InlineSettingNumber
+                                            value={ac.draftTourSettings.group_size}
+                                            min={1}
+                                            disabled={ac.busy}
+                                            ariaLabel="Участников в группе"
+                                            onChange={(v) =>
+                                                ac.updateDraftTourSetting("group_size", v)
+                                            }
+                                        />
+                                        <span> участников в группе</span>
+                                    </label>
+                                    <div className="cf-scoring-inline__row-end">
+                                        <label className="cf-scoring-inline__item">
+                                            <InlineSettingNumber
+                                                value={ac.draftTourSettings.problems_per_tour}
+                                                min={1}
+                                                disabled={ac.busy}
+                                                ariaLabel="Задач в туре"
+                                                onChange={(v) =>
+                                                    ac.updateDraftTourSetting(
+                                                        "problems_per_tour",
+                                                        v,
+                                                    )
+                                                }
+                                            />
+                                            <span> задач в туре</span>
+                                        </label>
+                                        <label className="cf-scoring-inline__item">
+                                            <InlineSettingNumber
+                                                value={
+                                                    ac.draftTourSettings.group_shuffle_percent
+                                                }
+                                                min={0}
+                                                max={100}
+                                                disabled={ac.busy}
+                                                ariaLabel="Перемешивание групп, процентов"
+                                                onChange={(v) =>
+                                                    ac.updateDraftTourSetting(
+                                                        "group_shuffle_percent",
+                                                        v,
+                                                    )
+                                                }
+                                            />
+                                            <span>% перемешивание групп</span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+                    ) : null}
 
-                            <div className="cf-handles-table-wrap" onBlur={handleHandlesTableBlur}>
+                    <div className="cf-admin-panel cf-admin-panel--handles">
+                        <h3 className="cf-admin-panel-title">Зарегистрированные участники</h3>
+
+                        {!selected && (
+                            <p className="cf-admin-hint">
+                                Выберите контест слева, чтобы настроить зарегистрированных на
+                                контест участников
+                            </p>
+                        )}
+
+                        {selected && (
+                            <>
+                                {ac.handlesLoadState === "loading" && (
+                                    <p className="cf-admin-hint">Загрузка участников…</p>
+                                )}
+
+                                <div
+                                    className="cf-handles-table-wrap"
+                                    onBlur={handleHandlesTableBlur}
+                                >
                                 <table className="cf-handles-table">
                                     <colgroup>
                                         <col className="cf-handles-table__col-handle" />
@@ -535,6 +618,7 @@ export default function ContestsAdminPage() {
                             />
                         </>
                     )}
+                    </div>
                 </div>
             </div>
 

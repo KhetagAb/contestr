@@ -1,5 +1,6 @@
 import { useState, type ReactNode } from "react";
 import { FiMenu } from "react-icons/fi";
+import { CONTEST_HOME_QUERY, useAppPath } from "@/app/AppPath";
 import { useFollowedParticipant } from "@/features/contest/follow/FollowedParticipantContext";
 import { useContests } from "@/shared/hooks/useContests";
 import logo from "@/assets/icons/logo.svg";
@@ -27,6 +28,7 @@ type SidebarProps = {
 };
 
 export function Sidebar({ adminSession }: SidebarProps) {
+    const { navigate } = useAppPath();
     const [hoveredMenu, setHoveredMenu] = useState<string | null>(null);
     const { isParticipantPickerOpen, closeParticipantPicker } = useFollowedParticipant();
     const { contests, isLoading } = useContests();
@@ -41,9 +43,17 @@ export function Sidebar({ adminSession }: SidebarProps) {
     return (
         <aside className="sidebar-hover">
             <div className="icon-wrap">
-                <div className="icon-box">
-                    <img src={logo} alt="Логотип" className="logo-icon" />
-                </div>
+                <a
+                    href={`/?${CONTEST_HOME_QUERY}`}
+                    className="icon-box sidebar-home-link"
+                    aria-label="На главную"
+                    onClick={(event) => {
+                        event.preventDefault();
+                        navigate(`/?${CONTEST_HOME_QUERY}`);
+                    }}
+                >
+                    <img src={logo} alt="" className="logo-icon" />
+                </a>
             </div>
 
             <div className="icon-wrap">

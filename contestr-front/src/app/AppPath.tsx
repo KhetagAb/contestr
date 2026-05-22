@@ -9,18 +9,28 @@ import {
 
 export const CONTEST_PHASE_FOCUS_PATH = "/phase";
 
+export const CONTEST_HOME_QUERY = "home";
+
 type AppPathContextValue = {
     path: string;
+    search: string;
     navigate: (to: string) => void;
 };
 
 const AppPathContext = createContext<AppPathContextValue | null>(null);
 
+function readLocation() {
+    return {
+        path: window.location.pathname,
+        search: window.location.search,
+    };
+}
+
 export function AppPathProvider({ children }: { children: ReactNode }) {
-    const [path, setPath] = useState(() => window.location.pathname);
+    const [location, setLocation] = useState(readLocation);
 
     useEffect(() => {
-        const sync = () => setPath(window.location.pathname);
+        const sync = () => setLocation(readLocation());
         window.addEventListener("popstate", sync);
         return () => window.removeEventListener("popstate", sync);
     }, []);
@@ -43,11 +53,13 @@ export function AppPathProvider({ children }: { children: ReactNode }) {
             return;
         }
         window.history.pushState({}, "", href);
-        setPath(pathPart);
+        setLocation({ path: pathPart, search: searchPart });
     }, []);
 
     return (
-        <AppPathContext.Provider value={{ path, navigate }}>
+        <AppPathContext.Provider
+            value={{ path: location.path, search: location.search, navigate }}
+        >
             {children}
         </AppPathContext.Provider>
     );

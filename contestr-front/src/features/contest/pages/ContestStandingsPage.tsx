@@ -14,6 +14,8 @@ import { TaskCell } from "@/features/contest/components/standings/TaskCell";
 import { useContestStandings } from "@/features/contest/hooks/useContestStandings";
 import { useFollowedParticipant } from "@/features/contest/follow/FollowedParticipantContext";
 import { formatGroupCode } from "@/shared/utils/groupCode";
+import { CONTEST_HOME_QUERY, useAppPath } from "@/app/AppPath";
+import ContestHomePage from "@/features/contest/pages/ContestHomePage";
 import styles from "./ContestStandingsPage.module.css";
 
 const columnHelper = createColumnHelper<RegattaContestRow>();
@@ -113,8 +115,14 @@ function taskSortValue(row: RegattaContestRow, taskName: string): number {
 }
 
 export default function ContestStandingsPage() {
+    const { search } = useAppPath();
     const { followedParticipantId } = useFollowedParticipant();
     const { data, isSuccess } = useContestStandings();
+
+    const showHome =
+        new URLSearchParams(search).has(CONTEST_HOME_QUERY) ||
+        !isSuccess ||
+        !data?.rows?.length;
 
     const tasks = useMemo(() => {
         return (
@@ -198,6 +206,10 @@ export default function ContestStandingsPage() {
         () => globalMaxPositiveScore(data?.rows),
         [data?.rows]
     );
+
+    if (showHome) {
+        return <ContestHomePage />;
+    }
 
     const renderSortableTh = (
         columnId: string,

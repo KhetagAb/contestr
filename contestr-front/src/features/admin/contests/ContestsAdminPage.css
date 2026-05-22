@@ -24,7 +24,14 @@
     display: grid;
     grid-template-columns: minmax(16rem, 1fr) minmax(20rem, 1.4fr);
     gap: var(--space-m);
-    align-items: stretch;
+    align-items: start;
+}
+
+.cf-admin-column {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-m);
+    min-width: 0;
 }
 
 @media (max-width: 900px) {
@@ -325,63 +332,120 @@
     overflow-x: auto;
 }
 
-.cf-scoring-settings {
+.cf-admin-panel--settings,
+.cf-admin-panel--handles {
+    gap: 0.5rem;
+}
+
+.cf-admin-panel--settings {
     display: flex;
     flex-direction: column;
-    gap: 0.35rem;
-    padding: 0.5rem 0.6rem;
-    border: 1px solid #e0dcd0;
-    border-radius: 0.5rem;
-    background: #faf9f6;
 }
 
-.cf-scoring-settings__row {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    align-items: end;
-    gap: 0.4rem;
-}
-
-.cf-scoring-settings__row--bonuses {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.cf-scoring-settings__row--with-save {
-    grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
-}
-
-.cf-scoring-settings__row label {
+.cf-scoring-settings__head {
     display: flex;
-    flex-direction: column;
-    gap: 0.15rem;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    width: 100%;
+}
+
+.cf-scoring-settings__head .cf-admin-panel-title {
+    flex: 1 1 auto;
     min-width: 0;
-    font-family: "Anonymous Pro", sans-serif;
-    font-size: var(--fs-p);
+}
+
+.cf-scoring-settings__save {
+    flex-shrink: 0;
+}
+
+.cf-scoring-settings__save:disabled {
+    opacity: 0.45;
+}
+
+.cf-scoring-settings__save--dirty:not(:disabled) {
+    border-color: #e58995;
     color: #4f4e4e;
+    background: #fff5f6;
 }
 
-.cf-scoring-settings__row label span {
-    color: #6b6a68;
-    font-size: 0.85em;
-    white-space: nowrap;
-}
-
-.cf-scoring-settings input,
-.cf-scoring-settings select {
+.cf-scoring-inline__body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
     width: 100%;
     min-width: 0;
-    height: 2.25rem;
-    padding: 0 0.5rem;
-    border: 1px solid #e0dcd0;
-    border-radius: 0.35rem;
-    background: #fff;
-    font-family: "Anonymous Pro", sans-serif;
-    font-size: var(--fs-p);
-    box-sizing: border-box;
+    margin-top: 0.85rem;
 }
 
-.cf-scoring-settings__save-btn {
-    align-self: end;
+.cf-scoring-inline__row {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 2rem;
+    width: 100%;
+}
+
+.cf-scoring-inline__row-end {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 2rem;
+    margin-left: auto;
+}
+
+.cf-scoring-inline__item {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.4rem;
+    margin: 0;
+    font-family: "Anonymous Pro", sans-serif;
+    font-size: 0.88rem;
+    line-height: 1.4;
+    color: #4f4e4e;
+    white-space: nowrap;
+    cursor: text;
+}
+
+.cf-scoring-inline__input {
+    width: 2rem;
+    height: auto;
+    margin: 0;
+    padding: 0 0.08rem 0.06rem;
+    border: none;
+    border-bottom: 1px solid #8a8578;
+    border-radius: 0;
+    background: transparent;
+    font-family: "Anonymous Pro", sans-serif;
+    font-size: 0.88rem;
+    font-weight: 600;
+    text-align: center;
+    color: #4f4e4e;
+    box-sizing: border-box;
+    vertical-align: baseline;
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+
+.cf-scoring-inline__input::-webkit-outer-spin-button,
+.cf-scoring-inline__input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.cf-scoring-inline__input:hover:not(:disabled) {
+    border-bottom-color: #6b6a68;
+}
+
+.cf-scoring-inline__input:focus {
+    outline: none;
+    border-bottom-width: 2px;
+    padding-bottom: calc(0.06rem - 1px);
+    border-bottom-color: #e58995;
+}
+
+.cf-scoring-inline__input:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
 }
 
 .cf-handles-table {
@@ -470,10 +534,6 @@
     display: flex;
     flex-wrap: wrap;
     justify-content: flex-end;
-    gap: 0.5rem;
-}
-
-.cf-admin-panel--handles {
     gap: 0.5rem;
 }
 

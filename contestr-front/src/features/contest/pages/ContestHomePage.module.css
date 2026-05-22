@@ -1,0 +1,196 @@
+.page {
+    position: relative;
+    min-height: calc(100vh - var(--space-m) * 2);
+    margin: 0 var(--space-s) var(--space-m) 0;
+    padding-bottom: min(38vh, 18rem);
+    overflow: hidden;
+    isolation: isolate;
+    box-sizing: border-box;
+}
+
+.backdrop {
+    position: fixed;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    left: var(--sidebar-width);
+    z-index: 0;
+    pointer-events: none;
+}
+
+.blobs {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0.92;
+}
+
+.decorTop,
+.decorBottom {
+    position: absolute;
+    left: 0;
+    right: 0;
+    z-index: 0;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.decorTop {
+    top: 0;
+    height: min(50vh, 24rem);
+}
+
+.decorBottom {
+    bottom: 0;
+    height: min(42vh, 20rem);
+}
+
+.content {
+    position: relative;
+    z-index: 1;
+    max-width: 36rem;
+    padding: clamp(2.5rem, 6vw, 4.5rem) clamp(1rem, 4vw, 2.5rem);
+}
+
+.title {
+    margin: 0 0 var(--space-s);
+    font-family: "Podkova", "Merriweather", Georgia, serif;
+    font-size: var(--fs-top);
+    font-weight: 400;
+    line-height: 1.05;
+    color: #bf9298;
+    text-align: left;
+}
+
+.lead {
+    margin: 0 0 var(--space-m);
+    font-family: "Anonymous Pro", monospace;
+    font-size: var(--fs-p);
+    line-height: 1.55;
+    color: #6b6a68;
+    text-align: left;
+}
+
+.regattaHeading {
+    margin: 0 0 var(--space-s);
+    font-family: "Anonymous Pro", monospace;
+    font-size: var(--fs-p);
+    font-weight: 700;
+    line-height: 1.55;
+    color: #6b6a68;
+    text-align: left;
+}
+
+.contestStatus {
+    margin: 0;
+    font-family: "Anonymous Pro", monospace;
+    font-size: var(--fs-p);
+    line-height: 1.55;
+    color: #6b6a68;
+    text-align: left;
+}
+
+.contestList {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+    font-family: "Anonymous Pro", monospace;
+    font-size: var(--fs-p);
+    line-height: 1.55;
+    text-align: left;
+}
+
+.contestList li {
+    margin-bottom: 0.5rem;
+}
+
+.contestList li:last-child {
+    margin-bottom: 0;
+}
+
+.contestLink {
+    color: #bf9298;
+    text-decoration: underline;
+    text-decoration-color: rgba(191, 146, 152, 0.45);
+    text-underline-offset: 0.2em;
+    transition: color 0.2s ease, text-decoration-color 0.2s ease;
+}
+
+.contestLink:hover {
+    color: #a67c82;
+    text-decoration-color: currentColor;
+}
+
+.contestLink:focus-visible {
+    outline: 2px solid #bf9298;
+    outline-offset: 2px;
+    border-radius: 2px;
+}
+
+.emblem,
+.crosses {
+    position: absolute;
+    user-select: none;
+    opacity: 0.9;
+    filter: brightness(0) saturate(100%) invert(73%) sepia(14%) saturate(620%)
+        hue-rotate(314deg) brightness(94%) contrast(88%);
+}
+
+.emblem {
+    left: clamp(0.5rem, 4vw, 2rem);
+    bottom: clamp(1rem, 5vh, 2.5rem);
+    width: clamp(5.5rem, 11vw, 8.5rem);
+    object-fit: contain;
+    object-position: 52% 50%;
+}
+
+.crosses {
+    right: clamp(0.25rem, 3vw, 2rem);
+    top: clamp(0.5rem, 2vh, 1.5rem);
+    width: clamp(9rem, 22vw, 15rem);
+    object-fit: contain;
+    object-position: 88% 12%;
+}
+
+.pixel {
+    position: absolute;
+    width: 0.55rem;
+    height: 0.55rem;
+    background: #bf9298;
+    opacity: 0.85;
+}
+
+.pixelTop {
+    right: clamp(18%, 24vw, 28%);
+    top: clamp(2.5rem, 8vh, 5rem);
+}
+
+.pixelMid {
+    right: clamp(32%, 38vw, 42%);
+    top: clamp(42%, 46vh, 50%);
+}
+
+.pixelLow {
+    right: clamp(8%, 12vw, 16%);
+    bottom: clamp(2rem, 10vh, 4rem);
+}
+
+@media (max-width: 700px) {
+    .emblem {
+        opacity: 0.35;
+        left: -1rem;
+    }
+
+    .crosses {
+        opacity: 0.45;
+        width: clamp(7rem, 34vw, 10rem);
+    }
+
+    .content {
+        max-width: none;
+    }
+
+    .title {
+        text-align: left;
+    }
+}
