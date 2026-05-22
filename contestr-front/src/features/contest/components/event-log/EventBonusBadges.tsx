@@ -14,10 +14,9 @@ export function EventBonusBadges({ first_in_group }: Props) {
             <span
                 className={`${styles.eventBonusChip} ${styles.eventBonusChipFirst}`}
                 title="Бонус за первое решение среди соперников в группе"
-                aria-label="Бонус: обогнав соперников"
+                aria-label="Бонус за обгон в группе"
             >
                 <MedalFirstIcon className={styles.eventBonusIcon} />
-                <span>обогнав соперников</span>
             </span>
         </span>
     );

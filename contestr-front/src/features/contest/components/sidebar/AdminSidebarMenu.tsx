@@ -1,0 +1,26 @@
+import type { AdminSidebarSession } from "./Sidebar";
+
+type Props = {
+    session: AdminSidebarSession;
+};
+
+export function AdminSidebarMenu({ session }: Props) {
+    return (
+        <div className="admin-user-popover">
+            <p className="admin-user-popover-greeting">
+                Вы вошли как{" "}
+                <span style={{ color: "#6466fd", fontWeight: 600 }}>{session.username}</span>
+            </p>
+            <a href="/admin" className="admin-user-popover-link">
+                Админ-панель
+            </a>
+            <button
+                type="button"
+                className="admin-user-popover-btn"
+                onClick={session.onLogout}
+            >
+                Выйти
+            </button>
+        </div>
+    );
+}

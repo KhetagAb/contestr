@@ -5,7 +5,8 @@ import { useFollowedParticipant } from "@/features/contest/follow/FollowedPartic
 import { useContests } from "@/shared/hooks/useContests";
 import logo from "@/assets/icons/logo.svg";
 import adminUserIcon from "@/assets/images/admin-user-icon.png";
-import { ParticipantFollowMenu } from "./ParticipantFollowMenu";
+import { AdminSidebarMenu } from "./AdminSidebarMenu";
+
 export type AdminSidebarSession = {
     username: string;
     onLogout: () => void;
@@ -30,15 +31,10 @@ type SidebarProps = {
 export function Sidebar({ adminSession }: SidebarProps) {
     const { navigate } = useAppPath();
     const [hoveredMenu, setHoveredMenu] = useState<string | null>(null);
-    const { isParticipantPickerOpen, closeParticipantPicker } = useFollowedParticipant();
+    const { openParticipantPicker } = useFollowedParticipant();
     const { contests, isLoading } = useContests();
 
-    const isUserMenuOpen = hoveredMenu === "user" || isParticipantPickerOpen;
-
-    const closeUserMenu = () => {
-        setHoveredMenu(null);
-        closeParticipantPicker();
-    };
+    const isAdminMenuOpen = hoveredMenu === "user" && adminSession != null;
 
     return (
         <aside className="sidebar-hover">
@@ -62,10 +58,7 @@ export function Sidebar({ adminSession }: SidebarProps) {
                     onMouseEnter={() => setHoveredMenu("contests")}
                     onMouseLeave={() => setHoveredMenu(null)}
                 >
-                    <div
-                        className="icon-box"
-                        aria-label="Список контестов"
-                    >
+                    <div className="icon-box" aria-label="Список контестов">
                         <FiMenu className="sidebar-contests-menu-icon" aria-hidden />
                     </div>
                     <Submenu isOpen={hoveredMenu === "contests"}>
@@ -73,7 +66,9 @@ export function Sidebar({ adminSession }: SidebarProps) {
                             <span className="submenu-item submenu-item-text">Загрузка…</span>
                         )}
                         {!isLoading && contests.length === 0 && (
-                            <span className="submenu-item submenu-item-text">Контесты не настроены</span>
+                            <span className="submenu-item submenu-item-text">
+                                Контесты не настроены
+                            </span>
                         )}
                         {contests.map((item) => (
                             <a
@@ -89,19 +84,23 @@ export function Sidebar({ adminSession }: SidebarProps) {
             </div>
 
             <div
-                className={`menu-item-container sidebar-admin-user${isUserMenuOpen ? " sidebar-admin-user--open" : ""}`}
+                className={`menu-item-container sidebar-admin-user${isAdminMenuOpen ? " sidebar-admin-user--open" : ""}`}
                 onMouseEnter={() => setHoveredMenu("user")}
-                onMouseLeave={closeUserMenu}
+                onMouseLeave={() => setHoveredMenu(null)}
             >
-                <div
+                <button
+                    type="button"
                     className="icon-box sidebar-admin-user-trigger"
-                    aria-label="Выбор участника"
+                    aria-label="Найти себя в таблице"
+                    onClick={() => openParticipantPicker()}
                 >
                     <img src={adminUserIcon} alt="" className="sidebar-admin-user-icon" />
-                </div>
-                <Submenu isOpen={isUserMenuOpen}>
-                    <ParticipantFollowMenu adminSession={adminSession} />
-                </Submenu>
+                </button>
+                {adminSession ? (
+                    <Submenu isOpen={isAdminMenuOpen}>
+                        <AdminSidebarMenu session={adminSession} />
+                    </Submenu>
+                ) : null}
             </div>
         </aside>
     );

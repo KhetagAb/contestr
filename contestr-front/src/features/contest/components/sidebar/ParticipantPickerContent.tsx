@@ -1,16 +1,13 @@
-import { useMemo, useState } from "react";
-import {
-    useFollowedParticipant,
-} from "@/features/contest/follow/FollowedParticipantContext";
+import { useMemo, useState, type RefObject } from "react";
+import { useFollowedParticipant } from "@/features/contest/follow/FollowedParticipantContext";
 import { useContestParticipants } from "@/features/contest/hooks/useContestParticipants";
-import type { AdminSidebarSession } from "./Sidebar";
-import styles from "./ParticipantFollowMenu.module.css";
+import styles from "./ParticipantPickerContent.module.css";
 
 type Props = {
-    adminSession?: AdminSidebarSession | null;
+    searchInputRef?: RefObject<HTMLInputElement | null>;
 };
 
-export function ParticipantFollowMenu({ adminSession }: Props) {
+export function ParticipantPickerContent({ searchInputRef }: Props) {
     const {
         contestId,
         followedParticipantId,
@@ -27,6 +24,7 @@ export function ParticipantFollowMenu({ adminSession }: Props) {
         setFollowedParticipantId(participantId);
         closeParticipantPicker();
     };
+
     const { participants, isLoading } = useContestParticipants();
     const [filter, setFilter] = useState("");
 
@@ -43,8 +41,7 @@ export function ParticipantFollowMenu({ adminSession }: Props) {
     }, [participants, filter]);
 
     return (
-        <div className={styles.popover}>
-            <p className={styles.title}>Кто вы?</p>
+        <div className={styles.panel}>
             {contestId == null ? (
                 <p className={styles.hint}>Откройте контест из списка слева</p>
             ) : isLoading && participants.length === 0 ? (
@@ -54,9 +51,10 @@ export function ParticipantFollowMenu({ adminSession }: Props) {
             ) : (
                 <>
                     <input
+                        ref={searchInputRef}
                         type="search"
                         className={styles.search}
-                        placeholder="Поиск по имени"
+                        placeholder="Поиск по имени или нику"
                         value={filter}
                         onChange={(e) => setFilter(e.target.value)}
                         aria-label="Поиск участника"
@@ -97,28 +95,8 @@ export function ParticipantFollowMenu({ adminSession }: Props) {
                     className={styles.clearBtn}
                     onClick={clearFollowedParticipant}
                 >
-                    Сбросить
+                    Сбросить выбор
                 </button>
-            ) : null}
-
-            {adminSession ? (
-                <>
-                    <hr className={styles.divider} />
-                    <p className={styles.adminGreeting}>
-                        Вы вошли как{" "}
-                        <span className={styles.adminName}>{adminSession.username}</span>
-                    </p>
-                    <a href="/admin" className={styles.adminLink}>
-                        Админ-панель
-                    </a>
-                    <button
-                        type="button"
-                        className={styles.adminLogout}
-                        onClick={adminSession.onLogout}
-                    >
-                        Выйти
-                    </button>
-                </>
             ) : null}
         </div>
     );

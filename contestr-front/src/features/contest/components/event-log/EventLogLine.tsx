@@ -28,6 +28,8 @@ export function EventLogLine({ event, enterDelayMs = 0 }: Props) {
     const showPoints = points > 0;
     const isPartialAttempt =
         !isRejectedEvent && !isOvertakeEvent && !isAccentPoints;
+    const isPartialStyle = isPartialAttempt || isOvertakeEvent;
+    const showOvertakeBadge = event.first_in_group === true || isOvertakeEvent;
 
     const lineStyle = {
         "--event-enter-delay": `${enterDelayMs}ms`,
@@ -35,7 +37,7 @@ export function EventLogLine({ event, enterDelayMs = 0 }: Props) {
 
     return (
         <div
-            className={`${styles.eventLogLine} ${styles.eventLogLineEnter}${isRejectedEvent || isPartialAttempt ? ` ${styles.eventLogLineMuted}` : ""}`}
+            className={`${styles.eventLogLine} ${styles.eventLogLineEnter}${isRejectedEvent || isPartialStyle ? ` ${styles.eventLogLineMuted}` : ""}`}
             style={lineStyle}
         >
             <span className={styles.eventLogTimeCell}>
@@ -71,11 +73,6 @@ export function EventLogLine({ event, enterDelayMs = 0 }: Props) {
                         по задаче{" "}
                         <span className={styles.eventChip}>{event.problem_code}</span>
                     </>
-                ) : isOvertakeEvent ? (
-                    <>
-                        получил бонус за обгон в задаче{" "}
-                        <span className={styles.eventChip}>{event.problem_code}</span>
-                    </>
                 ) : isAccentPoints ? (
                     <>
                         решил задачу{" "}
@@ -89,8 +86,8 @@ export function EventLogLine({ event, enterDelayMs = 0 }: Props) {
                 )}
             </span>
             <span className={styles.eventLogBadgesCell}>
-                {!isOvertakeEvent && !isRejectedEvent && (
-                    <EventBonusBadges first_in_group={event.first_in_group} />
+                {!isRejectedEvent && (
+                    <EventBonusBadges first_in_group={showOvertakeBadge} />
                 )}
             </span>
             <span className={styles.eventLogPoints}>

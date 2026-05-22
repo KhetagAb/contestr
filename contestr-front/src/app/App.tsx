@@ -7,6 +7,7 @@ import AdminLogin from "@/features/admin/pages/AdminLogin";
 import ContestPhaseFocusPage from "@/features/contest/pages/ContestPhaseFocusPage";
 import ContestStandingsPage from "@/features/contest/pages/ContestStandingsPage";
 import { Sidebar } from "@/features/contest/components/sidebar/Sidebar";
+import { ParticipantPickerModal } from "@/features/contest/components/sidebar/ParticipantPickerModal";
 import { AdminSessionProvider, useAdminSession } from "@/app/providers/AdminSessionContext";
 import { queryClient } from "@/app/providers/queryClient";
 import { FollowedParticipantProvider } from "@/features/contest/follow/FollowedParticipantContext";
@@ -56,6 +57,7 @@ function AppShell() {
         <FollowedParticipantProvider>
             <Sidebar adminSession={sidebarSession} />
             {mainContent}
+            <ParticipantPickerModal />
             <RegattaRulesLayer />
         </FollowedParticipantProvider>
     );
