@@ -46,21 +46,15 @@ func GetContestSyncInterval(cfg *configs.Config) time.Duration {
 	return cfg.ContestSync.Interval
 }
 
-func GetTimetableSyncInterval(cfg *configs.Config) timetable_sync.Interval {
-	return timetable_sync.Interval(cfg.TimetableSync.Interval)
-}
-
 func NewTimetableSyncServiceProvider(
 	registry contest_registry.ContestRegistry,
-	contestRepo repository.ContestRepository,
 	regattaService *regatta.Regatta,
 	cfg *configs.Config,
 ) *timetable_sync.TimetableSyncService {
 	return timetable_sync.NewTimetableSyncService(
 		registry,
-		contestRepo,
 		regattaService,
-		GetTimetableSyncInterval(cfg),
+		cfg.TimetableSync.Interval,
 		cfg.TimetableSync.Interval > 0,
 	)
 }
@@ -126,7 +120,6 @@ var All = wire.NewSet(
 
 	GetContestSyncInterval,
 	contest_sync.NewContestSyncService,
-	GetTimetableSyncInterval,
 	wire.Bind(new(timetable_sync.RegattaService), new(*regatta.Regatta)),
 	NewTimetableSyncServiceProvider,
 

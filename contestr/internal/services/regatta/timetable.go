@@ -24,13 +24,6 @@ var (
 	ErrNoActiveTour             = errors.New("no active tour or pause")
 )
 
-type TimetableRepository interface {
-	Create(ctx context.Context, timetable *regatta.ToursTimetable) error
-	GetByContestID(ctx context.Context, contestID int) (*regatta.ToursTimetable, error)
-	Update(ctx context.Context, timetable *regatta.ToursTimetable) error
-	DeleteByContestID(ctx context.Context, contestID int) error
-}
-
 type AdvanceMode int
 
 const (
@@ -125,10 +118,9 @@ func (s *Regatta) AdvanceTimetable(
 		return fmt.Errorf("%w: contest_id must be positive", ErrInvalidTimetable)
 	}
 
-	if mode == AdvanceManual && opts.ServerAutoStartAvailable {
-		timetable, err := s.LoadTimetable(ctx, contestID)
-		if err == nil && timetable.AutoStartEnabled {
-			return ErrManualStartWithAutostart
+	if mode == AdvanceManual {
+		if err := s.checkManualStartAllowed(ctx, contestID, opts); err != nil {
+			return err
 		}
 	}
 
@@ -144,7 +136,7 @@ func (s *Regatta) AdvanceTimetable(
 		return fmt.Errorf("failed to get contest %d: %w", contestID, err)
 	}
 
-	elapsed := int(time.Now().Sub(contest.StartTime).Seconds())
+	elapsed := int(time.Since(contest.StartTime).Seconds())
 	if elapsed < 0 {
 		return ErrContestNotStarted
 	}
@@ -159,131 +151,83 @@ func (s *Regatta) AdvanceTimetable(
 		return err
 	}
 
-	var changed bool
-
-	if mode == AdvanceManual {
-		if _, active := regatta.ActiveSequence(tours, elapsed); active {
-			if err := s.finishActiveSegment(ctx, contestID, tours, elapsed, true); err != nil {
-				return err
-			}
-			changed = true
-			tours, err = s.loadToursSorted(ctx, contestID)
-			if err != nil {
-				return err
-			}
-		}
-	} else {
-		finished, err := s.tryFinishActiveSegment(ctx, contestID, tours, elapsed)
-		if err != nil {
-			return err
-		}
-		if finished {
-			changed = true
-			tours, err = s.loadToursSorted(ctx, contestID)
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	started, err := s.tryStartPendingHead(ctx, contestID, timetable, tours, elapsed, mode)
+	segmentCut, err := s.cutActiveSegment(ctx, contestID, tours, elapsed, mode == AdvanceAuto)
 	if err != nil {
 		return err
 	}
-	if started {
-		changed = true
+	if segmentCut {
+		tours, err = s.loadToursSorted(ctx, contestID)
+		if err != nil {
+			return err
+		}
+	}
+
+	slotStarted := false
+	if slot, ok := canStartNextSlot(timetable, tours, elapsed, mode); ok {
+		isPause := regatta.NormalizeSlotKind(slot.Kind) == regatta.ScheduleSlotKindPause
+		if _, err := s.StartTour(ctx, contestID, slot.Duration, StartTourOptions{IsPause: isPause}); err != nil {
+			return err
+		}
+		timetable.PopHead()
+		slotStarted = true
 		if err := s.timetableRepository.Update(ctx, timetable); err != nil {
 			return fmt.Errorf("failed to update timetable: %w", err)
 		}
 	}
 
-	if !changed {
+	if !segmentCut && !slotStarted {
 		return ErrNothingToAdvance
 	}
-
 	return nil
 }
 
-func (s *Regatta) tryFinishActiveSegment(
-	ctx context.Context,
-	contestID int,
-	tours []regatta.Tour,
-	elapsed int,
-) (bool, error) {
+func (s *Regatta) checkManualStartAllowed(ctx context.Context, contestID int, opts TimetableViewOptions) error {
+	if !opts.ServerAutoStartAvailable {
+		return nil
+	}
+	timetable, err := s.LoadTimetable(ctx, contestID)
+	if err == nil && timetable.AutoStartEnabled {
+		return ErrManualStartWithAutostart
+	}
+	return nil
+}
+
+// cutActiveSegment обрезает длительность активного сегмента до elapsed.
+// onlyIfOverdue=true — пропускает обрезку, пока сегмент не вышел за плановое время (авто-режим).
+func (s *Regatta) cutActiveSegment(ctx context.Context, contestID int, tours []regatta.Tour, elapsed int, onlyIfOverdue bool) (bool, error) {
 	activeSeq, ok := regatta.ActiveSequence(tours, elapsed)
 	if !ok {
 		return false, nil
 	}
-	offsets := regatta.SegmentOffsets(tours)
-	end := offsets[activeSeq].End
-	if elapsed < end {
-		return false, nil
+	if onlyIfOverdue {
+		end := regatta.SegmentOffsets(tours)[activeSeq].End
+		if elapsed < end {
+			return false, nil
+		}
 	}
-	return true, s.shortenActiveToElapsed(ctx, contestID, tours, activeSeq, elapsed)
-}
-
-func (s *Regatta) finishActiveSegment(
-	ctx context.Context,
-	contestID int,
-	tours []regatta.Tour,
-	elapsed int,
-	force bool,
-) error {
-	activeSeq, ok := regatta.ActiveSequence(tours, elapsed)
-	if !ok {
-		return nil
-	}
-	if !force {
-		return nil
-	}
-	return s.shortenActiveToElapsed(ctx, contestID, tours, activeSeq, elapsed)
-}
-
-func (s *Regatta) shortenActiveToElapsed(
-	ctx context.Context,
-	contestID int,
-	tours []regatta.Tour,
-	activeSeq int,
-	elapsed int,
-) error {
 	elapsedIn := regatta.ElapsedInSegment(tours, activeSeq, elapsed)
 	if elapsedIn <= 0 {
-		return nil
+		return false, nil
 	}
-	return s.tourRepository.UpdateDuration(ctx, contestID, activeSeq, elapsedIn)
+	return true, s.tourRepository.UpdateDuration(ctx, contestID, activeSeq, elapsedIn)
 }
 
-func (s *Regatta) tryStartPendingHead(
-	ctx context.Context,
-	contestID int,
-	timetable *regatta.ToursTimetable,
-	tours []regatta.Tour,
-	elapsed int,
-	mode AdvanceMode,
-) (bool, error) {
+func canStartNextSlot(timetable *regatta.ToursTimetable, tours []regatta.Tour, elapsed int, mode AdvanceMode) (regatta.ScheduleSlot, bool) {
 	slot, ok := timetable.HeadSlot()
 	if !ok {
-		return false, nil
+		return regatta.ScheduleSlot{}, false
 	}
-
 	if _, active := regatta.ActiveSequence(tours, elapsed); active {
-		return false, nil
+		return regatta.ScheduleSlot{}, false
 	}
-
-	anchor := regatta.TimelineAnchorEnd(tours)
-	start := regatta.BuildPendingStarts(anchor, timetable.PendingSlots)[0]
-
-	if mode == AdvanceAuto && elapsed < start {
-		return false, nil
+	if mode == AdvanceAuto {
+		anchor := regatta.TimelineAnchorEnd(tours)
+		start := regatta.BuildPendingStarts(anchor, timetable.PendingSlots)[0]
+		if elapsed < start {
+			return regatta.ScheduleSlot{}, false
+		}
 	}
-
-	isPause := regatta.NormalizeSlotKind(slot.Kind) == regatta.ScheduleSlotKindPause
-	if _, err := s.StartTour(ctx, contestID, slot.Duration, StartTourOptions{IsPause: isPause}); err != nil {
-		return false, err
-	}
-
-	timetable.PopHead()
-	return true, nil
+	return slot, true
 }
 
 func (s *Regatta) loadToursSorted(ctx context.Context, contestID int) ([]regatta.Tour, error) {
@@ -315,16 +259,27 @@ func (s *Regatta) UpdateActiveTourDuration(
 		return nil, fmt.Errorf("failed to get contest %d: %w", contestID, err)
 	}
 
-	elapsed := int(time.Now().Sub(contest.StartTime).Seconds())
+	elapsed := int(time.Since(contest.StartTime).Seconds())
 
 	tours, err := s.loadToursSorted(ctx, contestID)
 	if err != nil {
 		return nil, err
 	}
 
-	sequence, elapsedIn, ok := editableFactualSegment(tours, elapsed)
-	if !ok {
-		return nil, ErrNoActiveTour
+	var sequence, elapsedIn int
+	if elapsed < 0 {
+		// контест ещё не начался — разрешаем редактировать первый тур
+		if len(tours) == 0 {
+			return nil, ErrNoActiveTour
+		}
+		sequence = tours[0].Sequence
+	} else {
+		activeSeq, ok := regatta.ActiveSequence(tours, elapsed)
+		if !ok {
+			return nil, ErrNoActiveTour
+		}
+		sequence = activeSeq
+		elapsedIn = regatta.ElapsedInSegment(tours, activeSeq, elapsed)
 	}
 
 	if durationSeconds < elapsedIn {
@@ -351,22 +306,6 @@ func (s *Regatta) UpdateActiveTourDuration(
 	}
 
 	return s.buildTimetableView(ctx, contestID, timetable, opts)
-}
-
-func editableFactualSegment(tours []regatta.Tour, elapsed int) (sequence int, elapsedIn int, ok bool) {
-	if elapsed < 0 {
-		sorted := regatta.SortToursBySequence(tours)
-		if len(sorted) == 0 {
-			return 0, 0, false
-		}
-		return sorted[0].Sequence, 0, true
-	}
-
-	activeSeq, ok := regatta.ActiveSequence(tours, elapsed)
-	if !ok {
-		return 0, 0, false
-	}
-	return activeSeq, regatta.ElapsedInSegment(tours, activeSeq, elapsed), true
 }
 
 func validatePendingSlots(slots []regatta.ScheduleSlot) error {

@@ -14,6 +14,15 @@ type StartTourOptions struct {
 	IsPause bool
 }
 
+// competitiveSetup содержит параметры конкурентного (не паузного) тура.
+type competitiveSetup struct {
+	round     int
+	groups    map[regatta.Participant]regatta.Group
+	groupNums map[regatta.Participant]int
+	problems  []int
+	groupSize int
+}
+
 func (s *Regatta) StartTour(ctx context.Context, contestId int, durationSeconds int, opts StartTourOptions) (string, error) {
 	if contestId <= 0 {
 		return "", fmt.Errorf("invalid contest ID: %d", contestId)
@@ -29,94 +38,94 @@ func (s *Regatta) StartTour(ctx context.Context, contestId int, durationSeconds 
 		return "", err
 	}
 
-	sequence := len(tours) + 1
-	round := 0
-	var groups map[Participant]Group
-	var groupNumbers map[Participant]int
-	var problems []int
-	groupSize := 0
-
+	var setup *competitiveSetup
 	if !opts.IsPause {
-		contest, err := s.contestRepo.GetByContestID(ctx, contestId)
-		if err != nil {
-			return "", fmt.Errorf("failed to get contest: %w", err)
-		}
-		participantsMap := contestParticipantsMap(contest.Participants)
-		if len(participantsMap) == 0 {
-			return "", fmt.Errorf("contest %d has no participants", contestId)
-		}
-		tourSettings := regatta.NormalizeTourSettings(contest.TourSettings)
-
-		ratedParticipants, err := s.participantsOrderedByRating(
-			ctx,
-			contestId,
-			participantsMap,
-			tours,
-			contest,
-		)
+		setup, err = s.buildCompetitiveSetup(ctx, contestId, tours)
 		if err != nil {
 			return "", err
 		}
-
-		formed := util.FormGroupsWithSwapProbability(
-			ratedParticipants,
-			tourSettings.GroupSize,
-			tourSettings.GroupShuffleProbability(),
-		)
-		groups = ConvertGroups(formed)
-		groupNumbers = regatta.ParticipantsToGroupNumbersMapping(formed)
-		groupSize = tourSettings.GroupSize
-
-		round = regatta.CompetitiveRoundCount(tours) + 1
-		problems = nextTourProblems(tours, tourSettings.ProblemsPerTour)
 	}
 
-	name := fmt.Sprintf("Tour №%d of contest %d", round, contestId)
-	if opts.IsPause {
-		name = fmt.Sprintf("Pause of contest %d (seq %d)", contestId, sequence)
-	}
+	tour := buildTourRecord(contestId, durationSeconds, len(tours)+1, opts.IsPause, setup)
 
-	tour := regatta.Tour{
-		Name:              name,
-		Sequence:          sequence,
-		Round:             round,
-		IsPause:           opts.IsPause,
-		DurationInSeconds: durationSeconds,
-		Groups:            groups,
-		GroupSize:         groupSize,
-		Problems:          problems,
-		ContestID:         contestId,
-		GroupNumbers:      groupNumbers,
-	}
-
-	create, err := s.tourRepository.Create(ctx, &tour)
+	id, err := s.tourRepository.Create(ctx, &tour)
 	if err != nil {
 		return "", fmt.Errorf("failed to create tour: %w", err)
 	}
 
-	return create.Hex(), nil
+	return id.Hex(), nil
 }
 
-// participantsOrderedByRating returns participant IDs sorted by total score before the new tour
-// (descending). FormGroups slices this list into buckets — order must reflect standings.
+func (s *Regatta) buildCompetitiveSetup(ctx context.Context, contestId int, completedTours []regatta.Tour) (*competitiveSetup, error) {
+	contest, err := s.contestRepo.GetByContestID(ctx, contestId)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get contest: %w", err)
+	}
+
+	participantsMap := contestParticipantsMap(contest.Participants)
+	if len(participantsMap) == 0 {
+		return nil, fmt.Errorf("contest %d has no participants", contestId)
+	}
+
+	tourSettings := regatta.NormalizeTourSettings(contest.TourSettings)
+
+	ratedParticipants, err := s.participantsOrderedByRating(ctx, contestId, participantsMap, completedTours, contest)
+	if err != nil {
+		return nil, err
+	}
+
+	formed := util.FormGroupsWithSwapProbability(
+		ratedParticipants,
+		tourSettings.GroupSize,
+		tourSettings.GroupShuffleProbability(),
+	)
+
+	return &competitiveSetup{
+		round:     regatta.CompetitiveRoundCount(completedTours) + 1,
+		groups:    convertGroups(formed),
+		groupNums: regatta.ParticipantsToGroupNumbersMapping(formed),
+		groupSize: tourSettings.GroupSize,
+		problems:  nextTourProblems(completedTours, tourSettings.ProblemsPerTour),
+	}, nil
+}
+
+func buildTourRecord(contestId, durationSeconds, sequence int, isPause bool, setup *competitiveSetup) regatta.Tour {
+	tour := regatta.Tour{
+		ContestID:         contestId,
+		Sequence:          sequence,
+		IsPause:           isPause,
+		DurationInSeconds: durationSeconds,
+	}
+	if isPause {
+		tour.Name = fmt.Sprintf("Pause of contest %d (seq %d)", contestId, sequence)
+	} else {
+		tour.Round = setup.round
+		tour.Name = fmt.Sprintf("Tour №%d of contest %d", setup.round, contestId)
+		tour.Groups = setup.groups
+		tour.GroupNumbers = setup.groupNums
+		tour.GroupSize = setup.groupSize
+		tour.Problems = setup.problems
+	}
+	return tour
+}
+
+// participantsOrderedByRating возвращает участников по убыванию суммы очков.
+// FormGroupsWithSwapProbability использует этот порядок для формирования столов.
 func (s *Regatta) participantsOrderedByRating(
 	ctx context.Context,
 	contestID int,
 	participantsMap map[string]string,
 	completedTours []regatta.Tour,
 	contest *regatta.Contest,
-) ([]Participant, error) {
-	ids := make([]Participant, 0, len(participantsMap))
+) ([]regatta.Participant, error) {
+	ids := make([]regatta.Participant, 0, len(participantsMap))
 	for id := range participantsMap {
 		ids = append(ids, id)
 	}
 
-	totals := make(map[Participant]int, len(ids))
-	for _, id := range ids {
-		totals[id] = 0
-	}
+	totals := make(map[regatta.Participant]int, len(ids))
 
-	// Первый тур: у всех 0 очков, сортировка по имени. Дальше — по сумме очков за прошлые туры.
+	// Первый тур: у всех 0 очков, сортировка только по имени.
 	if regatta.CompetitiveRoundCount(completedTours) > 0 {
 		submissions, err := s.contestRepo.GetSubmissions(ctx, contestID)
 		if err != nil {
@@ -142,13 +151,11 @@ func (s *Regatta) participantsOrderedByRating(
 		}
 	}
 
-	slices.SortFunc(ids, func(a, b Participant) int {
+	slices.SortFunc(ids, func(a, b regatta.Participant) int {
 		if totals[a] != totals[b] {
 			return totals[b] - totals[a]
 		}
-		nameA := participantsMap[a]
-		nameB := participantsMap[b]
-		if c := strings.Compare(nameA, nameB); c != 0 {
+		if c := strings.Compare(participantsMap[a], participantsMap[b]); c != 0 {
 			return c
 		}
 		return strings.Compare(a, b)
@@ -174,7 +181,6 @@ func nextTourProblems(tours []regatta.Tour, count int) []int {
 			}
 		}
 	}
-
 	problems := make([]int, 0, count)
 	for i := 1; i <= count; i++ {
 		problems = append(problems, maxProblem+i)
@@ -182,9 +188,8 @@ func nextTourProblems(tours []regatta.Tour, count int) []int {
 	return problems
 }
 
-func ConvertGroups(groups [][]string) map[Participant]Group {
-	result := make(map[Participant]Group)
-
+func convertGroups(groups [][]string) map[regatta.Participant]regatta.Group {
+	result := make(map[regatta.Participant]regatta.Group)
 	for _, group := range groups {
 		for _, participantID := range group {
 			groupCopy := make([]string, len(group))
@@ -192,6 +197,5 @@ func ConvertGroups(groups [][]string) map[Participant]Group {
 			result[participantID] = groupCopy
 		}
 	}
-
 	return result
 }

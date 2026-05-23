@@ -39,7 +39,7 @@ func TestParticipantScore_eventsAndScore(t *testing.T) {
 	})
 
 	out := tr.ParticipantScore("alice")
-	wantScore := 100 + SolveInTimePoints + OvertakePoints
+	wantScore := 100 + regatta.DefaultSolveInTimeBonus + regatta.DefaultOvertakeBonus
 	if out.Results["1A"].score != wantScore {
 		t.Fatalf("alice score = %d, want %d", out.Results["1A"].score, wantScore)
 	}
@@ -69,7 +69,7 @@ func TestParticipantScore_singleParticipantFullSolveGetsProblemAndSolveBonuses(t
 		{UserID: "alice", ProbID: 1, Time: 100, Status: SubmissionStatusOK},
 	})
 
-	want := 100 + SolveInTimePoints
+	want := 100 + regatta.DefaultSolveInTimeBonus
 	out := tr.ParticipantScore("alice")
 	if got := out.Results["1A"].score; got != want {
 		t.Fatalf("single participant score = %d, want %d", got, want)
@@ -101,7 +101,7 @@ func TestBuildContestEvents_chronological(t *testing.T) {
 	if events[0].DisplayName != "Alice A" {
 		t.Fatalf("display name = %q", events[0].DisplayName)
 	}
-	if events[0].Points != 100+SolveInTimePoints+OvertakePoints {
+	if events[0].Points != 100+regatta.DefaultSolveInTimeBonus+regatta.DefaultOvertakeBonus {
 		t.Fatalf("alice points = %d", events[0].Points)
 	}
 
@@ -125,10 +125,10 @@ func TestScoreForSolve_noMultiOvertakeBonus(t *testing.T) {
 		{UserID: "carol", ProbID: 1, Time: 300, Status: SubmissionStatusOK},
 	})
 
-	want := 100 + SolveInTimePoints + OvertakePoints
+	want := 100 + regatta.DefaultSolveInTimeBonus + regatta.DefaultOvertakeBonus
 	got := scoreForProblem(tr, "alice", 1)
 	if got != want {
-		t.Fatalf("score = %d, want %d (no +%d per opponent)", got, want, OvertakePoints)
+		t.Fatalf("score = %d, want %d (no +%d per opponent)", got, want, regatta.DefaultOvertakeBonus)
 	}
 }
 
@@ -230,11 +230,11 @@ func TestOvertake_uniqueFirstFullSolveGetsOvertake(t *testing.T) {
 		{UserID: "bob", ProbID: 1, Time: 200, Status: SubmissionStatusOK, Points: 100},
 	}, settings)
 
-	want := 100 + SolveInTimePoints + OvertakePoints
+	want := 100 + regatta.DefaultSolveInTimeBonus + regatta.DefaultOvertakeBonus
 	if got := tr.ParticipantScore("alice").Results["1A"].score; got != want {
 		t.Fatalf("alice score = %d, want %d", got, want)
 	}
-	if got := tr.ParticipantScore("bob").Results["1A"].score; got != 100+SolveInTimePoints {
+	if got := tr.ParticipantScore("bob").Results["1A"].score; got != 100+regatta.DefaultSolveInTimeBonus {
 		t.Fatalf("bob score = %d, want no overtake", got)
 	}
 }
@@ -247,7 +247,7 @@ func TestOvertake_tiedFirstFullSolveGetsNoOvertake(t *testing.T) {
 		{UserID: "bob", ProbID: 1, Time: 100, Status: SubmissionStatusOK, Points: 100},
 	}, settings)
 
-	want := 100 + SolveInTimePoints
+	want := 100 + regatta.DefaultSolveInTimeBonus
 	for _, participant := range []string{"alice", "bob"} {
 		if got := tr.ParticipantScore(participant).Results["1A"].score; got != want {
 			t.Fatalf("%s score = %d, want %d", participant, got, want)
@@ -267,7 +267,7 @@ func TestOvertake_tourEndHighestPartialGetsOvertake(t *testing.T) {
 	if got := tr.ParticipantScore("alice").Results["1A"].score; got != 80 {
 		t.Fatalf("alice score = %d, want latest raw points without overtake", got)
 	}
-	if got := tr.ParticipantScore("bob").Results["1A"].score; got != 60+OvertakePoints {
+	if got := tr.ParticipantScore("bob").Results["1A"].score; got != 60+regatta.DefaultOvertakeBonus {
 		t.Fatalf("bob score = %d, want raw points plus overtake", got)
 	}
 
@@ -297,7 +297,7 @@ func TestOvertake_tourEndHighestPartialGetsOvertake(t *testing.T) {
 	if bobOvertake == nil {
 		t.Fatalf("expected bob tour-end overtake event, got %+v", events)
 	}
-	if bobOvertake.TimeSec != 200 || bobOvertake.Points != 60+OvertakePoints {
+	if bobOvertake.TimeSec != 200 || bobOvertake.Points != 60+regatta.DefaultOvertakeBonus {
 		t.Fatalf("expected bob overtake at 200 with bonus points, got %+v", bobOvertake)
 	}
 }
@@ -508,7 +508,7 @@ func TestUnifiedScoring_okWithZeroPointsFullBonusesInTour(t *testing.T) {
 		{UserID: "bob", ProbID: 1, Time: 200, Status: SubmissionStatusOK, Points: 0},
 	}, settings)
 
-	want := 100 + SolveInTimePoints + OvertakePoints
+	want := 100 + regatta.DefaultSolveInTimeBonus + regatta.DefaultOvertakeBonus
 	if got := tr.ParticipantScore("alice").Results["1A"].score; got != want {
 		t.Fatalf("alice score = %d, want %d", got, want)
 	}

@@ -40,14 +40,10 @@ type Service struct {
 }
 
 func NewService(
-	client *objectstorage.Client,
+	storage BlobStore,
 	repo repository.ProblemStatementRepository,
 	tours TourLister,
 ) *Service {
-	var storage BlobStore
-	if client != nil {
-		storage = client
-	}
 	return &Service{storage: storage, repo: repo, tours: tours}
 }
 

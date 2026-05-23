@@ -161,7 +161,7 @@ func TestParticipantsOrderedByRatingOrder_sortsByScore(t *testing.T) {
 	if err != nil {
 		t.Fatalf("participantsOrderedByRating: %v", err)
 	}
-	want := []Participant{"p1", "p2", "p3", "p4"}
+	want := []string{"p1", "p2", "p3", "p4"}
 	if !slices.Equal(got, want) {
 		t.Fatalf("order = %v, want %v", got, want)
 	}

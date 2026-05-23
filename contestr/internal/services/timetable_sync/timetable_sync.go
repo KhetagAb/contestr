@@ -5,15 +5,11 @@ import (
 	"errors"
 	"time"
 
-	"contestr/internal/repository"
 	"contestr/internal/services/contest_registry"
 	regattasvc "contestr/internal/services/regatta"
 	"contestr/pkg/logger"
 	regattapkg "contestr/pkg/regatta"
-
 )
-
-type Interval time.Duration
 
 type RegattaService interface {
 	AdvanceTimetable(ctx context.Context, contestID int, mode regattasvc.AdvanceMode, opts regattasvc.TimetableViewOptions) error
@@ -22,7 +18,6 @@ type RegattaService interface {
 
 type TimetableSyncService struct {
 	registry     contest_registry.ContestRegistry
-	contestRepo  repository.ContestRepository
 	regatta      RegattaService
 	syncInterval time.Duration
 	viewOpts     regattasvc.TimetableViewOptions
@@ -30,21 +25,18 @@ type TimetableSyncService struct {
 
 func NewTimetableSyncService(
 	registry contest_registry.ContestRegistry,
-	contestRepo repository.ContestRepository,
 	regatta RegattaService,
-	syncInterval Interval,
+	syncInterval time.Duration,
 	autoStartAvailable bool,
 ) *TimetableSyncService {
-	interval := time.Duration(syncInterval)
-	if interval <= 0 {
-		interval = time.Second
+	if syncInterval <= 0 {
+		syncInterval = time.Second
 	}
 
 	return &TimetableSyncService{
 		registry:     registry,
-		contestRepo:  contestRepo,
 		regatta:      regatta,
-		syncInterval: interval,
+		syncInterval: syncInterval,
 		viewOpts: regattasvc.TimetableViewOptions{
 			ServerAutoStartAvailable: autoStartAvailable,
 		},

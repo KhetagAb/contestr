@@ -6,45 +6,11 @@ import (
 	"fmt"
 	"slices"
 	"strings"
-	"sync"
 	"time"
-
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-type TourRepository interface {
-	Create(ctx context.Context, tour *regatta.Tour) (primitive.ObjectID, error)
-	FindByContestID(ctx context.Context, contestID int) ([]regatta.Tour, error)
-	UpdateDuration(ctx context.Context, contestID int, sequence int, durationSeconds int) error
-}
-
-type ContestRepository interface {
-	GetByContestID(ctx context.Context, contestID int) (*regatta.Contest, error)
-	GetParticipants(ctx context.Context, contestID int) (map[string]string, error)
-	GetSubmissions(ctx context.Context, contestID int) ([]regatta.ContestSubmission, error)
-}
-
-type Regatta struct {
-	tourRepository      TourRepository
-	contestRepo         ContestRepository
-	timetableRepository TimetableRepository
-
-	advanceLockMu sync.Mutex
-	advanceLocks  map[int]*sync.Mutex
-}
-
-func NewRegatta(
-	tourRepository TourRepository,
-	contestRepo ContestRepository,
-	timetableRepository TimetableRepository,
-) *Regatta {
-	return &Regatta{
-		tourRepository:      tourRepository,
-		contestRepo:         contestRepo,
-		timetableRepository: timetableRepository,
-	}
-}
-
+// TODO: при введении снепшотов результатов пересчитывать только новые туры,
+// накладывая их поверх последнего снепшота вместо полного пересчёта с нуля.
 func (s *Regatta) GetContestResult(ctx context.Context, contestID int) (regatta.ContestStandings, error) {
 	contest, err := s.contestRepo.GetByContestID(ctx, contestID)
 	if err != nil {
@@ -62,10 +28,7 @@ func (s *Regatta) GetContestResult(ctx context.Context, contestID int) (regatta.
 	}
 
 	currentTime := time.Now()
-	currentElapsedSeconds := int(currentTime.Sub(contest.StartTime).Seconds())
-	if currentElapsedSeconds < 0 {
-		currentElapsedSeconds = 0
-	}
+	currentElapsedSeconds := max(0, int(time.Since(contest.StartTime).Seconds()))
 	standings := regatta.ContestStandings{
 		ContestId:        contestID,
 		ContestName:      contest.ContestName,
@@ -103,7 +66,7 @@ func (s *Regatta) GetContestResult(ctx context.Context, contestID int) (regatta.
 
 	var contestRows []regatta.ContestRow
 	contestStandingsByParticipants := make(ResultsByParticipant)
-	participantTotal := make(map[Participant]int)
+	participantTotal := make(map[regatta.Participant]int)
 
 	offsets := regatta.SegmentOffsets(tours)
 

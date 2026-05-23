@@ -133,6 +133,82 @@ func TestBuildTimelineSegments_singleStartingWhenManyPendingOverdue(t *testing.T
 	}
 }
 
+func TestBuildTimelineSegments_emptyInput(t *testing.T) {
+	segs := BuildTimelineSegments(nil, nil, 0)
+	if len(segs) != 0 {
+		t.Fatalf("expected empty segments, got %d", len(segs))
+	}
+}
+
+func TestBuildTimelineSegments_singleTourActive(t *testing.T) {
+	tours := []Tour{{Sequence: 1, Round: 1, DurationInSeconds: 1000}}
+	segs := BuildTimelineSegments(tours, nil, 500)
+	if len(segs) != 1 {
+		t.Fatalf("expected 1 segment, got %d", len(segs))
+	}
+	if segs[0].Status != SegmentStatusActive {
+		t.Fatalf("status = %q, want active", segs[0].Status)
+	}
+	if !segs[0].Editable {
+		t.Fatal("active segment should be editable")
+	}
+}
+
+func TestBuildTimelineSegments_singleTourPast(t *testing.T) {
+	tours := []Tour{{Sequence: 1, Round: 1, DurationInSeconds: 1000}}
+	segs := BuildTimelineSegments(tours, nil, 2000)
+	if len(segs) != 1 || segs[0].Status != SegmentStatusPast {
+		t.Fatalf("status = %q, want past", segs[0].Status)
+	}
+	if segs[0].Editable {
+		t.Fatal("past segment should not be editable")
+	}
+}
+
+func TestBuildTimelineSegments_pendingRoundIncrement(t *testing.T) {
+	tours := []Tour{
+		{Sequence: 1, Round: 1, DurationInSeconds: 100, IsPause: false},
+		{Sequence: 2, Round: 0, DurationInSeconds: 100, IsPause: true},
+	}
+	pending := []ScheduleSlot{
+		{Duration: 200, Kind: ScheduleSlotKindPause},
+		{Duration: 300, Kind: ScheduleSlotKindTour},
+		{Duration: 400, Kind: ScheduleSlotKindTour},
+	}
+	segs := BuildTimelineSegments(tours, pending, 0)
+
+	var rounds []int
+	for _, s := range segs {
+		if s.PendingIndex != nil && s.Round != nil {
+			rounds = append(rounds, *s.Round)
+		}
+	}
+	// первый pending — пауза (нет round), затем два конкурентных тура: round=2 и round=3
+	if len(rounds) != 2 || rounds[0] != 2 || rounds[1] != 3 {
+		t.Fatalf("pending tour rounds = %v, want [2 3]", rounds)
+	}
+}
+
+func TestActiveSequence_beforeContestStart(t *testing.T) {
+	tours := []Tour{{Sequence: 1, Round: 1, DurationInSeconds: 1000}}
+	_, ok := ActiveSequence(tours, -1)
+	if ok {
+		t.Fatal("expected no active sequence before contest starts (elapsed < 0)")
+	}
+}
+
+func TestActiveSequence_betweenTours(t *testing.T) {
+	tours := []Tour{
+		{Sequence: 1, Round: 1, DurationInSeconds: 1000},
+		{Sequence: 2, Round: 0, DurationInSeconds: 300, IsPause: true},
+	}
+	// elapsed=1500: первый тур кончился (0–1000), пауза идёт (1000–1300)
+	seq, ok := ActiveSequence(tours, 1150)
+	if !ok || seq != 2 {
+		t.Fatalf("expected sequence 2 (pause) at elapsed=1150, got seq=%d ok=%v", seq, ok)
+	}
+}
+
 func segmentStatuses(segments []TimelineSegment) []string {
 	out := make([]string, len(segments))
 	for i, s := range segments {

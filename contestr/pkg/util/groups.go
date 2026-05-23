@@ -6,14 +6,6 @@ import (
 	"slices"
 )
 
-const (
-	SwapBorderProbability = 0.20
-)
-
-func FormGroups(ratedParticipants []string, groupSize int) [][]string {
-	return FormGroupsWithSwapProbability(ratedParticipants, groupSize, SwapBorderProbability)
-}
-
 func FormGroupsWithSwapProbability(ratedParticipants []string, groupSize int, shuffleProbability float64) [][]string {
 	n := len(ratedParticipants)
 	if n == 0 {

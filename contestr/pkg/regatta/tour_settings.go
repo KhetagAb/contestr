@@ -20,7 +20,7 @@ func DefaultTourSettings() TourSettings {
 	}
 }
 
-func NormalizeTourSettings(settings TourSettings) TourSettings {
+func (settings TourSettings) Normalize() TourSettings {
 	defaults := DefaultTourSettings()
 	if settings.GroupSize <= 0 {
 		settings.GroupSize = defaults.GroupSize
@@ -28,16 +28,15 @@ func NormalizeTourSettings(settings TourSettings) TourSettings {
 	if settings.ProblemsPerTour <= 0 {
 		settings.ProblemsPerTour = defaults.ProblemsPerTour
 	}
-	if settings.GroupShufflePercent < 0 {
-		settings.GroupShufflePercent = 0
-	}
-	if settings.GroupShufflePercent > 100 {
-		settings.GroupShufflePercent = 100
-	}
+	settings.GroupShufflePercent = max(0, min(100, settings.GroupShufflePercent))
 	return settings
 }
 
+// NormalizeTourSettings — функциональная форма для обратной совместимости.
+func NormalizeTourSettings(settings TourSettings) TourSettings {
+	return settings.Normalize()
+}
+
 func (settings TourSettings) GroupShuffleProbability() float64 {
-	normalized := NormalizeTourSettings(settings)
-	return float64(normalized.GroupShufflePercent) / 100
+	return float64(settings.Normalize().GroupShufflePercent) / 100
 }

@@ -131,26 +131,21 @@ func NormalizeSlotKind(kind string) string {
 }
 
 func BuildTimelineSegments(tours []Tour, pending []ScheduleSlot, elapsed int) []TimelineSegment {
-	var segments []TimelineSegment
-	offsets := SegmentOffsets(tours)
+	sorted := SortToursBySequence(tours)
+	offsets := SegmentOffsets(sorted)
+	activeSeq, hasActive := ActiveSequence(sorted, elapsed)
 
-	activeSeq, hasActive := ActiveSequence(tours, elapsed)
-	anchor := TimelineAnchorEnd(tours)
+	anchor := TimelineAnchorEnd(sorted)
 	pendingStarts := BuildPendingStarts(anchor, pending)
 
-	firstOverduePending := -1
-	nextPendingIndex := -1
-	for i, start := range pendingStarts {
-		if elapsed >= start {
-			if firstOverduePending < 0 {
-				firstOverduePending = i
-			}
-		} else if nextPendingIndex < 0 {
-			nextPendingIndex = i
-		}
-	}
+	segments := buildFactualSegments(sorted, offsets, activeSeq, hasActive)
+	segments = append(segments, buildPendingSegments(pending, pendingStarts, elapsed, hasActive, sorted)...)
+	return segments
+}
 
-	for _, tour := range SortToursBySequence(tours) {
+func buildFactualSegments(sorted []Tour, offsets map[int]SegmentOffset, activeSeq int, hasActive bool) []TimelineSegment {
+	segments := make([]TimelineSegment, 0, len(sorted))
+	for _, tour := range sorted {
 		o := offsets[tour.Sequence]
 		status := SegmentStatusPast
 		if hasActive && tour.Sequence == activeSeq {
@@ -177,39 +172,24 @@ func BuildTimelineSegments(tours []Tour, pending []ScheduleSlot, elapsed int) []
 			Editable:  status == SegmentStatusActive,
 		})
 	}
+	return segments
+}
 
+func buildPendingSegments(pending []ScheduleSlot, pendingStarts []int, elapsed int, hasActive bool, tours []Tour) []TimelineSegment {
+	firstOverdue, nextIdx := pendingOverdueIndexes(pendingStarts, elapsed)
+
+	tourRoundBase := CompetitiveRoundCount(tours)
+	competitivePendingCount := 0
+
+	segments := make([]TimelineSegment, 0, len(pending))
 	for i, slot := range pending {
 		kind := NormalizeSlotKind(slot.Kind)
-		start := pendingStarts[i]
-		status := SegmentStatusFuture
-		if elapsed < start {
-			if i == nextPendingIndex {
-				status = SegmentStatusNext
-			}
-		} else if !hasActive {
-			if firstOverduePending >= 0 {
-				switch i {
-				case firstOverduePending:
-					status = SegmentStatusStarting
-				case firstOverduePending + 1:
-					status = SegmentStatusNext
-				}
-			} else if i == 0 {
-				status = SegmentStatusNext
-			}
-		} else if i == 0 {
-			status = SegmentStatusStarting
-		}
-
 		idx := i
+
 		var roundPtr *int
 		if kind == ScheduleSlotKindTour {
-			r := CompetitiveRoundCount(tours)
-			for j := 0; j <= i; j++ {
-				if NormalizeSlotKind(pending[j].Kind) == ScheduleSlotKindTour {
-					r++
-				}
-			}
+			competitivePendingCount++
+			r := tourRoundBase + competitivePendingCount
 			roundPtr = &r
 		}
 
@@ -218,11 +198,47 @@ func BuildTimelineSegments(tours []Tour, pending []ScheduleSlot, elapsed int) []
 			Kind:         kind,
 			Round:        roundPtr,
 			Duration:     slot.Duration,
-			StartTime:    start,
-			Status:       status,
+			StartTime:    pendingStarts[i],
+			Status:       pendingSlotStatus(i, pendingStarts[i], elapsed, hasActive, firstOverdue, nextIdx),
 			Editable:     true,
 		})
 	}
-
 	return segments
+}
+
+func pendingOverdueIndexes(pendingStarts []int, elapsed int) (firstOverdue, nextIdx int) {
+	firstOverdue, nextIdx = -1, -1
+	for i, start := range pendingStarts {
+		if elapsed >= start {
+			if firstOverdue < 0 {
+				firstOverdue = i
+			}
+		} else if nextIdx < 0 {
+			nextIdx = i
+		}
+	}
+	return
+}
+
+func pendingSlotStatus(i int, start int, elapsed int, hasActive bool, firstOverdue int, nextIdx int) string {
+	if elapsed < start {
+		if i == nextIdx {
+			return SegmentStatusNext
+		}
+		return SegmentStatusFuture
+	}
+	// слот просрочен: активный сегмент ещё идёт — только первый просроченный помечается как starting
+	if hasActive {
+		if i == firstOverdue {
+			return SegmentStatusStarting
+		}
+		return SegmentStatusFuture
+	}
+	switch i {
+	case firstOverdue:
+		return SegmentStatusStarting
+	case firstOverdue + 1:
+		return SegmentStatusNext
+	}
+	return SegmentStatusFuture
 }

@@ -38,36 +38,25 @@ func NormalizeScoringSettings(settings ScoringSettings) ScoringSettings {
 	if settings.SolveInTimeBonus == 0 && settings.OvertakeBonus == 0 {
 		return DefaultScoringSettings()
 	}
-
-	if settings.SolveInTimeBonus < 0 {
-		settings.SolveInTimeBonus = 0
-	}
-	if settings.OvertakeBonus < 0 {
-		settings.OvertakeBonus = 0
-	}
-
+	settings.SolveInTimeBonus = clampBonus(settings.SolveInTimeBonus)
+	settings.OvertakeBonus = clampBonus(settings.OvertakeBonus)
 	return settings
 }
 
 func normalizeScoringFromBSON(solveInTime, overtake *int) ScoringSettings {
-	defaults := DefaultScoringSettings()
-	if solveInTime == nil && overtake == nil {
-		return defaults
-	}
-
-	next := defaults
+	settings := DefaultScoringSettings()
 	if solveInTime != nil {
-		next.SolveInTimeBonus = nonNegativeBonus(*solveInTime)
+		settings.SolveInTimeBonus = clampBonus(*solveInTime)
 	}
 	if overtake != nil {
-		next.OvertakeBonus = nonNegativeBonus(*overtake)
+		settings.OvertakeBonus = clampBonus(*overtake)
 	}
-	return next
+	return settings
 }
 
-func nonNegativeBonus(value int) int {
-	if value < 0 {
+func clampBonus(v int) int {
+	if v < 0 {
 		return 0
 	}
-	return value
+	return v
 }

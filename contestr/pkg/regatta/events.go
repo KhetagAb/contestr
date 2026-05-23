@@ -26,33 +26,26 @@ type RegattaEvent struct {
 	Verdict       string `json:"verdict,omitempty"`
 }
 
+var verdictShortcodes = map[string]string{
+	"WRONG_ANSWER":            "WA",
+	"TIME_LIMIT_EXCEEDED":     "TL",
+	"RUNTIME_ERROR":           "RE",
+	"COMPILATION_ERROR":       "CE",
+	"MEMORY_LIMIT_EXCEEDED":   "ML",
+	"PRESENTATION_ERROR":      "PE",
+	"IDLENESS_LIMIT_EXCEEDED": "IL",
+	"PARTIAL":                 "PT",
+	"FAILED":                  "FAIL",
+	"REJECTED":                "RJ",
+}
+
 // ShortSubmissionVerdict maps platform submission status to a short label for the event log.
 func ShortSubmissionVerdict(status string) string {
-	switch status {
-	case "WRONG_ANSWER":
-		return "WA"
-	case "TIME_LIMIT_EXCEEDED":
-		return "TL"
-	case "RUNTIME_ERROR":
-		return "RE"
-	case "COMPILATION_ERROR":
-		return "CE"
-	case "MEMORY_LIMIT_EXCEEDED":
-		return "ML"
-	case "PRESENTATION_ERROR":
-		return "PE"
-	case "IDLENESS_LIMIT_EXCEEDED":
-		return "IL"
-	case "PARTIAL":
-		return "PT"
-	case "FAILED":
-		return "FAIL"
-	case "REJECTED":
-		return "RJ"
-	default:
-		if status == "" {
-			return "?"
-		}
-		return status
+	if s, ok := verdictShortcodes[status]; ok {
+		return s
 	}
+	if status == "" {
+		return "?"
+	}
+	return status
 }
