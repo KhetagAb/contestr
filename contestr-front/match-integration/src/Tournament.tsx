@@ -2,7 +2,6 @@ import styles from "./tour.module.css"
 import {useState} from 'react'
 import {ChevronDown, ChevronUp} from 'lucide-react'
 import {PiStarFill} from "react-icons/pi";
-import telegramLogo from '../public/telegramLogo.svg';
 
 // import {
 //     createColumnHelper,
@@ -162,12 +161,7 @@ const Tournament = () => {
                             {tour.description}
                         </p>
                         <div className={styles.tourAdmin}>
-                            <p> Организатор турнира:
-                                {tour.organizer}
-                                <img src={telegramLogo} alt="Telegram" className={styles.logo}
-                                     onClick={() => window.open(`https://t.me/${tour.handle}`, "_blank")}
-                                />
-                            </p>
+                            <p> Организатор турнира: {tour.organizer}</p>
                         </div>
                         <div className={styles.toggleSection}>
                             <button

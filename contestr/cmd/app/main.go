@@ -28,17 +28,6 @@ func main() {
 		}
 	}()
 
-	bot := svc.TgBot
-	if bot.Enabled() {
-		go func() {
-			if err := bot.Start(ctx); err != nil && !errors.Is(err, context.Canceled) {
-				logger.Errorf(ctx, "failed to start bot: %v", err)
-			}
-		}()
-	} else {
-		logger.Info(ctx, "telegram bot is not running")
-	}
-
 	contestSync := svc.ContestSync
 	go func() {
 		if err := contestSync.Start(ctx); err != nil && !errors.Is(err, context.Canceled) {
@@ -53,18 +42,13 @@ func main() {
 		}
 	}()
 
-	awaitGracefulShutdown(ctx, cfg, bot, server)
+	awaitGracefulShutdown(ctx, cfg, server)
 }
 
-func awaitGracefulShutdown(ctx context.Context, cfg *configs.Config, bot *transport.TgBot, httpServer *transport.HTTPServer) {
+func awaitGracefulShutdown(ctx context.Context, cfg *configs.Config, httpServer *transport.HTTPServer) {
 	quit := make(chan os.Signal, 1)
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
-
-	if bot.Enabled() {
-		logger.Info(ctx, "shutting down bot...")
-		bot.Stop(ctx)
-	}
 
 	logger.Info(ctx, "shutting down server...")
 	shutdownCtx, cancel := context.WithTimeout(ctx, cfg.HTTP.ShutdownTimeout)

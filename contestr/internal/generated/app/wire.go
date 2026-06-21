@@ -19,7 +19,6 @@ type App struct {
 	Ctx           context.Context
 	Cfg           *configs.Config
 	HttpServer    *transport.HTTPServer
-	TgBot         *transport.TgBot
 	ContestSync   *contest_sync.ContestSyncService
 	TimetableSync *timetable_sync.TimetableSyncService
 }

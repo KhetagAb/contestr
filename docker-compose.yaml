@@ -7,9 +7,7 @@ services:
     depends_on:
       - server
     ports:
-      - 10888:80
-    environment:
-      VIRTUAL_HOST: contestr.d.lksh.ru
+      - "127.0.0.1:10888:80"
 
   server:
     build:
@@ -29,7 +27,7 @@ services:
     image: mongo:latest
     restart: unless-stopped
     ports:
-      - "15432:27017"
+      - "127.0.0.1:15432:27017"
     healthcheck:
       test: ["CMD", "mongosh", "--eval", "'db.runCommand({ping:1})'"]
       interval: 5s

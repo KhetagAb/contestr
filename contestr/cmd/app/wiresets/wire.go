@@ -5,9 +5,7 @@ import (
 	"contestr/internal/configs"
 	"contestr/internal/handlers"
 	adminhandlers "contestr/internal/handlers/admin"
-	cfhandlers "contestr/internal/handlers/codeforces"
 	regattahandlers "contestr/internal/handlers/regatta"
-	"contestr/internal/handlers/tgbot"
 	"contestr/internal/integrations"
 	"contestr/internal/integrations/codeforces"
 	"contestr/internal/integrations/ejudge"
@@ -73,10 +71,8 @@ var All = wire.NewSet(
 	NewContextProvider,
 	config.NewConfig,
 
-	wire.Bind(new(cfhandlers.Service), new(*codeforces.Service)),
 	codeforces.NewService,
 
-	cfhandlers.NewContestHandle,
 	adminhandlers.NewLoginHandle,
 	adminhandlers.NewMeHandle,
 	wire.Bind(new(adminhandlers.TimetableService), new(*regatta.Regatta)),
@@ -97,14 +93,6 @@ var All = wire.NewSet(
 	handlers.NewHandlers,
 	auth.NewService,
 	transport.NewHTTPServer,
-
-	tgbot.NewStartHandle,
-	wire.Bind(new(tgbot.ContestSyncService), new(*contest_sync.ContestSyncService)),
-	tgbot.NewSyncContestsHandle,
-	tgbot.NewHelpHandle,
-	tgbot.NewMessageHandle,
-	tgbot.NewHandlers,
-	transport.NewBot,
 
 	repository.NewMongoClient,
 	repository.NewMongoTourRepository,

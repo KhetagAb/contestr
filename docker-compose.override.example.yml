@@ -2,3 +2,8 @@ services:
   server:
     ports:
       - "127.0.0.1:8080:8080"
+
+  # Для reverse proxy — задайте свой домен
+  nginx:
+    environment:
+      VIRTUAL_HOST: contestr.example.com

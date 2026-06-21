@@ -15,11 +15,6 @@ mongodb:
   min_pool_size: 10
   tour_collection: "tours"
 
-telegram:
-  token: "YOUR_TELEGRAM_BOT_TOKEN"
-  admins_tg_id:
-    - 447498304 # khet
-
 codeforces:
   api_key: "YOUR_CODEFORCES_API_KEY"
   api_secret: "YOUR_CODEFORCES_API_SECRET"

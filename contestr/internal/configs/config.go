@@ -14,7 +14,6 @@ type (
 		App           AppConfig             `mapstructure:"app"`
 		HTTP          HTTPConfig            `mapstructure:"http"`
 		MongoDB       MongoDBConfig         `mapstructure:"mongodb"`
-		Telegram      TelegramConfig        `mapstructure:"telegram"`
 		Codeforces    CodeforcesConfig      `mapstructure:"codeforces"`
 		Ejudge        EjudgeConfig          `mapstructure:"ejudge"`
 		ContestSync   ContestSyncConfig   `mapstructure:"contest_sync"`
@@ -43,11 +42,6 @@ type (
 		Database                string `mapstructure:"database"`
 		TourCollection          string `mapstructure:"tour_collection"`
 		TourTimetableCollection string `mapstructure:"tour_timetable_collection"`
-	}
-
-	TelegramConfig struct {
-		Token  string `mapstructure:"token"`
-		Admins []int  `mapstructure:"admins_tg_id"`
 	}
 
 	CodeforcesConfig struct {
@@ -98,14 +92,6 @@ func (c AdminConfig) Enabled() bool {
 	return strings.TrimSpace(c.JWTSecret) != "" &&
 		strings.TrimSpace(c.Username) != "" &&
 		strings.TrimSpace(c.Password) != ""
-}
-
-func (c TelegramConfig) Enabled() bool {
-	token := strings.TrimSpace(c.Token)
-	if token == "" || token == "YOUR_TELEGRAM_BOT_TOKEN" || token == "YOUR_BOT_API_KEY" {
-		return false
-	}
-	return true
 }
 
 func LoadConfig(path string) (*Config, error) {

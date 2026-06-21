@@ -51,7 +51,7 @@ export const LogPart_st1: React.FC<Props> = ({onNext}) => {
                         </label>
                     </div>
                     <button type="submit" className="TG">
-                        Войти через Telegram
+                        Продолжить
                     </button>
                 </div>
             </section>

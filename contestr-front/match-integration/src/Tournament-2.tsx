@@ -2,7 +2,6 @@ import styles from "./tour.module.css"
 import { useState } from 'react'
 import { ChevronDown, ChevronUp } from 'lucide-react'
 import { PiStarFill } from "react-icons/pi";
-import telegramLogo from "../public/telegramLogo.svg"
 import { useActivities, useTeamsLazy } from './tournament.queries';
 import type { Activity, Team, RegisterPlayerRequest } from '../client';
 
@@ -56,9 +55,9 @@ const TournamentCard = ({ activity, isOpen, onToggle, playersData }: TournamentC
             <div className={styles.tourAdmin}>
                 <p>
                     Организатор активности: {activity.creator?.name || "Информация отсутствует"}
-                    <img src={telegramLogo} className={styles.logo} alt="Telegram"
-                         onClick={() => window.open(`https://t.me/${activity.creator?.tg_username}`, "_blank")}
-                    />
+                    {activity.creator?.tg_username && (
+                        <span className={styles.tgUsername}> @{activity.creator.tg_username}</span>
+                    )}
                 </p>
             </div>
             <div className={styles.toggleSection}>

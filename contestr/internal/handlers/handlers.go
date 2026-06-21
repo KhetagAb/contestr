@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"contestr/internal/handlers/admin"
-	"contestr/internal/handlers/codeforces"
 	"contestr/internal/handlers/contests"
 	"contestr/internal/handlers/regatta"
 
@@ -10,7 +9,6 @@ import (
 )
 
 type Handlers struct {
-	contestHandle        *codeforces.ContestHandle
 	regattaContestHandle *regatta.ContestHandle
 	regattaTimetableHandle     *regatta.TimetableHandle
 	regattaParticipantsHandle *regatta.ParticipantsHandle
@@ -36,7 +34,6 @@ func (h *Handlers) GetRegattaContestParticipants(ctx echo.Context, contestId int
 }
 
 func NewHandlers(
-	contestHandle *codeforces.ContestHandle,
 	regattaContestHandle *regatta.ContestHandle,
 	regattaTimetableHandle *regatta.TimetableHandle,
 	regattaParticipantsHandle *regatta.ParticipantsHandle,
@@ -49,7 +46,6 @@ func NewHandlers(
 	regattaProblemStatementsHandle *regatta.ProblemStatementsHandle,
 ) *Handlers {
 	return &Handlers{
-		contestHandle:          contestHandle,
 		regattaContestHandle:   regattaContestHandle,
 		regattaTimetableHandle:     regattaTimetableHandle,
 		regattaParticipantsHandle: regattaParticipantsHandle,
@@ -77,10 +73,6 @@ func (h *Handlers) DeleteAdminContestProblemStatement(ctx echo.Context, contestI
 
 func (h *Handlers) GetRegattaContestProblemStatements(ctx echo.Context, contestId int) error {
 	return h.regattaProblemStatementsHandle.GetRegattaProblemStatements(ctx, contestId)
-}
-
-func (h *Handlers) GetContest(ctx echo.Context, contestId int) error {
-	return h.contestHandle.GetContest(ctx, contestId)
 }
 
 func (h *Handlers) GetContests(ctx echo.Context) error {
