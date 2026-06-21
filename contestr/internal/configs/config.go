@@ -61,7 +61,8 @@ type (
 	}
 
 	ContestSyncConfig struct {
-		Interval time.Duration `mapstructure:"interval"`
+		Interval            time.Duration `mapstructure:"interval"`
+		IntervalBeforeStart time.Duration `mapstructure:"interval_before_start"`
 	}
 
 	TimetableSyncConfig struct {

@@ -30,6 +30,7 @@ ejudge:
 
 contest_sync:
   interval: 15s
+  interval_before_start: 1m
 
 timetable_sync:
   interval: 1s

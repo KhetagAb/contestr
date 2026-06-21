@@ -46,7 +46,7 @@ type contestStatusResponse struct {
 	Result  []StatusSubmission `json:"result"`
 }
 
-func (c *Service) GetContestStatusWithPoints(ctx context.Context, contestID int) ([]StatusSubmission, error) {
+func (c *Service) GetContestStatus(ctx context.Context, contestID int) ([]StatusSubmission, error) {
 	var result []StatusSubmission
 
 	for from := 1; ; from += codeforcesStatusPageSize {

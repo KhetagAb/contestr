@@ -39,7 +39,7 @@ func (a *CodeforcesAdapter) GetSystem() string {
 }
 
 func (a *CodeforcesAdapter) FetchContest(ctx context.Context, contestID int, opts integrations.FetchContestOptions) (*regatta.Contest, error) {
-	standings, err := a.service.GetContest(ctx, contestID)
+	standings, err := a.service.GetContestStandings(ctx, contestID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch codeforces contest: %w", err)
 	}
@@ -82,6 +82,7 @@ func (a *CodeforcesAdapter) FetchContest(ctx context.Context, contestID int, opt
 		ContestID:       int(standings.Contest.ID),
 		ContestName:     standings.Contest.Name,
 		System:          "codeforces",
+		Phase:           standings.Contest.Phase,
 		StartTime:       startTime,
 		LastUpdated:     time.Now(),
 		ScoringSettings: settings,
@@ -151,7 +152,7 @@ func (a *CodeforcesAdapter) fetchPartialSubmissions(
 	problems []goforces.Problem,
 	allowedHandles map[string]bool,
 ) ([]regatta.ContestSubmission, error) {
-	statusSubmissions, err := a.service.GetContestStatusWithPoints(ctx, contestID)
+	statusSubmissions, err := a.service.GetContestStatus(ctx, contestID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch codeforces status submissions: %w", err)
 	}

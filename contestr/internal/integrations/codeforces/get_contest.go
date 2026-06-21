@@ -26,7 +26,7 @@ const (
 	standingsRequestManager
 )
 
-func (c *Service) GetContest(ctx context.Context, contestID int) (*goforces.Standings, error) {
+func (c *Service) GetContestStandings(ctx context.Context, contestID int) (*goforces.Standings, error) {
 	if c.apiKey != "" && c.apiSecret != "" {
 		managerStandings, managerErr := c.getContestStandings(ctx, contestID, standingsRequestManager)
 		if managerErr == nil {
@@ -99,12 +99,4 @@ func (c *Service) getContestStandings(ctx context.Context, contestID int, mode s
 	}
 
 	return &body.Result, nil
-}
-
-func (c *Service) GetContestStatus(ctx context.Context, contestID int, options *goforces.ContestStatusOptions) ([]goforces.Submission, error) {
-	submissions, err := c.client.GetContestStatus(ctx, contestID, options)
-	if err != nil {
-		return nil, fmt.Errorf("error getting contest status: %w", err)
-	}
-	return submissions, nil
 }

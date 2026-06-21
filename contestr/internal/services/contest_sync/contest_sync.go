@@ -1,20 +1,28 @@
 package contest_sync
 
 import (
+	"context"
+	"errors"
+	"fmt"
+	"time"
+
 	"contestr/internal/integrations"
 	"contestr/internal/repository"
 	"contestr/internal/services/contest_registry"
 	"contestr/pkg/logger"
-	"context"
-	"fmt"
-	"time"
+	"contestr/pkg/regatta"
+
+	"go.mongodb.org/mongo-driver/mongo"
 )
 
+const systemCodeforces = "codeforces"
+
 type ContestSyncService struct {
-	registry     contest_registry.ContestRegistry
-	adapters     map[string]integrations.ContestAdapter
-	contestRepo  repository.ContestRepository
-	syncInterval time.Duration
+	registry            contest_registry.ContestRegistry
+	adapters            map[string]integrations.ContestAdapter
+	contestRepo         repository.ContestRepository
+	syncInterval        time.Duration
+	intervalBeforeStart time.Duration
 }
 
 func NewContestSyncService(
@@ -22,12 +30,17 @@ func NewContestSyncService(
 	adapters map[string]integrations.ContestAdapter,
 	contestRepo repository.ContestRepository,
 	syncInterval time.Duration,
+	intervalBeforeStart time.Duration,
 ) *ContestSyncService {
+	if intervalBeforeStart <= 0 {
+		intervalBeforeStart = time.Minute
+	}
 	return &ContestSyncService{
-		registry:     registry,
-		adapters:     adapters,
-		contestRepo:  contestRepo,
-		syncInterval: syncInterval,
+		registry:            registry,
+		adapters:            adapters,
+		contestRepo:         contestRepo,
+		syncInterval:        syncInterval,
+		intervalBeforeStart: intervalBeforeStart,
 	}
 }
 
@@ -76,6 +89,8 @@ func (s *ContestSyncService) SyncAllContests(ctx context.Context) *SyncResult {
 	result.HasContests = true
 	result.TotalCount = totalContests
 
+	now := time.Now()
+
 	for system, contestIDs := range contestsBySystem {
 		if len(contestIDs) == 0 {
 			continue
@@ -97,6 +112,14 @@ func (s *ContestSyncService) SyncAllContests(ctx context.Context) *SyncResult {
 				logger.Errorf(ctx, errMsg)
 				result.ErrorMessages = append(result.ErrorMessages, errMsg)
 				result.FailedCount++
+				continue
+			}
+
+			cached, err := s.contestRepo.GetByContestID(ctx, contestID)
+			if err != nil && !errors.Is(err, mongo.ErrNoDocuments) {
+				logger.Errorf(ctx, "failed to load cached contest %d for sync gating: %v", contestID, err)
+			}
+			if !s.shouldSyncPeriodic(system, cached, now) {
 				continue
 			}
 
@@ -125,6 +148,18 @@ func (s *ContestSyncService) SyncAllContests(ctx context.Context) *SyncResult {
 	}
 
 	return result
+}
+
+func (s *ContestSyncService) shouldSyncPeriodic(system string, cached *regatta.Contest, now time.Time) bool {
+	if cached == nil {
+		return true
+	}
+
+	if system == systemCodeforces {
+		return ShouldSyncCf(cached.Phase, cached.LastUpdated, now, s.syncInterval, s.intervalBeforeStart)
+	}
+
+	return ShouldSyncEjudge(cached.LastUpdated, now, s.syncInterval)
 }
 
 func (s *ContestSyncService) SyncContest(ctx context.Context, contestID int) error {

@@ -23,7 +23,6 @@ import (
 	"contestr/internal/transport"
 	"contestr/pkg/config"
 	"context"
-	"time"
 
 	"github.com/google/wire"
 )
@@ -42,8 +41,19 @@ func NewContestAdaptersMap(
 	}
 }
 
-func GetContestSyncInterval(cfg *configs.Config) time.Duration {
-	return cfg.ContestSync.Interval
+func NewContestSyncServiceProvider(
+	registry contest_registry.ContestRegistry,
+	adapters map[string]integrations.ContestAdapter,
+	contestRepo repository.ContestRepository,
+	cfg *configs.Config,
+) *contest_sync.ContestSyncService {
+	return contest_sync.NewContestSyncService(
+		registry,
+		adapters,
+		contestRepo,
+		cfg.ContestSync.Interval,
+		cfg.ContestSync.IntervalBeforeStart,
+	)
 }
 
 func NewTimetableSyncServiceProvider(
@@ -118,8 +128,7 @@ var All = wire.NewSet(
 
 	contest_registry.NewContestRegistry,
 
-	GetContestSyncInterval,
-	contest_sync.NewContestSyncService,
+	NewContestSyncServiceProvider,
 	wire.Bind(new(timetable_sync.RegattaService), new(*regatta.Regatta)),
 	NewTimetableSyncServiceProvider,
 

@@ -6,6 +6,7 @@ type Contest struct {
 	ContestID   int       `bson:"contest_id"`
 	ContestName string    `bson:"contest_name"`
 	System      string    `bson:"system"`
+	Phase       string    `bson:"phase,omitempty"`
 	StartTime   time.Time `bson:"start_time"`
 	LastUpdated time.Time `bson:"last_updated"`
 

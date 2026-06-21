@@ -86,7 +86,7 @@ func (s *Service) RegisterCodeforcesContest(
 		return nil, repository.ErrContestAlreadyRegistered
 	}
 
-	standings, err := s.cfService.GetContest(ctx, contestID)
+	standings, err := s.cfService.GetContestStandings(ctx, contestID)
 	if err != nil {
 		logger.Errorf(ctx, "failed to import codeforces contest %d: %v", contestID, err)
 		return nil, fmt.Errorf("codeforces contest not found or unavailable: %w", err)
