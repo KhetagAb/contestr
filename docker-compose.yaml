@@ -1,9 +1,16 @@
+x-logging: &default-logging
+  driver: json-file
+  options:
+    max-size: "100m"
+    max-file: "3"
+
 services:
   nginx:
     build:
       context: .
       dockerfile: contestr-front/Dockerfile
     restart: unless-stopped
+    logging: *default-logging
     depends_on:
       - server
     ports:
@@ -13,11 +20,13 @@ services:
     build:
       context: ./contestr
     restart: unless-stopped
+    logging: *default-logging
     depends_on:
       mongodb:
         condition: service_healthy
         required: true
     environment:
+      APP_LOG_LEVEL: info
       APP_MONGODB_URI: "mongodb://mongodb:27017"
       APP_MONGODB_DATABASE: "contestr"
     env_file:
@@ -26,6 +35,7 @@ services:
   mongodb:
     image: mongo:latest
     restart: unless-stopped
+    logging: *default-logging
     ports:
       - "127.0.0.1:15432:27017"
     healthcheck:

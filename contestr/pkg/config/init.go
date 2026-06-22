@@ -19,6 +19,6 @@ func NewConfig() *configs.Config {
 	if err != nil {
 		panic(fmt.Sprintf("failed to load configuration: %v", err))
 	}
-	logger.Init(cfg.App.Name, "info")
+	logger.Init(cfg.App.Name, configs.ResolveLogLevel(cfg.App))
 	return cfg
 }

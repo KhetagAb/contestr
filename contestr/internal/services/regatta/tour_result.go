@@ -387,7 +387,7 @@ func calcSubmissions(submissions []Run, settings regatta.ScoringSettings) map[re
 			continue
 		}
 
-		logger.Infof(context.Background(), "Scored submission! UserID: %v, ProbID: %v, Time: %v, Points: %v",
+		logger.Debugf(context.Background(), "Scored submission! UserID: %v, ProbID: %v, Time: %v, Points: %v",
 			submission.UserID, submission.ProbID, submission.Time, points)
 
 		participant := submission.UserID

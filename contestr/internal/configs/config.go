@@ -1,6 +1,7 @@
 package configs
 
 import (
+	"os"
 	"strings"
 	"time"
 
@@ -23,8 +24,9 @@ type (
 	}
 
 	AppConfig struct {
-		Name    string `mapstructure:"name"`
-		Version string `mapstructure:"version"`
+		Name     string `mapstructure:"name"`
+		Version  string `mapstructure:"version"`
+		LogLevel string `mapstructure:"log_level"`
 	}
 
 	HTTPConfig struct {
@@ -92,6 +94,16 @@ func (c AdminConfig) Enabled() bool {
 	return strings.TrimSpace(c.JWTSecret) != "" &&
 		strings.TrimSpace(c.Username) != "" &&
 		strings.TrimSpace(c.Password) != ""
+}
+
+func ResolveLogLevel(app AppConfig) string {
+	if level := strings.TrimSpace(os.Getenv("APP_LOG_LEVEL")); level != "" {
+		return level
+	}
+	if level := strings.TrimSpace(app.LogLevel); level != "" {
+		return level
+	}
+	return "info"
 }
 
 func LoadConfig(path string) (*Config, error) {

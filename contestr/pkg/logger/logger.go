@@ -76,6 +76,14 @@ func Init(serviceName, level string) {
 	})
 }
 
+func Debug(_ context.Context, msg string) {
+	defaultLogger.Debug(msg)
+}
+
+func Debugf(_ context.Context, format string, args ...interface{}) {
+	sugar.Debugf(format, args...)
+}
+
 func Info(_ context.Context, msg string) {
 	defaultLogger.Info(msg)
 }

@@ -1,6 +1,7 @@
 app:
   name: "contestr"
   version: "1.0.0"
+  log_level: info
 
 http:
   port: 8080
