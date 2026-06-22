@@ -16,6 +16,7 @@ import {
     hasSeenRegattaRules,
     markRegattaRulesSeen,
 } from "@/features/contest/components/regatta-rules/regattaRulesStorage";
+import { SiteFooter } from "@/app/components/SiteFooter";
 
 const baseUrl = localStorage.getItem("baseUrl") ?? "/";
 
@@ -57,6 +58,7 @@ function AppShell() {
         <FollowedParticipantProvider>
             <Sidebar adminSession={sidebarSession} />
             {mainContent}
+            <SiteFooter />
             <ParticipantPickerModal />
             <RegattaRulesLayer />
         </FollowedParticipantProvider>

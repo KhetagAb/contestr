@@ -52,6 +52,23 @@ export function segmentUntilStartSeconds(segment: TimelineSegment, elapsed: numb
     return Math.max(0, segment.start_time - elapsed);
 }
 
+export function isFirstCompetitiveTour(segment: TimelineSegment): boolean {
+    return segment.kind === "tour" && segment.round === 1;
+}
+
+export function effectiveUntilStartSeconds(
+    segment: TimelineSegment,
+    elapsed: number,
+    contestStartIso?: string,
+    nowMs = Date.now(),
+): number {
+    const untilContest = secondsUntilContestStart(contestStartIso, nowMs);
+    if (isFirstCompetitiveTour(segment) && untilContest != null) {
+        return untilContest;
+    }
+    return segmentUntilStartSeconds(segment, elapsed);
+}
+
 /** Секунды до contest_start_time; null если старт уже прошёл или время не задано. */
 export function secondsUntilContestStart(
     contestStartIso?: string,

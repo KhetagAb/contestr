@@ -38,7 +38,6 @@ export function parseParticipantList(text: string, contestId: number): Participa
             .filter((n) => Number.isInteger(n) && n > 0);
 
         if (ids.length === 0) {
-            invalidLines.push(`Строка ${i + 1}: не распознан id контеста`);
             continue;
         }
 

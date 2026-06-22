@@ -1,8 +1,9 @@
 import type { TimelineSegment, TimetableView } from "@/client/types.gen";
 import {
+    effectiveUntilStartSeconds,
+    isFirstCompetitiveTour,
     segmentLabel,
     segmentRemainingSeconds,
-    segmentUntilStartSeconds,
     secondsUntilContestStart,
 } from "./segmentTime";
 
@@ -32,10 +33,6 @@ function nextUpSegment(segments: TimelineSegment[]): TimelineSegment | null {
         segments.find((s) => s.status === "future") ??
         null
     );
-}
-
-function isFirstCompetitiveTour(segment: TimelineSegment): boolean {
-    return segment.kind === "tour" && segment.round === 1;
 }
 
 export function derivePhaseDisplay(
@@ -118,11 +115,11 @@ export function derivePhaseDisplay(
     let remaining: number | null = null;
 
     if (next) {
-        const untilSegment = segmentUntilStartSeconds(next, elapsed);
+        const untilSegment = effectiveUntilStartSeconds(next, elapsed, view.contest_start_time);
         const firstTour = isFirstCompetitiveTour(next);
 
         if (firstTour && untilContest != null) {
-            remaining = untilContest;
+            remaining = untilSegment;
             statusText = "";
         } else if (untilSegment > 0) {
             remaining = untilSegment;
@@ -142,11 +139,13 @@ export function derivePhaseDisplay(
             ["next", "starting", "future"].includes(s.status),
         );
         const untilSegment = upcoming
-            ? segmentUntilStartSeconds(upcoming, elapsed)
-            : 0;
+            ? effectiveUntilStartSeconds(upcoming, elapsed, view.contest_start_time)
+            : view.next_tour_number === 1
+              ? (untilContest ?? 0)
+              : 0;
 
         if (view.next_tour_number === 1 && untilContest != null) {
-            remaining = untilContest;
+            remaining = untilSegment;
             statusText = "";
         } else if (untilSegment > 0) {
             remaining = untilSegment;

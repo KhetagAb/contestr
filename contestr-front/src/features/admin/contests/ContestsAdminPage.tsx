@@ -5,6 +5,7 @@ import { adminAuthHeaders } from "@/features/admin/auth/adminAuth";
 import { ProblemStatementsPanel } from "./ProblemStatementsPanel";
 import { useAdminContests } from "./useAdminContests";
 import { useAdminProblemStatements } from "./useAdminProblemStatements";
+import { formatImportInvalidLinesReport } from "./messages";
 import "./ContestsAdminPage.css";
 
 function clampSettingNumber(raw: string, min: number, max?: number): number {
@@ -207,16 +208,13 @@ export default function ContestsAdminPage() {
     const handleApplyImport = async () => {
         const result = await ac.importHandlesFromList(importText);
         if (!result.ok) {
-            ac.showHandlesMessage(
-                result.detail || result.invalidLines[0] || "Не удалось разобрать список",
-                "error",
-            );
+            const message = [result.detail, formatImportInvalidLinesReport(result.invalidLines)]
+                .filter(Boolean)
+                .join(" ");
+            ac.showHandlesMessage(message || "Не удалось разобрать список", "error");
             return;
         }
 
-        if (result.invalidLines.length > 0) {
-            ac.showHandlesMessage(`Ошибок в строках: ${result.invalidLines.length}`, "info");
-        }
         setImportText("");
         setShowImportList(false);
     };

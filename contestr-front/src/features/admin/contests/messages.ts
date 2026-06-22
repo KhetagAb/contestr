@@ -9,6 +9,29 @@ export function formatImportSuccessMessage(
     return parts.join(". ");
 }
 
+export function formatImportInvalidLinesReport(invalidLines: string[]): string {
+    if (invalidLines.length === 0) {
+        return "";
+    }
+    if (invalidLines.length === 1) {
+        return invalidLines[0];
+    }
+    return `Ошибки в ${invalidLines.length} строках: ${invalidLines.join("; ")}.`;
+}
+
+export function formatImportResultMessage(
+    addedCount: number,
+    skippedOtherContest: number,
+    invalidLines: string[],
+): string {
+    const parts = [formatImportSuccessMessage(addedCount, skippedOtherContest)];
+    const invalidReport = formatImportInvalidLinesReport(invalidLines);
+    if (invalidReport) {
+        parts.push(invalidReport);
+    }
+    return parts.join(" ");
+}
+
 function formatAddedParticipants(count: number): string {
     if (count === 1) {
         return "Добавлен 1 участник";

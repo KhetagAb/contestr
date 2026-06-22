@@ -1,5 +1,6 @@
 import { AlertTriangle, Coffee, Play } from "lucide-react";
 import type { TimetableView } from "@/client/types.gen";
+import { effectiveUntilStartSeconds } from "@/shared/timetable/segmentTime";
 import { AutostartToggle } from "./AutostartToggle";
 import { SEGMENT_SLOT_ICON_PX } from "./segmentIcons";
 import { TourStatusIcon } from "./TourStatusIcon";
@@ -57,12 +58,13 @@ export function NextTourBanner({
         nextSegment && displaySegment && !isLastSlot ? displaySegment : null;
     const showThrough = throughSegment != null;
     const untilStartSeconds = throughSegment
-        ? Math.max(0, throughSegment.start_time - elapsed)
+        ? effectiveUntilStartSeconds(
+              throughSegment,
+              elapsed,
+              view.contest_start_time,
+          )
         : 0;
-    const throughMinutes = throughSegment
-        ? Math.max(0, Math.round(untilStartSeconds / 60))
-        : null;
-    const showThroughWarning = throughMinutes === 0;
+    const showThroughWarning = throughSegment != null && untilStartSeconds === 0;
 
     return (
         <section className="tt-next-banner">

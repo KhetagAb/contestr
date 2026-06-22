@@ -7,7 +7,7 @@ import type {
     TourSettings,
 } from "@/client/types.gen";
 import { readApiError } from "@/features/admin/timetable/errors";
-import { formatImportSuccessMessage } from "./messages";
+import { formatImportResultMessage } from "./messages";
 import { mergeHandleDraft, parseParticipantList } from "./parseParticipantImport";
 
 type LoadState = "idle" | "loading" | "error";
@@ -230,7 +230,11 @@ export function useAdminContests() {
         [loadContests, selectedContestId, showContestsMessage],
     );
 
-    const persistHandles = useCallback(async (rows: CodeforcesHandleItem[], successMessage: string) => {
+    const persistHandles = useCallback(async (
+        rows: CodeforcesHandleItem[],
+        successMessage: string,
+        messageKind: "error" | "success" | "info" = "success",
+    ) => {
         if (selectedContestId == null) {
             return false;
         }
@@ -248,7 +252,7 @@ export function useAdminContests() {
             const data = (await res.json()) as CodeforcesHandleItem[];
             setHandles(data);
             setDraftHandles(data.map((h) => ({ ...h })));
-            showHandlesMessage(successMessage, "success");
+            showHandlesMessage(successMessage, messageKind);
             return true;
         } catch (e) {
             showHandlesMessage(
@@ -481,7 +485,13 @@ export function useAdminContests() {
             }
 
             const merged = mergeHandleDraft(draftHandles, entries);
-            const saved = await persistHandles(merged, formatImportSuccessMessage(entries.length, skippedOtherContest));
+            const successMessage = formatImportResultMessage(
+                entries.length,
+                skippedOtherContest,
+                invalidLines,
+            );
+            const messageKind = invalidLines.length > 0 ? "info" : "success";
+            const saved = await persistHandles(merged, successMessage, messageKind);
             return {
                 ok: saved,
                 entriesCount: entries.length,
