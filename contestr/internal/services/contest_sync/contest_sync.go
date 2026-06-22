@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"contestr/internal/integrations"
@@ -48,14 +49,14 @@ func (s *ContestSyncService) Start(ctx context.Context) error {
 	ticker := time.NewTicker(s.syncInterval)
 	defer ticker.Stop()
 
-	s.SyncAllContests(ctx)
+	s.SyncPeriodic(ctx)
 
 	for {
 		select {
 		case <-ctx.Done():
 			return ctx.Err()
 		case <-ticker.C:
-			s.SyncAllContests(ctx)
+			s.SyncPeriodic(ctx)
 		}
 	}
 }
@@ -68,7 +69,7 @@ type SyncResult struct {
 	ErrorMessages []string
 }
 
-func (s *ContestSyncService) SyncAllContests(ctx context.Context) *SyncResult {
+func (s *ContestSyncService) SyncPeriodic(ctx context.Context) *SyncResult {
 	result := &SyncResult{
 		ErrorMessages: make([]string, 0),
 	}
@@ -96,25 +97,7 @@ func (s *ContestSyncService) SyncAllContests(ctx context.Context) *SyncResult {
 			continue
 		}
 
-		adapter, ok := s.adapters[system]
-		if !ok {
-			errMsg := fmt.Sprintf("adapter for system %s not found", system)
-			logger.Errorf(ctx, errMsg)
-			result.ErrorMessages = append(result.ErrorMessages, errMsg)
-			result.FailedCount += len(contestIDs)
-			continue
-		}
-
 		for _, contestID := range contestIDs {
-			registered, err := s.registry.GetContest(contestID)
-			if err != nil {
-				errMsg := fmt.Sprintf("failed to load contest settings for %d (%s): %v", contestID, system, err)
-				logger.Errorf(ctx, errMsg)
-				result.ErrorMessages = append(result.ErrorMessages, errMsg)
-				result.FailedCount++
-				continue
-			}
-
 			cached, err := s.contestRepo.GetByContestID(ctx, contestID)
 			if err != nil && !errors.Is(err, mongo.ErrNoDocuments) {
 				logger.Errorf(ctx, "failed to load cached contest %d for sync gating: %v", contestID, err)
@@ -123,11 +106,7 @@ func (s *ContestSyncService) SyncAllContests(ctx context.Context) *SyncResult {
 				continue
 			}
 
-			contest, err := adapter.FetchContest(ctx, contestID, integrations.FetchContestOptions{
-				ScoringSettings: registered.ScoringSettings,
-				TourSettings:    registered.TourSettings,
-			})
-			if err != nil {
+			if err := s.SyncContest(ctx, contestID); err != nil {
 				errMsg := fmt.Sprintf("failed to sync contest %d (%s): %v", contestID, system, err)
 				logger.Errorf(ctx, errMsg)
 				result.ErrorMessages = append(result.ErrorMessages, errMsg)
@@ -135,15 +114,7 @@ func (s *ContestSyncService) SyncAllContests(ctx context.Context) *SyncResult {
 				continue
 			}
 
-			if err := s.contestRepo.Upsert(ctx, contest); err != nil {
-				errMsg := fmt.Sprintf("failed to save contest %d: %v", contestID, err)
-				logger.Errorf(ctx, errMsg)
-				result.ErrorMessages = append(result.ErrorMessages, errMsg)
-				result.FailedCount++
-			} else {
-				logger.Infof(ctx, "successfully synced contest %d (%s)", contestID, system)
-				result.SyncedCount++
-			}
+			result.SyncedCount++
 		}
 	}
 
@@ -182,10 +153,21 @@ func (s *ContestSyncService) SyncContest(ctx context.Context, contestID int) err
 		return fmt.Errorf("failed to sync contest %d (%s): %w", contestID, system, err)
 	}
 
+	applyRegisteredContestName(contest, registered)
+
 	if err := s.contestRepo.Upsert(ctx, contest); err != nil {
 		return fmt.Errorf("failed to save contest %d: %w", contestID, err)
 	}
 
 	logger.Infof(ctx, "successfully synced contest %d (%s)", contestID, system)
 	return nil
+}
+
+func applyRegisteredContestName(contest *regatta.Contest, registered *repository.RegisteredContest) {
+	if contest == nil || registered == nil {
+		return
+	}
+	if name := strings.TrimSpace(registered.Name); name != "" {
+		contest.ContestName = name
+	}
 }
