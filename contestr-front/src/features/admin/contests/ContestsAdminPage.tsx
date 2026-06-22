@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type FocusEvent, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FocusEvent, type FormEvent } from "react";
 import { Check, CircleHelp, Plus, RefreshCw, Save, Trash2, Upload, X } from "lucide-react";
 import type { TimetableView } from "@/client/types.gen";
 import { adminAuthHeaders } from "@/features/admin/auth/adminAuth";
@@ -6,6 +6,9 @@ import { ProblemStatementsPanel } from "./ProblemStatementsPanel";
 import { useAdminContests } from "./useAdminContests";
 import { useAdminProblemStatements } from "./useAdminProblemStatements";
 import { formatImportInvalidLinesReport } from "./messages";
+import { ContestListRow } from "./ContestListRow";
+import { useContestParticipantCounts } from "@/shared/hooks/useContestParticipantCounts";
+import { useContestTimetableStarts } from "@/shared/hooks/useContestTimetableStarts";
 import "./ContestsAdminPage.css";
 
 function clampSettingNumber(raw: string, min: number, max?: number): number {
@@ -143,6 +146,13 @@ export default function ContestsAdminPage() {
 
     const selected = ac.contests.find((c) => c.contest_id === ac.selectedContestId);
     const [tourSlotCount, setTourSlotCount] = useState(0);
+    const contestIds = useMemo(
+        () => ac.contests.map((contest) => contest.contest_id),
+        [ac.contests],
+    );
+    const contestsMetaEnabled = ac.loadState === "idle" && contestIds.length > 0;
+    const { startTimeByContestId } = useContestTimetableStarts(contestIds, contestsMetaEnabled);
+    const { countByContestId } = useContestParticipantCounts(contestIds, contestsMetaEnabled);
 
     const ps = useAdminProblemStatements(
         ac.selectedContestId,
@@ -246,21 +256,14 @@ export default function ContestsAdminPage() {
                                 )}
                                 {ac.contests.map((c) => (
                                     <li key={c.contest_id} className="cf-contest-list__row">
-                                        <button
-                                            type="button"
-                                            className={`cf-contest-list-item${
-                                                ac.selectedContestId === c.contest_id
-                                                    ? " cf-contest-list-item--active"
-                                                    : ""
-                                            }`}
-                                            onClick={() => ac.setSelectedContestId(c.contest_id)}
+                                        <ContestListRow
+                                            contest={c}
+                                            active={ac.selectedContestId === c.contest_id}
                                             disabled={ac.busy}
-                                        >
-                                            <span className="cf-contest-list-item__name">{c.name}</span>
-                                            <span className="cf-contest-list-item__meta">
-                                                ID {c.contest_id} · {c.system}
-                                            </span>
-                                        </button>
+                                            startTime={startTimeByContestId.get(c.contest_id)}
+                                            participantCount={countByContestId.get(c.contest_id)}
+                                            onSelect={() => ac.setSelectedContestId(c.contest_id)}
+                                        />
                                         <span className="cf-contest-list__actions">
                                             <button
                                                 type="button"

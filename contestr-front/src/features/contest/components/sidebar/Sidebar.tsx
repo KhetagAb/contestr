@@ -2,7 +2,9 @@ import { useState, type ReactNode } from "react";
 import { FiMenu } from "react-icons/fi";
 import { CONTEST_HOME_QUERY, useAppPath } from "@/app/AppPath";
 import { useFollowedParticipant } from "@/features/contest/follow/FollowedParticipantContext";
+import { useContestTimetableStarts } from "@/shared/hooks/useContestTimetableStarts";
 import { useContests } from "@/shared/hooks/useContests";
+import { formatContestStartLabel } from "@/shared/utils/contestStartTime";
 import logo from "@/assets/icons/logo.svg";
 import adminUserIcon from "@/assets/images/admin-user-icon.png";
 import { AdminSidebarMenu } from "./AdminSidebarMenu";
@@ -33,6 +35,12 @@ export function Sidebar({ adminSession }: SidebarProps) {
     const [hoveredMenu, setHoveredMenu] = useState<string | null>(null);
     const { openParticipantPicker } = useFollowedParticipant();
     const { contests, isLoading } = useContests();
+    const contestsMenuOpen = hoveredMenu === "contests";
+    const contestIds = contests.map((item) => item.contest_id);
+    const { startTimeByContestId } = useContestTimetableStarts(
+        contestIds,
+        contestsMenuOpen && !isLoading && contestIds.length > 0,
+    );
 
     const isAdminMenuOpen = hoveredMenu === "user" && adminSession != null;
 
@@ -61,7 +69,7 @@ export function Sidebar({ adminSession }: SidebarProps) {
                     <div className="icon-box" aria-label="Список контестов">
                         <FiMenu className="sidebar-contests-menu-icon" aria-hidden />
                     </div>
-                    <Submenu isOpen={hoveredMenu === "contests"}>
+                    <Submenu isOpen={contestsMenuOpen}>
                         {isLoading && (
                             <span className="submenu-item submenu-item-text">Загрузка…</span>
                         )}
@@ -70,15 +78,27 @@ export function Sidebar({ adminSession }: SidebarProps) {
                                 Контесты не настроены
                             </span>
                         )}
-                        {contests.map((item) => (
-                            <a
-                                key={item.contest_id}
-                                className="submenu-item"
-                                href={`/?contestId=${item.contest_id}`}
-                            >
-                                <span className="submenu-item-text">{item.name}</span>
-                            </a>
-                        ))}
+                        {contests.map((item) => {
+                            const startLabel = formatContestStartLabel(
+                                startTimeByContestId.get(item.contest_id),
+                            );
+                            return (
+                                <a
+                                    key={item.contest_id}
+                                    className="submenu-item submenu-item--contest"
+                                    href={`/?contestId=${item.contest_id}`}
+                                >
+                                    <span className="submenu-item__body">
+                                        <span className="submenu-item-text submenu-item__title">
+                                            {item.name}
+                                        </span>
+                                        {startLabel && (
+                                            <span className="submenu-item__meta">{startLabel}</span>
+                                        )}
+                                    </span>
+                                </a>
+                            );
+                        })}
                     </Submenu>
                 </div>
             </div>

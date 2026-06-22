@@ -139,17 +139,17 @@
 
 .cf-contest-list-item {
     width: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.15rem;
+    display: grid;
+    grid-template-columns: minmax(4.5rem, auto) minmax(0, 1fr);
+    gap: 0.35rem 0.75rem;
+    align-items: start;
     padding: 0.5rem 4rem 0.5rem 0.75rem;
     border: 1px solid #e0dcd0;
     border-radius: 0.5rem;
     background: #faf9f6;
-    cursor: pointer;
     text-align: left;
     font-family: "Anonymous Pro", sans-serif;
+    box-sizing: border-box;
 }
 
 .cf-contest-list-item--active {
@@ -157,20 +157,128 @@
     background: #fff5f6;
 }
 
-.cf-contest-list-item__name,
-.cf-contest-list-item__meta {
+.cf-contest-list-item__aside {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.1rem;
+    min-width: 0;
+}
+
+.cf-contest-list-item__id {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+    font-weight: 600;
+    font-size: 0.92rem;
+    line-height: 1.3;
+    color: #4f4e4e;
+    cursor: pointer;
+    user-select: none;
+    text-decoration: underline;
+    text-decoration-color: transparent;
+    text-underline-offset: 0.14em;
+    transition:
+        color 0.15s ease,
+        text-decoration-color 0.15s ease;
+}
+
+.cf-contest-list-item__id:hover:not([aria-disabled="true"]) {
+    color: #bf9298;
+    text-decoration-color: currentColor;
+}
+
+.cf-contest-list-item__id:focus-visible {
+    outline: 2px solid rgba(229, 137, 149, 0.45);
+    outline-offset: 2px;
+    border-radius: 0.2rem;
+    color: #bf9298;
+    text-decoration-color: currentColor;
+}
+
+.cf-contest-list-item__id--copied {
+    color: #2d6a4f;
+    text-decoration-color: currentColor;
+    cursor: default;
+}
+
+.cf-contest-list-item__id[aria-disabled="true"] {
+    cursor: not-allowed;
+    opacity: 0.65;
+    pointer-events: none;
+}
+
+.cf-contest-list-item__id-mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+}
+
+.cf-contest-list-item__id-icon {
+    flex-shrink: 0;
+}
+
+.cf-contest-list-item__id-copy-icon {
+    width: 13px;
+    height: 13px;
+    flex-shrink: 0;
+    opacity: 0.55;
+    transition: opacity 0.15s ease;
+}
+
+.cf-contest-list-item__id:hover:not([aria-disabled="true"]) .cf-contest-list-item__id-copy-icon {
+    opacity: 1;
+}
+
+.cf-contest-list-item__start {
+    font-size: 0.78rem;
+    line-height: 1.25;
+    color: #8a8578;
+    white-space: nowrap;
+}
+
+.cf-contest-list-item__main {
     width: 100%;
-    overflow-wrap: anywhere;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    text-align: left;
+    font: inherit;
+    color: inherit;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.1rem;
+}
+
+.cf-contest-list-item__main:disabled {
+    cursor: not-allowed;
+    opacity: 0.65;
 }
 
 .cf-contest-list-item__name {
+    width: 100%;
+    overflow-wrap: anywhere;
     font-weight: 600;
     color: #4f4e4e;
+    line-height: 1.3;
 }
 
-.cf-contest-list-item__meta {
-    font-size: 0.85em;
+.cf-contest-list-item__participants {
+    font-size: 0.78rem;
+    line-height: 1.25;
     color: #6b6a68;
+}
+
+.cf-contest-list-item__main:hover:not(:disabled) .cf-contest-list-item__name,
+.cf-contest-list-item__main:focus-visible .cf-contest-list-item__name {
+    color: #bf9298;
 }
 
 .cf-contest-panel-footer {

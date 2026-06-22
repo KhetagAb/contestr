@@ -11,6 +11,10 @@ export const CONTEST_PHASE_FOCUS_PATH = "/phase";
 
 export const CONTEST_HOME_QUERY = "home";
 
+export const ADMIN_ROOT_PATH = "/admin";
+export const ADMIN_TIMETABLE_PATH = "/admin/timetable";
+export const ADMIN_CONTESTS_PATH = "/admin/contests";
+
 type AppPathContextValue = {
     path: string;
     search: string;

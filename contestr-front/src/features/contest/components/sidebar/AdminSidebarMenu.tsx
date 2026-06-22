@@ -1,3 +1,4 @@
+import { ADMIN_TIMETABLE_PATH } from "@/app/AppPath";
 import type { AdminSidebarSession } from "./Sidebar";
 
 type Props = {
@@ -11,7 +12,7 @@ export function AdminSidebarMenu({ session }: Props) {
                 Вы вошли как{" "}
                 <span style={{ color: "#6466fd", fontWeight: 600 }}>{session.username}</span>
             </p>
-            <a href="/admin" className="admin-user-popover-link">
+            <a href={ADMIN_TIMETABLE_PATH} className="admin-user-popover-link">
                 Админ-панель
             </a>
             <button
